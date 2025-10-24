@@ -53,12 +53,12 @@ jobs:
         if: steps.git_status.outputs.changes == 'true'
         id: app_name
         run: |
-          APP_NAME=$(git diff --name-only --staged manifests/bootstrap/ | grep -o '[^/]*-app.yaml' | sed 's/-app.yaml//' | tr '\n' ' ')
+          APP_NAME=$(git status --porcelain manifests/bootstrap/ | grep -o '[^/]*-app.yaml' | sed 's/-app.yaml//' | tr '\n' ' ' | xargs)
           echo "name=$APP_NAME" >> $GITHUB_OUTPUT
 
       - name: Commit and push changes
         if: steps.git_status.outputs.changes == 'true'
         run: |
           git add manifests/bootstrap/
-          git commit -m "Auto-generate application: ${{ steps.app_name.outputs.name }}"
+          git commit -m "chore: generate application: ${{ steps.app_name.outputs.name }}"
           git push

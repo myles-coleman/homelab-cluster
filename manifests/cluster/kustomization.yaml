@@ -13,8 +13,6 @@ resources:
 - longhorn
 # - pihole
 # - pikvm
-# - monitoring
-- nextcloud
 - dex
 - qbittorrent
 - external-secrets
@@ -24,6 +22,6 @@ resources:
 - calibre-web
 - homepage
 - copyparty
-# - metallb
-# - traefik
-# - argocd-secret
+- metallb
+- traefik
+- argocd-secret
