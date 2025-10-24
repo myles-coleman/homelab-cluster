@@ -6,7 +6,7 @@ metadata:
 spec:
   destination:
     server: https://kubernetes.default.svc
-    namespace: metallb
+    namespace: metallb-system
   project: default
   source:
     path: manifests/cluster/metallb

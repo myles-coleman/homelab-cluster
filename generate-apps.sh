@@ -9,8 +9,15 @@ cat "$BOOTSTRAP_DIR/kustomization.yaml" | grep -v "^- " > "$TEMP_KUST"
 echo "Parsing resources from $CLUSTER_KUSTOMIZATION..."
 resources=$(grep "^- " "$CLUSTER_KUSTOMIZATION" | sed 's/^- //')
 
+# Namespace mapping for cases where directory name != namespace
+declare -A namespace_map
+namespace_map["metallb"]="metallb-system"
+
 for resource in $resources; do
   echo "Generating Application for $resource..."
+  
+  # Use mapped namespace if exists, otherwise use resource name
+  target_namespace="${namespace_map[$resource]:-$resource}"
   
   cat > "$BOOTSTRAP_DIR/$resource-app.yaml" << EOF
 apiVersion: argoproj.io/v1alpha1
@@ -21,7 +28,7 @@ metadata:
 spec:
   destination:
     server: https://kubernetes.default.svc
-    namespace: $resource
+    namespace: $target_namespace
   project: default
   source:
     path: manifests/cluster/$resource
