@@ -12,7 +12,7 @@ resources:
 - discord-bot
 - longhorn
 # - pihole
-# - pikvm
+- pikvm
 - dex
 - qbittorrent
 - external-secrets
