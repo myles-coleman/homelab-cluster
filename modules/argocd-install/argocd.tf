@@ -4,6 +4,11 @@ resource "kubernetes_namespace" "argocd" {
   }
 }
 
+resource "random_password" "client_secret" {
+  length  = 20
+  special = false
+}
+
 resource "helm_release" "argocd" {
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
@@ -42,6 +47,7 @@ configs:
   secret:
     extra:
       oidc.sso.clientID: argocd
+      oidc.sso.clientSecret: ${random_password.client_secret.result}
 
   cm:
     exec.enabled: true
