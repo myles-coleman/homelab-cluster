@@ -9,7 +9,6 @@ resources:
 # - pihole-app.yaml
 # - pikvm-app.yaml
 # - vaultwarden-app.yaml
-- homer-app.yaml
 - sonarr-app.yaml
 - radarr-app.yaml
 - lidarr-app.yaml
