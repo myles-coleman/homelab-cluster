@@ -4,4 +4,5 @@ namespace: traefik
 
 resources:
   - namespace.yaml
+  - crds.yaml
   - helm-chart.yaml
