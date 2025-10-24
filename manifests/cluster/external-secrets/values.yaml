@@ -1,10 +1,10 @@
 installCRDs: true
 
 certManager:
-  enabled: true
-  addInjectorAnnotations: true
+  enabled: false  # Disabled to avoid circular dependency with cert-manager
+  addInjectorAnnotations: false
   cert:
-    create: true
+    create: false
     issuerRef:
       group: cert-manager.io
       kind: "Issuer"
@@ -13,9 +13,9 @@ certManager:
 
 webhook:
   certManager:
-    enabled: true
+    enabled: false  # Disabled to avoid circular dependency with cert-manager
     cert:
-      create: true
+      create: false
 
       issuerRef:
         group: cert-manager.io
