@@ -16,6 +16,7 @@ resources:
 - jellyseerr-app.yaml
 - discord-bot-app.yaml
 - longhorn-app.yaml
+- pikvm-app.yaml
 - dex-app.yaml
 - qbittorrent-app.yaml
 - external-secrets-app.yaml
