@@ -17,7 +17,6 @@ resources:
 - jellyseerr-app.yaml
 - discord-bot-app.yaml
 - longhorn-app.yaml
-- nextcloud-app.yaml
 - dex-app.yaml
 - qbittorrent-app.yaml
 - external-secrets-app.yaml
@@ -26,3 +25,6 @@ resources:
 - calibre-web-app.yaml
 - homepage-app.yaml
 - copyparty-app.yaml
+- metallb-app.yaml
+- traefik-app.yaml
+- argocd-secret-app.yaml
