@@ -26,4 +26,3 @@ resources:
 - calibre-web-app.yaml
 - homepage-app.yaml
 - copyparty-app.yaml
-- metrics-server-app.yaml
