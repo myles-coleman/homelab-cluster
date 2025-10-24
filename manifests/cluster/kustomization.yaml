@@ -14,7 +14,7 @@ resources:
 # - pihole
 # - pikvm
 # - monitoring
-# - nextcloud
+- nextcloud
 - dex
 - qbittorrent
 - external-secrets
@@ -24,8 +24,6 @@ resources:
 - calibre-web
 - homepage
 - copyparty
-# - nixos-mcp
-- metrics-server
-- metallb
-- traefik
-- argocd-secret
+# - metallb
+# - traefik
+# - argocd-secret
