@@ -10,7 +10,7 @@ spec:
   project: default
   source:
     path: manifests/cluster/traefik
-    repoURL: "https://github.com/myles-coleman/k3s-nixos"
+    repoURL: "https://github.com/myles-coleman/homelab-cluster"
     targetRevision: main
   syncPolicy:
     automated:

@@ -25,7 +25,7 @@ spec:
   project: default
   source:
     path: manifests/cluster/$resource
-    repoURL: "https://github.com/myles-coleman/k3s-nixos"
+    repoURL: "https://github.com/myles-coleman/homelab-cluster"
     targetRevision: main
   syncPolicy:
     automated:

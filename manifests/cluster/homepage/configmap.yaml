@@ -18,7 +18,7 @@ data:
   bookmarks.yaml: |
     - Repository:
         - Github:
-            - href: https://github.com/myles-coleman/k3s-nixos
+            - href: https://github.com/myles-coleman/homelab-cluster
   services.yaml: |
     - Downloaders:
         - Jellyseerr:
