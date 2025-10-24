@@ -45,6 +45,8 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "$sync_wave"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   destination:
     server: https://kubernetes.default.svc
