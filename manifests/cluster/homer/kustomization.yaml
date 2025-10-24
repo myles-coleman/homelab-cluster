@@ -1,0 +1,56 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+
+configMapGenerator:
+  - name: homer-config
+    namespace: homer
+    options:
+      disableNameSuffixHash: true
+      annotations:
+        argocd.argoproj.io/sync-options: Replace=true
+    behavior: create
+    files:
+     - config.yml=config.yaml
+
+  - name: homer-css
+    namespace: homer
+    options:
+      disableNameSuffixHash: true
+      annotations:
+        argocd.argoproj.io/sync-options: Replace=true
+    files:
+      - custom.css=custom.css
+
+  - name: homer-icons
+    namespace: homer
+    options:
+      disableNameSuffixHash: true
+      annotations:
+        argocd.argoproj.io/sync-options: ServerSideApply=true,Replace=true
+    files:
+      - jellyfin.png=icons/jellyfin.png
+      - jellyseerr.png=icons/jellyseerr.png
+      - sonarr.png=icons/sonarr.png
+      - radarr.png=icons/radarr.png
+      - readarr.png=icons/readarr.png
+      - lidarr.png=icons/lidarr.png
+      - prowlarr.png=icons/prowlarr.png
+      - nextcloud.png=icons/nextcloud.png
+      - vaultwarden.png=icons/vaultwarden.png
+      - qbittorrent.png=icons/qbittorrent.png
+      - pi-hole.png=icons/pi-hole.png
+      - pikvm.png=icons/pikvm.png
+      - grafana.png=icons/grafana.png
+      - argocd.png=icons/argocd.png
+      - traefik.png=icons/traefik.png
+      - vault.png=icons/vault.png
+      - longhorn.png=icons/longhorn.png
+      - smallcow.png=icons/smallcow.png
+      - favicon.ico=icons/favicon.ico
+      - pwa-192x192.png=icons/pwa-192x192.png
+      - pwa-512x512.png=icons/pwa-512x512.png

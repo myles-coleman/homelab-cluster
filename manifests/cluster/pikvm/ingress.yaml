@@ -1,0 +1,18 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pikvm
+  namespace: pikvm
+  annotations:
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`pikvm.cowlab.org`)
+      kind: Rule
+      services:
+        - name: pikvm-external-ssl
+          port: 443
+          scheme: https
+          serversTransport: "pikvm-transport"

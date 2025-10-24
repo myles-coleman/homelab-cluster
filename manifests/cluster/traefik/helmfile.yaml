@@ -1,0 +1,11 @@
+repositories:
+- name: traefik
+  url: https://helm.traefik.io/traefik
+
+releases:
+- name: traefik
+  namespace: traefik
+  chart: traefik/traefik
+  version: v33.2.1
+  values:
+    - values.yaml

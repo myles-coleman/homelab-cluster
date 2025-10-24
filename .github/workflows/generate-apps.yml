@@ -1,0 +1,64 @@
+name: Generate Bootstrap Applications
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'manifests/cluster/**'
+      - 'manifests/cluster/kustomization.yaml'
+
+jobs:
+  generate-apps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+          
+      - name: Set up Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          
+      - name: Check for changes in manifests/cluster
+        id: check_changes
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^manifests/cluster/"; then
+            echo "::set-output name=changes::true"
+          else
+            echo "::set-output name=changes::false"
+          fi
+          
+      - name: Run generate-apps.sh script
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          chmod +x ./generate-apps.sh
+          ./generate-apps.sh
+          
+      - name: Check for changes to commit
+        id: git_status
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "::set-output name=changes::true"
+          else
+            echo "::set-output name=changes::false"
+          fi
+          
+      - name: Get application name
+        if: steps.git_status.outputs.changes == 'true'
+        id: app_name
+        run: |
+          APP_NAME=$(git diff --name-only --staged manifests/bootstrap/ | grep -o '[^/]*-app.yaml' | sed 's/-app.yaml//' | tr '\n' ' ')
+          echo "name=$APP_NAME" >> $GITHUB_OUTPUT
+
+      - name: Commit and push changes
+        if: steps.git_status.outputs.changes == 'true'
+        run: |
+          git add manifests/bootstrap/
+          git commit -m "Auto-generate application: ${{ steps.app_name.outputs.name }}"
+          git push

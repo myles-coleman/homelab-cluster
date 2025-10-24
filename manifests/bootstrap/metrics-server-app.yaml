@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: metrics-server
+  namespace: argocd
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: metrics-server
+  project: default
+  source:
+    path: manifests/cluster/metrics-server
+    repoURL: "https://github.com/myles-coleman/k3s-nixos"
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 2m
+      limit: 5

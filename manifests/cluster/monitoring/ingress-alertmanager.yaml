@@ -1,0 +1,18 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: alertmanager-main
+  namespace: monitoring
+  annotations: 
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: Host(`alertmanager.cowlab.org`) && PathPrefix(`/`)
+    kind: Rule
+    services:
+    - name: alertmanager-main
+      port: 9093 
+  # tls:
+  #   secretName: cowlab-production-tls

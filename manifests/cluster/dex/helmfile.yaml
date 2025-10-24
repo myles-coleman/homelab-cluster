@@ -1,0 +1,13 @@
+kubeVersion: v1.28
+
+repositories:
+- name: dex
+  url: https://charts.dexidp.io
+
+releases:
+- name: dex
+  namespace: dex
+  version: 0.15.2
+  chart: dex/dex
+  values:
+  - values.yaml

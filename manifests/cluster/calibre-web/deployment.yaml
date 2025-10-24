@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calibre
+  namespace: calibre
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: calibre
+  template:
+    metadata:
+      labels:
+        app: calibre
+    spec:
+      containers:
+      - name: calibre
+        image: linuxserver/calibre-web:0.6.24
+        resources:
+          limits:
+            memory: "1024Mi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "Etc/UTC"
+        ports:
+        - containerPort: 8083
+        volumeMounts:
+        - name: books-volume
+          mountPath: /books
+        - name: config-volume
+          mountPath: /config
+      volumes:
+      - name: books-volume
+        persistentVolumeClaim:
+          claimName: calibre-books
+      - name: config-volume
+        persistentVolumeClaim:
+          claimName: calibre-config

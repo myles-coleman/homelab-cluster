@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: qbittorrent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent
+    spec:
+      initContainers:
+      - name: wireguard-config-init
+        image: busybox:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          echo "Creating WireGuard configuration..."
+          # Create config directory structure
+          mkdir -p /config/wg_confs
+          
+          # Copy the configuration from the external secret
+          cp /secret/wg0.conf /config/wg_confs/wg0.conf
+          chmod 600 /config/wg_confs/wg0.conf
+          
+          echo "WireGuard configuration created successfully"
+        volumeMounts:
+        - name: wireguard-config-volume
+          mountPath: /config
+        - name: wireguard-secret-volume
+          mountPath: /secret
+      containers:
+      - name: wireguard
+        image: lscr.io/linuxserver/wireguard:latest
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+              - SYS_MODULE
+          appArmorProfile:
+            type: Unconfined
+          privileged: true
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "America/Los_Angeles"
+        - name: INTERNAL_SUBNET
+          value: "10.42.0.0/16,10.43.0.0/16"
+        - name: KILLSWITCH
+          value: "true"
+        volumeMounts:
+        - name: wireguard-config-volume
+          mountPath: /config
+        ports:
+        - containerPort: 51820
+          protocol: UDP
+          name: wireguard
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+      - name: qbittorrent
+        image: lscr.io/linuxserver/qbittorrent:latest
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Check if WireGuard tunnel is up
+              ip link show wg0 && \
+              curl -s --connect-timeout 5 https://am.i.mullvad.net/connected || exit 1
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 30
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]
+        env:
+        - name: TZ
+          value: "America/Los_Angeles"
+        - name: WEBUI_PORT
+          value: "8080"
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+        ports:
+        - containerPort: 8080
+          name: webui
+        volumeMounts:
+        - name: config-volume
+          mountPath: /config
+        - name: data-nfs-volume
+          mountPath: /data
+      volumes:
+      - name: config-volume
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: wireguard-config-volume
+        persistentVolumeClaim:
+          claimName: wireguard-config
+      - name: wireguard-secret-volume
+        secret:
+          secretName: wireguard-config
+      - name: data-nfs-volume
+        persistentVolumeClaim:
+          claimName: qbittorrent-data-nfs

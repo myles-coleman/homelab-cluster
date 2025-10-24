@@ -1,0 +1,27 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pihole
+  namespace: pihole
+  annotations:
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`pihole.cowlab.org`) && Path(`/`)
+      kind: Rule
+      services:
+        - name: noop
+          kind: TraefikService
+      middlewares:
+        - name: pihole-root-redirect
+          namespace: pihole
+    - match: Host(`pihole.cowlab.org`) && PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: pihole-external
+          port: 8080
+          passHostHeader: false
+          responseForwarding:
+            flushInterval: "100ms"

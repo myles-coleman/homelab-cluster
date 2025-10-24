@@ -1,0 +1,53 @@
+replicaCount: 2
+configSecret:
+  create: false
+  name: "dex-config"
+
+namespace: dex
+
+serviceAccount:
+  create: true
+  name: dex
+
+image:
+  repository: dexidp/dex
+  tag: latest-distroless@sha256:6e8ebefbded0bcb409468c81f6d5cc18a582d6c25b5ac72db26a327b2936bcfb
+
+rbac:
+  create: true
+  clusterRole:
+    create: true
+    rules:
+      - apiGroups: ["dex.coreos.com"]
+        resources: ["*"]
+        verbs: ["*"]
+      - apiGroups: ["apiextensions.k8s.io"]
+        resources: ["customresourcedefinitions"]
+        verbs: ["create", "get", "list", "watch", "delete", "update"]
+  clusterRoleBinding:
+    create: true
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+ingress:
+  enabled: false
+
+topologySpreadConstraints:
+- maxSkew: 1
+  topologyKey: topology.kubernetes.io/zone
+  whenUnsatisfiable: ScheduleAnyway
+  labelSelector:
+    matchLabels:
+      app.kubernetes.io/instance: dex
+- maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: DoNotSchedule
+  labelSelector:
+    matchLabels:
+      app.kubernetes.io/instance: dex

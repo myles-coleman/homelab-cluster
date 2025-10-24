@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: copyparty
+  namespace: copyparty
+  labels:
+    app: copyparty
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: copyparty
+  template:
+    metadata:
+      labels:
+        app: copyparty
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: copyparty
+        image: copyparty/ac:1.18.6
+        ports:
+        - containerPort: 3923
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        volumeMounts:
+        - name: config-volume
+          mountPath: /cfg/copyparty.conf
+          subPath: copyparty.conf
+        - name: data-volume
+          mountPath: /w
+        - name: media-volume
+          mountPath: /w/media
+          subPath: data/media
+        - name: persistent-config
+          mountPath: /cfg/hists
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3923
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3923
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: config-volume
+        configMap:
+          name: copyparty-config
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: copyparty-data
+      - name: media-volume
+        persistentVolumeClaim:
+          claimName: copyparty-media
+      - name: persistent-config
+        persistentVolumeClaim:
+          claimName: copyparty-config

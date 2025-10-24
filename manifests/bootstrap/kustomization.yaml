@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+# - jellyfin-app.yaml
+# - pihole-app.yaml
+# - pikvm-app.yaml
+# - monitoring-app.yaml
+# - dapr-app.yaml
+# - pihole-app.yaml
+# - pikvm-app.yaml
+# - vaultwarden-app.yaml
+- homer-app.yaml
+- sonarr-app.yaml
+- radarr-app.yaml
+- lidarr-app.yaml
+- prowlarr-app.yaml
+- jellyseerr-app.yaml
+- discord-bot-app.yaml
+- longhorn-app.yaml
+- nextcloud-app.yaml
+- dex-app.yaml
+- qbittorrent-app.yaml
+- external-secrets-app.yaml
+- cert-manager-app.yaml
+- openbooks-app.yaml
+- calibre-web-app.yaml
+- homepage-app.yaml
+- copyparty-app.yaml
+- metrics-server-app.yaml

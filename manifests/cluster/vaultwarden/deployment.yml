@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vaultwarden
+  template:
+    metadata:
+      labels:
+        app: vaultwarden
+    spec:
+      containers:
+      - name: vaultwarden
+        image: vaultwarden/server:latest
+        env:
+        - name: DOMAIN
+          value: "https://vaultwarden.cowlab.org"
+        - name: EMERGENCY_ACCESS_ALLOWED
+          value: "true"
+        - name: WEB_VAULT_ENABLED
+          value: "true"
+        - name: SIGNUPS_ALLOWED
+          value: "true"
+        - name: INVITATIONS_ALLOWED
+          value: "true"
+        - name: DISABLE_REGISTRATION_VERIFICATION
+          value: "true"
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: vaultwarden-data

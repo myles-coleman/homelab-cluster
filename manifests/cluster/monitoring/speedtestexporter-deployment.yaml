@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    k8s-app: speedtest-exporter
+  name: speedtest-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: speedtest-exporter
+  template:
+    metadata:
+      labels:
+        k8s-app: speedtest-exporter
+    spec:
+      containers:
+      - image: ghcr.io/miguelndecarvalho/speedtest-exporter
+        name: speedtest-exporter
+        ports:
+        - containerPort: 9798
+          name: metrics
+      restartPolicy: Always

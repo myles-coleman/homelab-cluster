@@ -1,0 +1,78 @@
+# Traefik Helm Chart Values
+# Version: v33.2.1
+
+# Global arguments
+globalArguments:
+  - "--global.sendanonymoususage=false"
+  - "--global.checknewversion=false"
+
+# Additional arguments
+additionalArguments:
+  - "--serversTransport.insecureSkipVerify=true"
+  - "--log.level=INFO"
+
+# Deployment configuration
+deployment:
+  enabled: true
+  replicas: 1
+  annotations: {}
+  podAnnotations: {}
+  additionalContainers: []
+  initContainers: []
+
+# Ports configuration
+ports:
+  web:
+    # Redirect HTTP to HTTPS
+    redirectTo:
+      port: websecure
+      priority: 10
+  websecure:
+    # Enable HTTP/3 (QUIC)
+    http3:
+      enabled: true
+    advertisedPort: 4443
+    tls:
+      enabled: true
+
+# Disable default dashboard IngressRoute (we'll create our own)
+ingressRoute:
+  dashboard:
+    enabled: false
+
+# Providers
+providers:
+  kubernetesCRD:
+    enabled: true
+    ingressClass: traefik-external
+    allowExternalNameServices: true
+  kubernetesIngress:
+    enabled: true
+    allowExternalNameServices: true
+    publishedService:
+      enabled: false
+
+# RBAC
+rbac:
+  enabled: true
+
+# Service configuration
+service:
+  enabled: true
+  type: LoadBalancer
+  annotations: {}
+  labels: {}
+  spec:
+    # This IP should be from your MetalLB range (10.0.0.80-10.0.0.99)
+    loadBalancerIP: 10.0.0.99
+  loadBalancerSourceRanges: []
+  externalIPs: []
+
+# Resources
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

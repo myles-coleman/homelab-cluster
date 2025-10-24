@@ -1,0 +1,12 @@
+environment: dev
+project_name: homelab
+cluster_name: homelab-k3s-cluster
+
+aws_region: us-west-1
+
+common_tags:
+  Environment: dev
+  Project: homelab
+  Cluster: homelab-k3s-cluster
+  Terraform: true
+  ManagedBy: Terragrunt

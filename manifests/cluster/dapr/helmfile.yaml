@@ -1,0 +1,11 @@
+repositories:
+- name: dapr
+  url: https://dapr.github.io/helm-charts
+
+releases:
+- name: dapr
+  namespace: dapr-system
+  version: 1.15
+  chart: dapr/dapr
+  createNamespace: false
+  wait: false

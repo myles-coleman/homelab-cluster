@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lidarr
+  namespace: lidarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lidarr
+  template:
+    metadata:
+      labels:
+        app: lidarr
+    spec:
+      containers:
+      - name: lidarr
+        image: lscr.io/linuxserver/lidarr:latest
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+        env:
+        - name: TZ
+          value: "Etc/UTC"
+        ports:
+        - containerPort: 8686
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+        - name: config-volume
+          mountPath: /config
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: lidarr-data
+      - name: config-volume
+        persistentVolumeClaim:
+          claimName: lidarr-config

@@ -1,0 +1,38 @@
+issuer: https://dex.cowlab.org/dex
+expiry:
+  idTokens: 8h
+  signingKeys: 24h
+
+staticClients:
+  - id: argocd
+    name: ArgoCD
+    redirectURIs:
+      - https://dex.cowlab.org/dex/callback
+      - https://argocd.cowlab.org/auth/callback
+
+      # argocd login --sso
+      - http://localhost:8085/auth/callback
+    secretEnv: ARGOCD_CLIENT_SECRET
+
+connectors:
+  - config:
+      clientID: $GITHUB_CLIENT_ID
+      clientSecret: $GITHUB_CLIENT_SECRET
+      loadAllGroups: true
+      redirectURI: https://dex.cowlab.org/dex/callback
+    id: github
+    name: GitHub
+    type: github
+
+oauth2:
+  skipApprovalScreen: true
+
+storage:
+  config:
+    inCluster: true
+    namespace: dex
+  type: kubernetes
+telemetry:
+  http: 0.0.0.0:5558
+web:
+  http: 0.0.0.0:5556

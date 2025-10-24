@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prowlarr
+  namespace: prowlarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prowlarr
+  template:
+    metadata:
+      labels:
+        app: prowlarr
+    spec:
+      containers:
+      - name: prowlarr
+        image: lscr.io/linuxserver/prowlarr:latest
+        resources:
+          limits:
+            memory: "1024Mi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+        env:
+        - name: TZ
+          value: "Etc/UTC"
+        ports:
+        - containerPort: 9696
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+        - name: config-volume
+          mountPath: /config
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: prowlarr-data
+      - name: config-volume
+        persistentVolumeClaim:
+          claimName: prowlarr-config

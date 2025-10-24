@@ -1,0 +1,16 @@
+# https://longhorn.io/docs/1.9.1/snapshots-and-backups/scheduling-backups-and-snapshots/#using-the-manifest
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: backup-job
+  namespace: longhorn-system
+spec:
+  name: backup-job
+  cron: "0 2 * * *" # daily at 2 AM
+  task: "backup" # periodically create snapshots then do backups after cleaning up outdated snapshots
+  groups:
+  - default
+  retain: 7
+  concurrency: 2
+  labels: {}
+  parameters: {}

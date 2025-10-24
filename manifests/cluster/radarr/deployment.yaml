@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radarr
+  namespace: radarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: radarr
+  template:
+    metadata:
+      labels:
+        app: radarr
+    spec:
+      containers:
+      - name: radarr
+        image: lscr.io/linuxserver/radarr:latest
+        resources:
+          limits:
+            memory: "1024Mi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+        env:
+        - name: TZ
+          value: "Etc/UTC"
+        ports:
+        - containerPort: 7878
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+        - name: config-volume
+          mountPath: /config
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: radarr-data
+      - name: config-volume
+        persistentVolumeClaim:
+          claimName: radarr-config

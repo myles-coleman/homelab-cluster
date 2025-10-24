@@ -1,0 +1,27 @@
+installCRDs: true
+
+certManager:
+  enabled: true
+  addInjectorAnnotations: true
+  cert:
+    create: true
+    issuerRef:
+      group: cert-manager.io
+      kind: "Issuer"
+      name: "external-secrets-ca-issuer"
+
+
+webhook:
+  certManager:
+    enabled: true
+    cert:
+      create: true
+
+      issuerRef:
+        group: cert-manager.io
+        kind: "Issuer"
+        name: "external-secrets-ca-issuer"
+      duration: "2160h"
+      renewBefore: "720h"
+  #(Related to a cert invalid webhook issue)
+  lookaheadInterval: "210h"

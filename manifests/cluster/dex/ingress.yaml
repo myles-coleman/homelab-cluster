@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dex
+  namespace: dex
+  annotations: 
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`dex.cowlab.org`) && PathPrefix(`/dex`)
+      kind: Rule
+      services:
+        - name: dex
+          port: 5556

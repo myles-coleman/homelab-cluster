@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nextcloud
+  template:
+    metadata:
+      labels:
+        app: nextcloud
+    spec:
+      containers:
+      - name: nextcloud
+        image: lscr.io/linuxserver/nextcloud:latest
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+        - name: config-volume
+          mountPath: /appdata
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: nextcloud-data
+      - name: config-volume
+        persistentVolumeClaim:
+          claimName: nextcloud-config

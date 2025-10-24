@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discord-bot
+  namespace: discord-bot
+  labels:
+    app: discord-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discord-bot
+  template:
+    metadata:
+      labels:
+        app: discord-bot
+    spec:
+      containers:
+        - name: discord-bot
+          image: beebecomebigbee/discord-bot:latest
+          imagePullPolicy: Always
+          env:
+            - name: OPEN_AI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: discord-bot-secrets
+                  key: open_ai_api_key
+            - name: DISCORD_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: discord-bot-secrets
+                  key: discord_bot_token
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"

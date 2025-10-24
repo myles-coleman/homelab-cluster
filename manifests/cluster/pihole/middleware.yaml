@@ -1,0 +1,10 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: pihole-root-redirect
+  namespace: pihole
+spec:
+  redirectRegex:
+    regex: "^/$"
+    replacement: "/admin/login"
+    permanent: false

@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: copyparty-config
+  namespace: copyparty
+data:
+  copyparty.conf: |
+    # copyparty configuration
+    [global]
+      p: 3923
+      e2dsa
+      e2ts
+      hist: /cfg/hists/
+    
+    # create default user accounts
+    [accounts]
+      admin: changeme123
+    
+    # create volumes - main shared folder
+    [/]
+      /w
+      accs:
+        r: *
+        rw: *
+    
+    # Media folder (NFS mount: /mnt/md0/data/media)
+    [/media]
+      /w/media
+      accs:
+        r: admin
+        rw: admin
+    
+    # config folder for uploads
+    [/uploads]
+      /w/uploads
+      accs:
+        w: *
+        rw: *
+      flags:
+        e2d
+        nodupe

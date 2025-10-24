@@ -1,0 +1,53 @@
+# MetalLB Helm Chart Values
+# Version: 0.14.8
+
+# Controller configuration
+controller:
+  enabled: true
+  # Replicas for the controller
+  replicas: 1
+  
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Speaker configuration (runs on all nodes)
+speaker:
+  enabled: true
+  
+  # FRR mode (for BGP) - set to false for Layer 2 mode
+  frr:
+    enabled: false
+  
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Prometheus metrics
+prometheus:
+  scrapeAnnotations: false
+  
+# Pod security policy (deprecated in newer k8s)
+psp:
+  create: false
+
+# RBAC
+rbac:
+  create: true
+
+# Service accounts
+serviceAccounts:
+  controller:
+    create: true
+    name: ""
+  speaker:
+    create: true
+    name: ""
