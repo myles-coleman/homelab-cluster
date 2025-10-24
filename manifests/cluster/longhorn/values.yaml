@@ -4,10 +4,6 @@ ingress:
 preUpgradeChecker:
   jobEnabled: false
 
-metrics:
-  serviceMonitor:
-    enabled: true
-
 defaultBackupStore:
   backupTarget: "s3://myles-homelab-backups@us-west-1/longhorn-backups/"
   backupTargetCredentialSecret: "longhorn-backup-secret"
