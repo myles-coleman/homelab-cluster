@@ -12,12 +12,12 @@ resource "kubernetes_ingress_v1" "argocd_server" {
 
   spec {
     tls {
-      hosts       = ["argocd.cowlab.org"]
+      hosts       = [ var.argocd_host ]
       secret_name = "cowlab-production-tls"
     }
 
     rule {
-      host = "argocd.cowlab.org"
+      host = var.argocd_host
       http {
         path {
           path      = "/"

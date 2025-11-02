@@ -4,6 +4,12 @@ cluster_name: homelab-k3s-cluster
 
 aws_region: us-west-1
 
+kubeconfig_path: ~/.kube/config
+kubeconfig_context: default
+
+argocd_host: argocd.cowlab.org
+
+
 common_tags:
   Environment: dev
   Project: homelab

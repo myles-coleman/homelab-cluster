@@ -13,7 +13,7 @@ resource "helm_release" "argocd" {
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
-  version    = var.chart_version
+  version    = "9.0.5"
   timeout      = 1200
   force_update = true
   namespace    = kubernetes_namespace.argocd.id
@@ -53,7 +53,7 @@ configs:
     exec.enabled: true
     admin.enabled: false
 
-    url: ${var.argocd_url}
+    url: https://${var.argocd_host}
     oidc.config: |
       name: Dex
       issuer: ${var.dex_url}
