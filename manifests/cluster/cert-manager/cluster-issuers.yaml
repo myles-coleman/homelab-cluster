@@ -12,6 +12,7 @@ spec:
     solvers:
       - dns01:
           cloudflare:
+            email: mylescoleman05@gmail.com  # Required for zone lookup
             apiTokenSecretRef:
               name: cloudflare-token-secret
               key: cloudflare-token
