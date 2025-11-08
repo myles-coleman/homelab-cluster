@@ -1,0 +1,26 @@
+---
+# Certificate for Traefik default TLS
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cowlab-wildcard
+  namespace: traefik
+spec:
+  secretName: cowlab-production-tls
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  commonName: "*.cowlab.org"
+  dnsNames:
+    - "*.cowlab.org"
+    - "cowlab.org"
+---
+# Default TLS Store for Traefik
+apiVersion: traefik.io/v1alpha1
+kind: TLSStore
+metadata:
+  name: default
+  namespace: traefik
+spec:
+  defaultCertificate:
+    secretName: cowlab-production-tls
