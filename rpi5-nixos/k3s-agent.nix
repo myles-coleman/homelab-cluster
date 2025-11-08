@@ -11,6 +11,5 @@
     role = "agent";
     serverAddr = "https://10.0.0.200:6443";
     tokenFile = "/etc/rancher/k3s/token";
-    extraFlags = toString [];
   };
 }

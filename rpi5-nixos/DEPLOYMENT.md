@@ -18,13 +18,19 @@ Deploy NixOS with k3s to Raspberry Pi 5 nodes using installer SD card first.
 
 ```bash
 # Generate a random token for the server
+nix-shell -p openssl
 openssl rand -hex 32 > token
 ```
 
 ```bash
 # Get node-token from server
 ssh pi@node0.local
-cat /var/lib/rancher/k3s/server/node-token
+sudo cat /var/lib/rancher/k3s/server/node-token
+```
+
+```bash
+# grab the kubeconfig
+scp pi@node0.local:~/.kube/config ~/.kube/config
 ```
 
 ```bash
