@@ -4,7 +4,6 @@ namespace: dex
 resources:
   - helm-chart.yaml
   - ingress.yaml
-  - argo-ingress.yaml
   - namespace.yaml
 
 components:
