@@ -16,6 +16,7 @@ resource "helm_release" "argocd" {
   version    = "9.0.5"
   timeout      = 1200
   force_update = true
+  atomic       = true
   namespace    = kubernetes_namespace.argocd.id
   values = [<<EOF
 server:
@@ -68,7 +69,6 @@ configs:
   rbac:
     policy.csv: |
       g, ${var.github_username}, role:admin
-      g, Cgg0NDUwNTg1NRIGZ2l0aHVi, role:admin
     policy.default: role:readonly
 
   params:
