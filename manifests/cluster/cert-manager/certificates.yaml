@@ -13,18 +13,19 @@ spec:
   dnsNames:
     - "*.cowlab.org"
     - "cowlab.org"
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: cowlab
-  namespace: argocd
-spec:
-  secretName: cowlab-production-tls
-  issuerRef:
-    name: letsencrypt-production
-    kind: ClusterIssuer
-  commonName: "*.cowlab.org"
-  dnsNames:
-    - "*.cowlab.org"
-    - "cowlab.org"
+# Commented out production certificate - testing with staging first
+# ---
+# apiVersion: cert-manager.io/v1
+# kind: Certificate
+# metadata:
+#   name: cowlab
+#   namespace: argocd
+# spec:
+#   secretName: cowlab-production-tls
+#   issuerRef:
+#     name: letsencrypt-production
+#     kind: ClusterIssuer
+#   commonName: "*.cowlab.org"
+#   dnsNames:
+#     - "*.cowlab.org"
+#     - "cowlab.org"
