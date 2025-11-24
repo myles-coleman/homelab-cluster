@@ -77,12 +77,12 @@ spec:
             - /bin/sh
             - -c
             - |
-              # Check if WireGuard tunnel is up
-              ip link show wg0 && \
-              curl -s --connect-timeout 5 https://am.i.mullvad.net/connected || exit 1
+              # Check if WireGuard tunnel is up and has an IP address
+              ip link show wg0 | grep -q "LOWER_UP" && \
+              ip addr show wg0 | grep -q "inet" || exit 1
           initialDelaySeconds: 10
           periodSeconds: 5
-          timeoutSeconds: 10
+          timeoutSeconds: 5
           failureThreshold: 30
         securityContext:
           capabilities:
