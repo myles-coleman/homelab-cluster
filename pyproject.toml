@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "openbao-docs"
+version = "0.1.0"
+description = "Openbao Platform Repository"
+authors = ["Liatrio"]
+license = "Apache-2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+mkdocs = "^1.5.2"
+mkdocs-material = "^9.1.21"
+mkdocs-awesome-pages-plugin = "^2.9.2"
+mkdocs-swagger-ui-tag = "^0.6.7"
+mkdocs-glightbox = "^0.3.7"
+pymdown-extensions = "^10.9"
+mkdocs-github-admonitions-plugin = "^0.0.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
