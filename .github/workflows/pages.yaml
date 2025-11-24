@@ -1,0 +1,50 @@
+---
+name: build and publish
+
+on:
+  push:
+      branches: main
+      paths:
+        - 'docs/**'
+  workflow_dispatch: {}
+
+jobs:
+    build:
+        name: build
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            deployments: write
+        steps:
+            - name: checkout code
+              uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+              with:
+                  fetch-depth: 0
+            - name: setup python
+              uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+              with:
+                python-version: '3.11'
+            - name: setup poetry
+              uses: Gr1N/setup-poetry@48b0f77c8c1b1b19cb962f0f00dff7b4be8f81ec # v9
+            - name: install dependencies and build
+              run: make build
+            - name: upload pages artifact
+              if: ${{ github.ref == 'refs/heads/main' }}
+              uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+              with:
+                path: docs/
+
+    deploy:
+        if: ${{ github.ref == 'refs/heads/main' }}
+        needs: build
+        runs-on: ubuntu-latest
+        permissions:
+            pages: write
+            id-token: write
+        environment:
+          name: github-pages
+          url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - name: deploy site to gh pages
+              id: deployment
+              uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
