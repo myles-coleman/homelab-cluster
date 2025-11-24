@@ -53,10 +53,6 @@ data:
             description: Browse and Read eBooks
 
     - Services:
-        - Nextcloud:
-            icon: nextcloud.svg
-            href: https://nextcloud.cowlab.org/
-            description: A Safe Home For All My Data
         - Vaultwarden:
             icon: vaultwarden.svg
             href: https://vaultwarden.cowlab.org/
@@ -85,10 +81,6 @@ data:
             icon: argo-cd.svg
             href: https://argocd.cowlab.org/
             description: GitOps tool for Kubernetes
-        - Traefik:
-            icon: traefik.svg
-            href: https://traefik.cowlab.org/
-            description: Ingress Controller
         - Longhorn:
             icon: longhorn.svg
             href: https://longhorn.cowlab.org/
