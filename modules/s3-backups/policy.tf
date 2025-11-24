@@ -6,8 +6,11 @@ data "aws_iam_policy_document" "longhorn_backup_policy" {
     actions = [
       "s3:PutObject",
       "s3:GetObject",
+      "s3:GetObjectVersion",
       "s3:ListBucket",
-      "s3:DeleteObject"
+      "s3:ListBucketVersions",
+      "s3:DeleteObject",
+      "s3:DeleteObjectVersion"
     ]
     
     resources = [
