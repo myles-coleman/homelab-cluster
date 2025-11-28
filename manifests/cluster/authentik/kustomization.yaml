@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - external-secret.yaml
+  - helm-chart.yaml
+  - ingress.yaml
+
+patches:
+- target:
+    kind: Deployment
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env
+      value:
+        - name: AUTHENTIK_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: authentik-secrets
+              key: secret-key
+        - name: AUTHENTIK_POSTGRESQL__USER
+          valueFrom:
+            secretKeyRef:
+              name: authentik-secrets
+              key: db-user
+        - name: AUTHENTIK_POSTGRESQL__PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: authentik-secrets
+              key: db-password
+- target:
+    kind: StatefulSet
+    name: authentik-postgresql
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/volumes/3/secret/secretName
+      value: authentik-secrets
+    - op: add
+      path: /spec/template/spec/volumes/3/secret/items
+      value:
+        - key: db-password
+          path: password
+        - key: db-password
+          path: postgres-password

@@ -1,0 +1,10 @@
+repositories:
+- name: authentik
+  url: https://charts.goauthentik.io
+
+releases:
+- name: authentik
+  namespace: authentik
+  chart: authentik/authentik
+  values:
+  - values.yaml

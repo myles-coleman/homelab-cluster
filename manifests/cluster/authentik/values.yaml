@@ -1,0 +1,49 @@
+authentik:
+  secret_key: "REPLACEME"
+  error_reporting:
+    enabled: false
+    environment: "k8s"
+    send_pii: false
+  
+  postgresql:
+    host: "authentik-postgresql"
+    name: "authentik"
+    user: "authentik"
+    password: "REPLACEME"
+    port: 5432
+  
+  log_level: "info"
+
+postgresql:
+  enabled: true
+  auth:
+    username: "authentik"
+    password: "REPLACEME"
+    database: "authentik"
+
+server:
+  enabled: true
+  replicas: 1
+  
+  ingress:
+    enabled: false
+  
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+worker:
+  enabled: true
+  replicas: 1
+  
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"

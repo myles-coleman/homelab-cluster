@@ -89,6 +89,10 @@ data:
             icon: nginx-proxy-manager.svg
             href: https://npm.cowlab.org/
             description: Proxy Server
+        - Authentik:
+            icon: authentik.svg
+            href: https://authentik.cowlab.org/
+            description: Authentication and Authorization
 
   widgets.yaml: |
     - kubernetes:
