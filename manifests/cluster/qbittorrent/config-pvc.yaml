@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: qbittorrent-config
   namespace: qbittorrent
+  annotations:
+    longhorn.io/volume-name: "backup-1e0a71b480e741a4"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -10,3 +12,4 @@ spec:
     requests:
       storage: 50Mi
   storageClassName: longhorn
+  volumeName: backup-1e0a71b480e741a4
