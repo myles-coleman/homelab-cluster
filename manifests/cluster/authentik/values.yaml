@@ -20,6 +20,11 @@ postgresql:
     username: "authentik"
     password: "REPLACEME"
     database: "authentik"
+  primary:
+    persistence:
+      enabled: true
+      storageClass: "longhorn"
+      size: 8Gi
 
 server:
   enabled: true
