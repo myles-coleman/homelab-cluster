@@ -28,3 +28,4 @@ resources:
 - metallb-app.yaml
 - traefik-app.yaml
 - argocd-secret-app.yaml
+- authentik-app.yaml
