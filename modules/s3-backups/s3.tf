@@ -53,9 +53,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "longhorn_backups" {
     # Longhorn uses incremental backups with shared blocks across multiple backups.
     # Noncurrent versions must be retained for the same duration as backups to prevent
     # breaking older backups that still reference those block files.
-    noncurrent_version_expiration {
-      noncurrent_days = var.backup_retention_days
-    }
+    # TEMPORARILY DISABLED: Old noncurrent versions are causing mass deletions
+    # noncurrent_version_expiration {
+    #   noncurrent_days = var.backup_retention_days
+    # }
 
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
