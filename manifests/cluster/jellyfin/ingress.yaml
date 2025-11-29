@@ -9,8 +9,22 @@ spec:
   entryPoints:
     - websecure
   routes:
+    # Authentik callback route (must be first/higher priority)
+    - match: Host(`jellyfin.cowlab.org`) && PathPrefix(`/outpost.goauthentik.io/`)
+      kind: Rule
+      services:
+        - name: authentik-outpost
+          namespace: authentik
+          port: 9000
+      priority: 15
+    
+    # Main application route with authentication
     - match: Host(`jellyfin.cowlab.org`) && PathPrefix(`/`)
       kind: Rule
+      middlewares:
+        - name: authentik
+          namespace: traefik
       services:
         - name: jellyfin-external
           port: 8096
+      priority: 10
