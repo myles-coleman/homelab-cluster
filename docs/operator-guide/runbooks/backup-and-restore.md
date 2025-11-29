@@ -64,7 +64,7 @@ spec:
 
 ```bash
 # 1. Disable ArgoCD auto-sync
-kubectl patch app <app-name> -n argocd --type json -p='[{"op": "remove", "path": "/spec/syncPolicy"}]'
+kubectl patch app <app-name> -n argocd --type json -p='[{"op": "replace", "path": "/spec/syncPolicy", "value": null}]'
 
 # 2. Scale down application
 kubectl scale deployment <app-name> -n <namespace> --replicas=0
@@ -80,10 +80,14 @@ kubectl apply -f <app>-config-restore-pvc.yaml
 ### 5. Update Git Repository
 
 ```bash
-# Copy restore manifests to replace original
+# Copy restore manifests to replace originals
+cp <app>-backup-pv.yaml manifests/cluster/<app>/backup-pv.yaml
 cp <app>-config-restore-pvc.yaml manifests/cluster/<app>/config-pvc.yaml
 
-# Add to kustomization.yaml if needed
+# Remove temporary restore PVC file
+rm <app>-config-restore-pvc.yaml
+
+# Add backup-pv.yaml to kustomization.yaml if needed
 # Commit and push
 git add manifests/cluster/<app>/
 git commit -m "chore: restore <app> PVC from backup"
