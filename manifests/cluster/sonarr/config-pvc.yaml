@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: sonarr-config
   namespace: sonarr
+  annotations:
+    longhorn.io/volume-name: "backup-6668a6f6c9794c0c"
 spec:
   accessModes:
     - ReadWriteOnce
