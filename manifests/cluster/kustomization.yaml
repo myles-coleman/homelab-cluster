@@ -6,7 +6,7 @@ resources:
 - radarr
 - lidarr
 - prowlarr
-# - jellyfin
+- jellyfin
 - jellyseerr
 # - vaultwarden
 - discord-bot
