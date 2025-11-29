@@ -64,7 +64,11 @@ spec:
 
 ```bash
 # 1. Disable ArgoCD auto-sync
-kubectl patch app <app-name> -n argocd --type json -p='[{"op": "replace", "path": "/spec/syncPolicy", "value": null}]'
+kubectl patch app bootstrap -n argocd --type merge -p '{"spec":{"syncPolicy":null}}'
+kubectl patch app <app-name> -n argocd --type merge -p '{"spec":{"syncPolicy":null}}'
+
+# Verify sync is disabled (should return empty/null)
+kubectl get app <app-name> -n argocd -o jsonpath='{.spec.syncPolicy}' && echo
 
 # 2. Scale down application
 kubectl scale deployment <app-name> -n <namespace> --replicas=0
@@ -98,6 +102,7 @@ git push
 
 ```bash
 kubectl patch app <app-name> -n argocd --type merge -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true},"retry":{"backoff":{"duration":"30s","factor":2,"maxDuration":"2m"},"limit":5}}}}'
+kubectl patch app bootstrap -n argocd --type merge -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true},"retry":{"backoff":{"duration":"30s","factor":2,"maxDuration":"2m"},"limit":5}}}}'
 ```
 
 ## Verification
