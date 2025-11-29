@@ -7,3 +7,4 @@ resources:
   - crds.yaml
   - helm-chart.yaml
   - tls-store.yaml
+  - middleware-authentik.yaml
