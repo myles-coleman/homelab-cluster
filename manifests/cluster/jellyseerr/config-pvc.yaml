@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: jellyseerr-config
   namespace: jellyseerr
+  annotations:
+    longhorn.io/volume-name: "backup-dfa46de3c83c467a"
 spec:
   accessModes:
     - ReadWriteOnce
