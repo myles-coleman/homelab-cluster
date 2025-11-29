@@ -4,4 +4,4 @@ terraform.tfstate
 terraform.tfstate.backup
 .terragrunt-cache
 manifests/cluster/external-secrets/secret.yaml
-rpi5-nixos/token
+.env
