@@ -23,9 +23,9 @@ spec:
               name: https
           env:
             - name: AUTHENTIK_HOST
-              value: "http://authentik-server.authentik.svc.cluster.local:80"
+              value: http://authentik-server.authentik.svc.cluster.local
             - name: AUTHENTIK_INSECURE
-              value: "true"  # Set to false if using HTTPS internally
+              value: "true"
             - name: AUTHENTIK_TOKEN
               valueFrom:
                 secretKeyRef:

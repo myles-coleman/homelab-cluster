@@ -10,6 +10,29 @@ resources:
 patches:
 - target:
     kind: Deployment
+    name: authentik-server
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env
+      value:
+        - name: AUTHENTIK_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: authentik-secrets
+              key: secret-key
+        - name: AUTHENTIK_POSTGRESQL__USER
+          valueFrom:
+            secretKeyRef:
+              name: authentik-secrets
+              key: db-user
+        - name: AUTHENTIK_POSTGRESQL__PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: authentik-secrets
+              key: db-password
+- target:
+    kind: Deployment
+    name: authentik-worker
   patch: |-
     - op: add
       path: /spec/template/spec/containers/0/env
