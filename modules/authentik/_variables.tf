@@ -6,7 +6,6 @@ variable "authentik_url" {
 variable "outpost_user_id" {
   description = "The user ID to create the outpost token for (typically a service account)"
   type        = number
-  default     = 1
 }
 
 variable "domain" {

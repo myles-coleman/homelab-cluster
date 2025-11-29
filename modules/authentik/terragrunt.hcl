@@ -10,6 +10,7 @@ locals {
 inputs = {
   authentik_url   = local.common_inputs.authentik_url
   domain          = local.common_inputs.domain
+  outpost_user_id = 7  # akadmin user ID
   
   applications = {
     jellyfin = {
