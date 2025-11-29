@@ -5,6 +5,7 @@ resources:
   - external-secret.yaml
   - helm-chart.yaml
   - ingress.yaml
+  - outpost-deployment.yaml
 
 patches:
 - target:
