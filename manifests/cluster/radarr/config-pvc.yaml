@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: radarr-config
   namespace: radarr
+  annotations:
+    longhorn.io/volume-name: "backup-bf49e0d486b2473c"
 spec:
   accessModes:
     - ReadWriteOnce

@@ -4,6 +4,7 @@ resources:
   - namespace.yaml
   - persistent-volume-claim.yaml
   - persistent-volume.yaml
+  - backup-pv.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
