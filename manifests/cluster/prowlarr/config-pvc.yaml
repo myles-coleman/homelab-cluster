@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: prowlarr-config
   namespace: prowlarr
+  annotations:
+    longhorn.io/volume-name: "backup-4af24770f88847e8"
 spec:
   accessModes:
     - ReadWriteOnce
