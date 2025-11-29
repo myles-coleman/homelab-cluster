@@ -3,6 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: lidarr-config
   namespace: lidarr
+  annotations:
+    longhorn.io/volume-name: "backup-92d6f77158f44b87"
 spec:
   accessModes:
     - ReadWriteOnce
