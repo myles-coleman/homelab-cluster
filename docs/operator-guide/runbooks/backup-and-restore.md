@@ -75,6 +75,7 @@ kubectl delete pvc <pvc-name> -n <namespace>
 # 4. Create PV and PVC
 kubectl apply -f <app>-backup-pv.yaml
 kubectl apply -f <app>-config-restore-pvc.yaml
+```
 
 ### 5. Update Git Repository
 
