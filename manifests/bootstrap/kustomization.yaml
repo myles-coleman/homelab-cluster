@@ -13,6 +13,7 @@ resources:
 - radarr-app.yaml
 - lidarr-app.yaml
 - prowlarr-app.yaml
+- jellyfin-app.yaml
 - jellyseerr-app.yaml
 - discord-bot-app.yaml
 - longhorn-app.yaml
