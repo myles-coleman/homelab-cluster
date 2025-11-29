@@ -68,8 +68,8 @@ configs:
 
   rbac:
     policy.csv: |
-      g, ${var.github_username}, role:admin,
-      g, Cgg0NDUwNTg1NRIGZ2l0aHVi, role:admin,
+      g, ${var.github_username}, role:admin
+      g, Cgg0NDUwNTg1NRIGZ2l0aHVi, role:admin
     policy.default: role:readonly
 
   params:
