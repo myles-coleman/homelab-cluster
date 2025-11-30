@@ -1,12 +1,6 @@
-output "outpost_token" {
-  description = "The API token for the Authentik outpost"
-  value       = authentik_token.outpost.key
-  sensitive   = true
-}
-
-output "outpost_token_id" {
-  description = "The ID of the outpost token"
-  value       = authentik_token.outpost.id
+output "outpost_token_identifier" {
+  description = "The identifier of the auto-generated outpost token (copy key from Authentik UI)"
+  value       = "ak-outpost-${authentik_outpost.traefik.id}-api"
 }
 
 output "outpost_id" {
