@@ -45,4 +45,3 @@ Applications deploy in order:
 - **Secret Management**: External Secrets Operator with Vault
 - **TLS Automation**: Cert-manager with Let's Encrypt
 - **Modular Design**: Reusable Kustomize modules for common patterns
-# homelab-cluster-mcp
