@@ -27,6 +27,7 @@ resources:
 - youtubedl-material-app.yaml
 - homepage-app.yaml
 - copyparty-app.yaml
+- fittrackee-app.yaml
 - metallb-app.yaml
 - traefik-app.yaml
 - argocd-secret-app.yaml
