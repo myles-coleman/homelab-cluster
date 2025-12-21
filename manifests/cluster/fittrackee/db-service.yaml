@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fittrackee-db
+  namespace: fittrackee
+spec:
+  type: ClusterIP
+  selector:
+    app: fittrackee-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432

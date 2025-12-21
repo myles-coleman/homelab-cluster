@@ -23,6 +23,7 @@ resources:
 - youtubedl-material
 - homepage
 - copyparty
+- fittrackee
 - metallb
 - traefik
 - argocd-secret

@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fittrackee
+  namespace: fittrackee
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fittrackee
+  template:
+    metadata:
+      labels:
+        app: fittrackee
+    spec:
+      containers:
+        - name: fittrackee
+          image: ghcr.io/samr1/fittrackee:1.0.3
+          ports:
+            - name: http
+              containerPort: 5000
+          env:
+            - name: PORT
+              value: "5000"
+            - name: APP_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fittrackee-secrets
+                  key: APP_SECRET_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: fittrackee-secrets
+                  key: DATABASE_URL
+          volumeMounts:
+            - name: app-data
+              mountPath: /usr/src/app/uploads
+              subPath: uploads
+            - name: app-data
+              mountPath: /usr/src/app/logs
+              subPath: logs
+            - name: app-data
+              mountPath: /usr/src/app/.staticmap_cache
+              subPath: staticmap_cache
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+      volumes:
+        - name: app-data
+          persistentVolumeClaim:
+            claimName: fittrackee-app

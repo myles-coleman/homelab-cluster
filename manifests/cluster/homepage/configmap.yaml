@@ -67,6 +67,10 @@ data:
         - Llama:
             href: https://chat.cowlab.org/
             description: AI Chat
+        - FitTrackee:
+            icon: fittrackee.svg
+            href: https://fitness.cowlab.org/
+            description: Fitness tracker
 
     - System:
         - Pi-Hole:
