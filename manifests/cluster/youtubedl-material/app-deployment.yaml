@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: youtubedl-material
+  namespace: youtubedl-material
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: youtubedl-material
+  template:
+    metadata:
+      labels:
+        app: youtubedl-material
+    spec:
+      containers:
+      - name: youtubedl-material
+        image: tzahi12345/youtubedl-material:latest
+        resources:
+          limits:
+            memory: "2048Mi"
+            cpu: "1000m"
+          requests:
+            memory: "1024Mi"
+            cpu: "500m"
+        env:
+        - name: ytdl_mongodb_connection_string
+          value: "mongodb://ytdl-mongo-db:27017"
+        - name: ytdl_use_local_db
+          value: "false"
+        - name: write_ytdl_config
+          value: "true"
+        ports:
+        - containerPort: 17442
+        volumeMounts:
+        - name: appdata
+          mountPath: /app/appdata
+        - name: audio
+          mountPath: /app/audio
+        - name: video
+          mountPath: /app/video
+        - name: subscriptions
+          mountPath: /app/subscriptions
+        - name: users
+          mountPath: /app/users
+      volumes:
+      - name: appdata
+        persistentVolumeClaim:
+          claimName: ytdl-appdata
+      - name: audio
+        persistentVolumeClaim:
+          claimName: ytdl-audio
+      - name: video
+        persistentVolumeClaim:
+          claimName: ytdl-video
+      - name: subscriptions
+        persistentVolumeClaim:
+          claimName: ytdl-subscriptions
+      - name: users
+        persistentVolumeClaim:
+          claimName: ytdl-users

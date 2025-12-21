@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ytdl-video
+spec:
+  capacity:
+    storage: 200Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+  nfs:
+    path: /mnt/md0/data/media/youtubeDL
+    server: 10.0.0.150
+  persistentVolumeReclaimPolicy: Retain

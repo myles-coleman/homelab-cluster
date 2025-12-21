@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ytdl-mongo-db
+  namespace: youtubedl-material
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ytdl-mongo-db
+  template:
+    metadata:
+      labels:
+        app: ytdl-mongo-db
+    spec:
+      containers:
+      - name: mongo
+        image: mongo:4
+        resources:
+          limits:
+            memory: "1024Mi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+        ports:
+        - containerPort: 27017
+        volumeMounts:
+        - name: mongo-data
+          mountPath: /data/db
+      volumes:
+      - name: mongo-data
+        persistentVolumeClaim:
+          claimName: ytdl-mongo-data

@@ -20,6 +20,7 @@ resources:
 # - dapr
 - openbooks
 - calibre-web
+- youtubedl-material
 - homepage
 - copyparty
 - metallb
