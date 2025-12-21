@@ -24,6 +24,7 @@ resources:
 - cert-manager-app.yaml
 - openbooks-app.yaml
 - calibre-web-app.yaml
+- youtubedl-material-app.yaml
 - homepage-app.yaml
 - copyparty-app.yaml
 - metallb-app.yaml
