@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgis/postgis:17-3.5
+          image: imresamu/postgis-arm64:17-recent-postgis3.5-geos3.13-proj9.5-gdal3.10-cgal6.0-sfcgal2.0-bookworm-ver20241107-1624f77-2024w48
           ports:
             - name: postgres
               containerPort: 5432
