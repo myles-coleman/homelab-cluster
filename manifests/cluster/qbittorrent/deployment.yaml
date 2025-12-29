@@ -54,7 +54,7 @@ spec:
         - name: INTERNAL_SUBNET
           value: "10.42.0.0/16,10.43.0.0/16"
         - name: KILLSWITCH
-          value: "true"
+          value: "false"
         volumeMounts:
         - name: wireguard-config-volume
           mountPath: /config
