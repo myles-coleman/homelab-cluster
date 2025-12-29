@@ -23,11 +23,24 @@ spec:
           # Create config directory structure
           mkdir -p /config/wg_confs
           
-          # Copy the configuration from the external secret
-          cp /secret/wg0.conf /config/wg_confs/wg0.conf
+          # Extract endpoint IP from the config and get default gateway
+          ENDPOINT_IP=$(grep 'Endpoint' /secret/wg0.conf | sed 's/.*= *//' | cut -d: -f1)
+          DEFAULT_GW=$(ip route | grep default | awk '{print $3}')
+          DEFAULT_DEV=$(ip route | grep default | awk '{print $5}')
+          
+          echo "VPN Endpoint: $ENDPOINT_IP, Gateway: $DEFAULT_GW, Device: $DEFAULT_DEV"
+          
+          # Add PostUp/PostDown rules to route VPN endpoint via default gateway
+          # This prevents the routing loop where VPN traffic gets sent through the tunnel
+          cat /secret/wg0.conf > /config/wg_confs/wg0.conf
+          echo "" >> /config/wg_confs/wg0.conf
+          echo "PostUp = ip route add ${ENDPOINT_IP}/32 via ${DEFAULT_GW} dev ${DEFAULT_DEV} || true" >> /config/wg_confs/wg0.conf
+          echo "PostDown = ip route del ${ENDPOINT_IP}/32 via ${DEFAULT_GW} dev ${DEFAULT_DEV} || true" >> /config/wg_confs/wg0.conf
+          
           chmod 600 /config/wg_confs/wg0.conf
           
-          echo "WireGuard configuration created successfully"
+          echo "WireGuard configuration created successfully:"
+          cat /config/wg_confs/wg0.conf | grep -v PrivateKey
         volumeMounts:
         - name: wireguard-config-volume
           mountPath: /config
