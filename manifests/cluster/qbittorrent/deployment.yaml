@@ -20,8 +20,8 @@ spec:
         args:
         - |
           echo "Creating WireGuard configuration..."
-          # Create config directory structure
           mkdir -p /config/wg_confs
+          mkdir -p /config/custom-cont-init.d
           
           # Extract endpoint IP from the config and get default gateway
           ENDPOINT_IP=$(grep 'Endpoint' /secret/wg0.conf | sed 's/.*= *//' | cut -d: -f1)
@@ -30,17 +30,21 @@ spec:
           
           echo "VPN Endpoint: $ENDPOINT_IP, Gateway: $DEFAULT_GW, Device: $DEFAULT_DEV"
           
-          # Add PostUp/PostDown rules to route VPN endpoint via default gateway
-          # This prevents the routing loop where VPN traffic gets sent through the tunnel
-          cat /secret/wg0.conf > /config/wg_confs/wg0.conf
-          echo "" >> /config/wg_confs/wg0.conf
-          echo "PostUp = ip route add ${ENDPOINT_IP}/32 via ${DEFAULT_GW} dev ${DEFAULT_DEV} || true" >> /config/wg_confs/wg0.conf
-          echo "PostDown = ip route del ${ENDPOINT_IP}/32 via ${DEFAULT_GW} dev ${DEFAULT_DEV} || true" >> /config/wg_confs/wg0.conf
-          
+          # Copy config without PostUp/PostDown (linuxserver container doesn't support them)
+          cp /secret/wg0.conf /config/wg_confs/wg0.conf
           chmod 600 /config/wg_confs/wg0.conf
           
-          echo "WireGuard configuration created successfully:"
-          cat /config/wg_confs/wg0.conf | grep -v PrivateKey
+          # Create custom init script to add route before WireGuard starts
+          echo '#!/bin/bash' > /config/custom-cont-init.d/10-add-vpn-route.sh
+          echo "echo 'Adding route for VPN endpoint to prevent routing loop...'" >> /config/custom-cont-init.d/10-add-vpn-route.sh
+          echo "ip route add ${ENDPOINT_IP}/32 via ${DEFAULT_GW} dev ${DEFAULT_DEV} || true" >> /config/custom-cont-init.d/10-add-vpn-route.sh
+          echo "echo 'Route added:'" >> /config/custom-cont-init.d/10-add-vpn-route.sh
+          echo "ip route get ${ENDPOINT_IP}" >> /config/custom-cont-init.d/10-add-vpn-route.sh
+          chmod +x /config/custom-cont-init.d/10-add-vpn-route.sh
+          echo "Custom init script:"
+          cat /config/custom-cont-init.d/10-add-vpn-route.sh
+          
+          echo "WireGuard configuration created successfully"
         volumeMounts:
         - name: wireguard-config-volume
           mountPath: /config
