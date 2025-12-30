@@ -27,6 +27,4 @@ spec:
       services:
         - name: jellyfin-external
           port: 8096
-          scheme: https
-          serversTransport: insecure-transport
       priority: 10
