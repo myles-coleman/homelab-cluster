@@ -26,9 +26,9 @@ resource "cloudflare_zero_trust_access_application" "jellyfin" {
       name     = "Allow authorized users"
       decision = "allow"
       include = [
-        {
+        for email in var.allowed_emails : {
           email = {
-            email = var.allowed_emails[0]
+            email = email
           }
         }
       ]
