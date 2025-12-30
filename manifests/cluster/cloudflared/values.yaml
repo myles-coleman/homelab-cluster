@@ -1,11 +1,9 @@
 # Cloudflare Tunnel Remote configuration
 # See: https://github.com/cloudflare/helm-charts/tree/main/charts/cloudflare-tunnel-remote
 
-# Tunnel token from Terraform output (stored in Bitwarden, fetched via ExternalSecret)
-tunnelToken:
-  existingSecret:
-    name: cloudflare-tunnel-credentials
-    key: tunnel-token
+cloudflare:
+  # Leave empty - token is provided via ExternalSecret
+  tunnel_token: ""
 
 # Replica count for high availability
 replicaCount: 1
