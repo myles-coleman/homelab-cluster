@@ -1,0 +1,11 @@
+repositories:
+- name: cloudflare
+  url: https://cloudflare.github.io/helm-charts
+
+releases:
+- name: cloudflare-tunnel
+  namespace: cloudflared
+  chart: cloudflare/cloudflare-tunnel
+  version: 0.3.2
+  values:
+    - values.yaml
