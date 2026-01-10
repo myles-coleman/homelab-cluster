@@ -17,7 +17,7 @@ inputs = {
   homelab_ip                 = "10.0.0.150"
   google_oauth_client_id     = local.google_oauth_client_id
   google_oauth_client_secret = local.google_oauth_client_secret
-  allowed_emails             = ["mylescoleman05@gmail.com", "mykalcoleman05@gmail.com", "yobarnes2020@gmail.com"]
+  allowed_emails             = ["mylescoleman05@gmail.com", "mykalcoleman05@gmail.com", "yobarnes2020@gmail.com", "Tayaricoleman22@gmail.com"]
 }
 
 generate "provider" {
