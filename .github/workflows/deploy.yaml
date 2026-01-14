@@ -21,12 +21,21 @@ env:
 
 jobs:
   plan:
-    name: Plan
+    name: Plan (${{ matrix.module }})
     permissions:
       contents: read
       id-token: write
       pull-requests: write
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - argocd-configure
+          - argocd-install
+          - authentik
+          - cloudflare
+          - s3-backups
     env:
       AUTHENTIK_TOKEN: ${{ secrets.AUTHENTIK_TOKEN }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -48,9 +57,6 @@ jobs:
           tg_version: ${{ env.tg_version }}
           tofu_version: ${{ env.tofu_version }}
 
-      # Connect to Tailscale to access the home network Kubernetes cluster.
-      # Uses OAuth client with auth_keys scope. The 'args' parameter cannot be
-      # used during 'tailscale up' as it causes authentication failures.
       - name: Tailscale
         uses: tailscale/github-action@53acf823325fe9ca47f4cdaa951f90b4b0de5bb9 # v4.1.1
         with:
@@ -58,8 +64,6 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      # Accept subnet routes from pikvm (10.0.0.0/24) to reach the K8s cluster.
-      # Must be done after Tailscale connects, not during 'tailscale up'.
       - name: Accept Tailscale routes
         run: sudo tailscale set --accept-routes
 
@@ -78,23 +82,26 @@ jobs:
 
       - name: Terraform Format
         run: tofu fmt -check -recursive
+        working-directory: ./modules/${{ matrix.module }}
 
       - name: Terragrunt Validate
-        run: terragrunt validate -all
+        run: terragrunt validate
+        working-directory: ./modules/${{ matrix.module }}
 
       - name: Terragrunt Plan
         env:
           TF_IN_AUTOMATION: true
         run: |
-          terragrunt plan -all -out=plan.out
-          terragrunt show -no-color -json plan.out > plan.json
+          terragrunt plan -out=tfplan-${{ matrix.module }}.tfplan
+          terragrunt show -json tfplan-${{ matrix.module }}.tfplan > tfplan-${{ matrix.module }}.json
+        working-directory: ./modules/${{ matrix.module }}
 
       - name: Comment Plan Changes
         if: github.event_name == 'pull_request'
         uses: liatrio/terraform-change-pr-commenter@0050454ca62e2839dc35022bfbd474a139c2c65d #v1.14.0
         with:
-          json-file: ./plan.json
-          comment-header: "Terraform Plan"
+          json-file: ./modules/${{ matrix.module }}/tfplan-${{ matrix.module }}.json
+          comment-header: "Terraform Plan for ${{ matrix.module }}"
           expand-comment: 'true'
           hide-previous-comments: 'true'
           log-changed-resources: 'false'
@@ -129,9 +136,6 @@ jobs:
           tg_version: ${{ env.tg_version }}
           tofu_version: ${{ env.tofu_version }}
 
-      # Connect to Tailscale to access the home network Kubernetes cluster.
-      # Uses OAuth client with auth_keys scope. The 'args' parameter cannot be
-      # used during 'tailscale up' as it causes authentication failures.
       - name: Tailscale
         uses: tailscale/github-action@53acf823325fe9ca47f4cdaa951f90b4b0de5bb9 # v4.1.1
         with:
@@ -139,8 +143,6 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
-      # Accept subnet routes from pikvm (10.0.0.0/24) to reach the K8s cluster.
-      # Must be done after Tailscale connects, not during 'tailscale up'.
       - name: Accept Tailscale routes
         run: sudo tailscale set --accept-routes
 
