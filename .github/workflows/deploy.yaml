@@ -48,6 +48,9 @@ jobs:
           tg_version: ${{ env.tg_version }}
           tofu_version: ${{ env.tofu_version }}
 
+      # Connect to Tailscale to access the home network Kubernetes cluster.
+      # Uses OAuth client with auth_keys scope. The 'args' parameter cannot be
+      # used during 'tailscale up' as it causes authentication failures.
       - name: Tailscale
         uses: tailscale/github-action@53acf823325fe9ca47f4cdaa951f90b4b0de5bb9 # v4.1.1
         with:
@@ -55,9 +58,14 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
+      # Accept subnet routes from pikvm (10.0.0.0/24) to reach the K8s cluster.
+      # Must be done after Tailscale connects, not during 'tailscale up'.
       - name: Accept Tailscale routes
         run: sudo tailscale set --accept-routes
 
+      # Accepting Tailscale routes breaks DNS resolution (systemd-resolved at
+      # 127.0.0.53 times out). Override with Google public DNS to restore
+      # connectivity to AWS and other external services.
       - name: Fix DNS resolution
         run: |
           echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
@@ -121,6 +129,9 @@ jobs:
           tg_version: ${{ env.tg_version }}
           tofu_version: ${{ env.tofu_version }}
 
+      # Connect to Tailscale to access the home network Kubernetes cluster.
+      # Uses OAuth client with auth_keys scope. The 'args' parameter cannot be
+      # used during 'tailscale up' as it causes authentication failures.
       - name: Tailscale
         uses: tailscale/github-action@53acf823325fe9ca47f4cdaa951f90b4b0de5bb9 # v4.1.1
         with:
@@ -128,9 +139,14 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
+      # Accept subnet routes from pikvm (10.0.0.0/24) to reach the K8s cluster.
+      # Must be done after Tailscale connects, not during 'tailscale up'.
       - name: Accept Tailscale routes
         run: sudo tailscale set --accept-routes
 
+      # Accepting Tailscale routes breaks DNS resolution (systemd-resolved at
+      # 127.0.0.53 times out). Override with Google public DNS to restore
+      # connectivity to AWS and other external services.
       - name: Fix DNS resolution
         run: |
           echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
