@@ -1,0 +1,102 @@
+name: Deploy Terraform
+
+on:
+  pull_request:
+    paths:
+      - "modules/**"
+  push:
+    branches: main
+    paths:
+      - "modules/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  tg_version: '0.97.2'
+  tofu_version: '1.11.2'
+  AWS_REGION: ${{ vars.AWS_REGION }}
+
+jobs:
+  plan:
+    name: Plan
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 #v5.1.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Terragrunt and OpenTofu
+        uses: gruntwork-io/terragrunt-action@5e86476ca61eaf74adb9c0525745f29f921f2199 # v3.1.0
+        with:
+          tg_version: ${{ env.tg_version }}
+          tofu_version: ${{ env.tofu_version }}
+
+      - name: Terraform Format
+        run: tofu fmt -check -recursive
+
+      - name: Terragrunt Validate
+        run: terragrunt validate -all
+
+      - name: Terragrunt Plan
+        env:
+          TF_IN_AUTOMATION: true
+        run: |
+          terragrunt plan -all -out=plan.out
+          terragrunt show -no-color -json plan.out > plan.json
+
+      - name: Comment Plan Changes
+        if: github.event_name == 'pull_request'
+        uses: liatrio/terraform-change-pr-commenter@0050454ca62e2839dc35022bfbd474a139c2c65d #v1.14.0
+        with:
+          json-file: ./plan.json
+          comment-header: "Terraform Plan"
+          expand-comment: 'true'
+          hide-previous-comments: 'true'
+          log-changed-resources: 'false'
+          include-workflow-link: 'true'
+
+  apply:
+    name: Apply
+    needs: plan
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 #v5.1.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Terragrunt and OpenTofu
+        uses: gruntwork-io/terragrunt-action@5e86476ca61eaf74adb9c0525745f29f921f2199 # v3.1.0
+        with:
+          tg_version: ${{ env.tg_version }}
+          tofu_version: ${{ env.tofu_version }}
+
+      - name: Terraform Format
+        run: tofu fmt -check -recursive
+
+      - name: Terragrunt Validate
+        run: terragrunt validate -all
+
+      - name: Terragrunt Apply
+        run: terragrunt apply -all --terragrunt-non-interactive -auto-approve

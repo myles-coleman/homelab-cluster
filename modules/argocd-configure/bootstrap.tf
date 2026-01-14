@@ -8,8 +8,8 @@ resource "kubernetes_manifest" "bootstrap" {
     }
     spec = {
       destination = {
-        server      = "https://kubernetes.default.svc"
-        namespace   = "argocd"
+        server    = "https://kubernetes.default.svc"
+        namespace = "argocd"
       }
       project = "default"
       source = {
@@ -19,18 +19,21 @@ resource "kubernetes_manifest" "bootstrap" {
       }
       syncPolicy = {
         automated = {
-          prune     = true
-          selfHeal  = false
+          prune    = true
+          selfHeal = false
         }
         retry = {
           backoff = {
-            duration     = "30s"
-            factor       = 2
-            maxDuration  = "2m"
+            duration    = "30s"
+            factor      = 2
+            maxDuration = "2m"
           }
           limit = 5
         }
       }
     }
+  }
+  field_manager {
+    force_conflicts = true
   }
 }
