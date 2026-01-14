@@ -2,7 +2,7 @@ data "aws_iam_policy_document" "longhorn_backup_policy" {
   statement {
     sid    = "GrantLonghornBackupstoreAccess"
     effect = "Allow"
-    
+
     actions = [
       "s3:PutObject",
       "s3:GetObject",
@@ -12,7 +12,7 @@ data "aws_iam_policy_document" "longhorn_backup_policy" {
       "s3:DeleteObject",
       "s3:DeleteObjectVersion"
     ]
-    
+
     resources = [
       aws_s3_bucket.longhorn_backups.arn,
       "${aws_s3_bucket.longhorn_backups.arn}/*"

@@ -10,10 +10,10 @@ resource "random_password" "client_secret" {
 }
 
 resource "helm_release" "argocd" {
-  name       = "argocd"
-  repository = "https://argoproj.github.io/argo-helm"
-  chart      = "argo-cd"
-  version    = "9.0.5"
+  name         = "argocd"
+  repository   = "https://argoproj.github.io/argo-helm"
+  chart        = "argo-cd"
+  version      = "9.0.5"
   timeout      = 1200
   force_update = true
   atomic       = true
