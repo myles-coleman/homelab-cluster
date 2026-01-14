@@ -17,7 +17,7 @@ resource "aws_iam_openid_connect_provider" "github_actions" {
   thumbprint_list = ["cf23df2207d99a74fbe169e3eba035e633b65d94"]
 
   tags = {
-    ManagedBy   = "Terraform"
+    ManagedBy = "Terraform"
   }
 }
 
@@ -78,7 +78,7 @@ resource "aws_iam_policy" "terraform_state_operations" {
   policy      = data.aws_iam_policy_document.terraform_state_operations.json
 
   tags = {
-    ManagedBy   = "Terraform"
+    ManagedBy = "Terraform"
   }
 }
 
@@ -88,7 +88,7 @@ resource "aws_iam_role" "terraform_operations" {
   assume_role_policy = data.aws_iam_policy_document.github_actions_assume_role.json
 
   tags = {
-    ManagedBy   = "Terraform"
+    ManagedBy = "Terraform"
   }
 }
 
