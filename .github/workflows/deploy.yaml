@@ -166,4 +166,6 @@ jobs:
         run: terragrunt validate -all
 
       - name: Terragrunt Apply
-        run: terragrunt apply -all --terragrunt-non-interactive -auto-approve
+        env:
+          TF_IN_AUTOMATION: true
+        run: terragrunt run-all apply --terragrunt-non-interactive -auto-approve
