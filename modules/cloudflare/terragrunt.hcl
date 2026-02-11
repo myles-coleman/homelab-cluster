@@ -7,7 +7,7 @@ locals {
   cloudflare_api_token       = get_env("CLOUDFLARE_API_TOKEN")
   google_oauth_client_id     = get_env("GOOGLE_OAUTH_CLIENT_ID")
   google_oauth_client_secret = get_env("GOOGLE_OAUTH_CLIENT_SECRET")
-  allowed_emails             = split(",", get_env("ALLOWED_EMAILS"))
+  allowed_emails             = [for email in split(",", get_env("ALLOWED_EMAILS")) : trimspace(replace(email, "\"", ""))]
 }
 
 inputs = {
