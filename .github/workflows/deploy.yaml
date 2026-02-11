@@ -106,6 +106,7 @@ jobs:
           hide-previous-comments: 'true'
           log-changed-resources: 'false'
           include-workflow-link: 'true'
+          quiet: 'true'
 
   apply:
     name: Apply
