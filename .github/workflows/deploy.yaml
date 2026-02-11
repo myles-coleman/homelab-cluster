@@ -34,11 +34,9 @@ jobs:
         module:
           - argocd-configure
           - argocd-install
-          - authentik
           - cloudflare
           - s3-backups
     env:
-      AUTHENTIK_TOKEN: ${{ secrets.AUTHENTIK_TOKEN }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
       GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
@@ -119,7 +117,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: deploy
     env:
-      AUTHENTIK_TOKEN: ${{ secrets.AUTHENTIK_TOKEN }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
       GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
