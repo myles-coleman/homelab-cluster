@@ -5,7 +5,8 @@ on:
     paths:
       - "modules/**"
   push:
-    branches: main
+    branches:
+      - main
     paths:
       - "modules/**"
   workflow_dispatch: {}
@@ -33,14 +34,13 @@ jobs:
         module:
           - argocd-configure
           - argocd-install
-          - authentik
           - cloudflare
           - s3-backups
     env:
-      AUTHENTIK_TOKEN: ${{ secrets.AUTHENTIK_TOKEN }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
       GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+      ALLOWED_EMAILS: ${{ vars.ALLOWED_EMAILS }}
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -106,6 +106,7 @@ jobs:
           hide-previous-comments: 'true'
           log-changed-resources: 'false'
           include-workflow-link: 'true'
+          quiet: 'true'
 
   apply:
     name: Apply
@@ -115,11 +116,12 @@ jobs:
       contents: read
       id-token: write
     runs-on: ubuntu-latest
+    environment: deploy
     env:
-      AUTHENTIK_TOKEN: ${{ secrets.AUTHENTIK_TOKEN }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
       GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+      ALLOWED_EMAILS: ${{ vars.ALLOWED_EMAILS }}
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
