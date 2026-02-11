@@ -7,7 +7,7 @@ locals {
   cloudflare_api_token       = get_env("CLOUDFLARE_API_TOKEN")
   google_oauth_client_id     = get_env("GOOGLE_OAUTH_CLIENT_ID")
   google_oauth_client_secret = get_env("GOOGLE_OAUTH_CLIENT_SECRET")
-  allowed_emails             = get_env("ALLOWED_EMAILS")
+  allowed_emails             = split(",", get_env("ALLOWED_EMAILS"))
 }
 
 inputs = {
@@ -18,7 +18,7 @@ inputs = {
   homelab_ip                 = "10.0.0.150"
   google_oauth_client_id     = local.google_oauth_client_id
   google_oauth_client_secret = local.google_oauth_client_secret
-  allowed_emails             = [local.allowed_emails]
+  allowed_emails             = local.allowed_emails
 }
 
 generate "provider" {
