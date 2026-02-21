@@ -13,11 +13,6 @@ variable "cluster_name" {
   type        = string
 }
 
-variable "backup_retention_days" {
-  description = "Number of days to retain backups before deletion"
-  type        = number
-}
-
 variable "aws_region" {
   description = "AWS region for the S3 bucket"
   type        = string

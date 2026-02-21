@@ -10,7 +10,7 @@ spec:
   task: "backup" # periodically create snapshots then do backups after cleaning up outdated snapshots
   groups:
   - default
-  retain: 7
+  retain: 30
   concurrency: 2
   labels: {}
   parameters: {}

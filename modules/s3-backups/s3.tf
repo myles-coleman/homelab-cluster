@@ -46,17 +46,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "longhorn_backups" {
       prefix = ""
     }
 
-    expiration {
-      days = var.backup_retention_days
-    }
-
-    # Longhorn uses incremental backups with shared blocks across multiple backups.
-    # Noncurrent versions must be retained for the same duration as backups to prevent
-    # breaking older backups that still reference those block files.
-    # TEMPORARILY DISABLED: Old noncurrent versions are causing mass deletions
-    # noncurrent_version_expiration {
-    #   noncurrent_days = var.backup_retention_days
-    # }
+    # REMOVED: expiration rule was deleting Longhorn backup blocks after 90 days.
+    # Longhorn uses incremental backups with shared blocks across snapshots.
+    # S3 lifecycle expiration is fundamentally incompatible — it deletes blocks
+    # still referenced by current backups, silently corrupting them.
+    # Longhorn manages its own block cleanup when backups are pruned via retain.
 
     abort_incomplete_multipart_upload {
       days_after_initiation = 7

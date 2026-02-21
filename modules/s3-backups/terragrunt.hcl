@@ -11,7 +11,6 @@ inputs = {
   bucket_name = "myles-homelab-backups"
   environment = local.common_inputs.environment
   aws_region = local.common_inputs.aws_region
-  backup_retention_days = 90
 }
 
 generate "provider" {
