@@ -36,6 +36,8 @@ spec:
                 secretKeyRef:
                   name: fittrackee-secrets
                   key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
