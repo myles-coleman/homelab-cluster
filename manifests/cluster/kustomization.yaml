@@ -23,9 +23,9 @@ resources:
 - youtubedl-material
 - homepage
 - copyparty
-- fittrackee
+# - fittrackee
 - metallb
 - traefik
 - argocd-secret
-- authentik
+# - authentik
 - cloudflared
