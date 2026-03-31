@@ -1,3 +1,6 @@
 nav:
-- 'Quick Start': index.md
-- 'operator-guide'
+  - Home: index.md
+  - Architecture: architecture
+  - Guides: guides
+  - Operator Guide: operator-guide
+  - Reference: reference

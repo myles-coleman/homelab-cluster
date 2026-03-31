@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: CHANGEME
+  namespace: CHANGEME
+  annotations:
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`CHANGEME.cowlab.org`)
+      kind: Rule
+      services:
+        - name: CHANGEME
+          port: CHANGEME

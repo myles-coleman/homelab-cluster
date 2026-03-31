@@ -1,0 +1,4 @@
+nav:
+  - Adding a Service: adding-a-service.md
+  - Managing Secrets: managing-secrets.md
+  - DNS and Ingress: dns-and-ingress.md
