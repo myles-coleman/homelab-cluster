@@ -6,6 +6,8 @@ on:
       branches: main
       paths:
         - 'docs/**'
+        - 'mkdocs.yaml'
+        - 'pyproject.toml'
   workflow_dispatch: {}
 
 jobs:
