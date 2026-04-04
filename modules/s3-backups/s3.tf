@@ -11,7 +11,7 @@ resource "aws_s3_bucket" "longhorn_backups" {
 resource "aws_s3_bucket_versioning" "longhorn_backups" {
   bucket = aws_s3_bucket.longhorn_backups.id
   versioning_configuration {
-    status = "Enabled"
+    status = "Suspended"
   }
 }
 
@@ -51,6 +51,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "longhorn_backups" {
     # S3 lifecycle expiration is fundamentally incompatible — it deletes blocks
     # still referenced by current backups, silently corrupting them.
     # Longhorn manages its own block cleanup when backups are pruned via retain.
+
+    # Clean up non-current versions left over from when versioning was enabled
+    noncurrent_version_expiration {
+      noncurrent_days = 1
+    }
 
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
