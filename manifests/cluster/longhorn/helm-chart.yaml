@@ -70,7 +70,7 @@ data:
   default-resource.yaml: |-
     backup-target: s3://myles-homelab-backups@us-west-1/longhorn-backups/
     backup-target-credential-secret: longhorn-backup-secret
-    backupstore-poll-interval: 300
+    backupstore-poll-interval: 86400
 ---
 # Source: longhorn/templates/default-setting.yaml
 apiVersion: v1
