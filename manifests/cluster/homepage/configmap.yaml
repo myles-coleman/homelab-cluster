@@ -62,21 +62,15 @@ data:
             href: https://qbittorrent.cowlab.org/
             description: Torrent Client
         - Copyparty:
+            icon: copyparty.svg
             href: https://copyparty.cowlab.org/
             description: File Sharing and Management
-        - Llama:
-            href: https://chat.cowlab.org/
-            description: AI Chat
-        - FitTrackee:
-            icon: fittrackee.svg
-            href: https://fitness.cowlab.org/
-            description: Fitness tracker
+        - YoutubeDL:
+            icon: youtube.svg
+            href: https://youtube.cowlab.org/
+            description: YouTube Downloader
 
     - System:
-        - Pi-Hole:
-            icon: pi-hole.svg
-            href: https://pihole.cowlab.org/admin/login
-            description: Network-Wide Ad Blocker
         - Pikvm:
             icon: pikvm.svg
             href: https://pikvm.cowlab.org/
@@ -93,10 +87,6 @@ data:
             icon: nginx-proxy-manager.svg
             href: https://npm.cowlab.org/
             description: Proxy Server
-        - Authentik:
-            icon: authentik.svg
-            href: https://authentik.cowlab.org/
-            description: Authentication and Authorization
 
   widgets.yaml: |
     - kubernetes:
