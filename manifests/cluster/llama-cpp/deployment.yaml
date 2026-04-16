@@ -93,6 +93,8 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
+            - name: cache
+              mountPath: /home/llama/.cache
           securityContext:
             runAsNonRoot: true
             runAsUser: 1001
@@ -108,4 +110,6 @@ spec:
           persistentVolumeClaim:
             claimName: llama-models
         - name: tmp
+          emptyDir: {}
+        - name: cache
           emptyDir: {}
