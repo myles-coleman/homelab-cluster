@@ -42,7 +42,7 @@ spec:
               mountPath: /models
           securityContext:
             runAsNonRoot: true
-            runAsUser: 1000
+            runAsUser: 1001
             allowPrivilegeEscalation: false
             capabilities:
               drop:
@@ -93,7 +93,7 @@ spec:
               mountPath: /tmp
           securityContext:
             runAsNonRoot: true
-            runAsUser: 1000
+            runAsUser: 1001
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:
