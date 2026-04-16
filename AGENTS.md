@@ -20,6 +20,7 @@ This is a personal homelab Kubernetes cluster running media management, home aut
 | node1 | k3s agent (worker) | 10.0.0.141 | Raspberry Pi 5, aarch64, NVMe SSD |
 | node2 | k3s agent (worker) | 10.0.0.142 | Raspberry Pi 5, aarch64, NVMe SSD |
 | node3 | k3s agent (worker) | 10.0.0.143 | Raspberry Pi 5, aarch64, NVMe SSD |
+| node4 | k3s agent (GPU worker) | 10.0.0.144 | Raspberry Pi 5 8GB, aarch64, SD card, AMD RX 6700 XT eGPU |
 
 ### Operating System & Kubernetes
 
@@ -50,6 +51,36 @@ This is a personal homelab Kubernetes cluster running media management, home aut
 - **Dex** — OIDC connector for ArgoCD authentication
 - **Authentik** — Identity provider (Helm chart, Terragrunt-managed config)
 - **Cloudflare Tunnel** — Secure tunnel for public-facing services without exposing ports
+
+### GPU Workloads
+
+Node4 has an AMD RX 6700 XT eGPU connected via PCIe, running Vulkan compute through Mesa RADV drivers. GPU access in Kubernetes is provided by `squat/generic-device-plugin` (DaemonSet in `device-system` namespace), which exposes `/dev/dri/renderD128` and `/dev/dri/card0` as a schedulable resource.
+
+| Property | Value |
+|----------|-------|
+| **Kubernetes resource** | `gpu.cowlab.org/dri: 1` |
+| **Node labels** | `gpu.node/type=amd-vulkan`, `gpu.node/vram=12Gi` |
+| **Node taint** | `gpu=amd:NoSchedule` |
+| **GPU backend** | Vulkan (Mesa RADV, no ROCm on ARM64) |
+
+To schedule a GPU workload, add all three to the pod spec:
+
+```yaml
+nodeSelector:
+  gpu.node/type: amd-vulkan
+tolerations:
+  - key: gpu
+    operator: Equal
+    value: amd
+    effect: NoSchedule
+resources:
+  requests:
+    gpu.cowlab.org/dri: 1
+  limits:
+    gpu.cowlab.org/dri: 1
+```
+
+See `manifests/cluster/llama-cpp/deployment.yaml` for a complete example.
 
 ---
 
@@ -143,6 +174,7 @@ ArgoCD deploys services in wave order (lower numbers first). This ensures depend
 | 2 | traefik, metallb | Networking layer (ingress + load balancer) |
 | 3 | longhorn | Storage layer for persistent workloads |
 | 4 | dex | Authentication (OIDC for ArgoCD) |
+| 5 | generic-device-plugin | GPU device registration (must be ready before GPU workloads) |
 | 10 | All application workloads | Default wave for apps (sonarr, radarr, jellyfin, etc.) |
 
 Wave assignments are defined in the `sync_wave_map` associative array in `generate-apps.sh`. Any service not in the map defaults to wave 10.
