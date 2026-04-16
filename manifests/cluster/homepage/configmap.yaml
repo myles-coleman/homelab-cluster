@@ -70,7 +70,7 @@ data:
             href: https://youtube.cowlab.org/
             description: YouTube Downloader
         - Llama.cpp:
-            icon: llama.svg
+            icon: ollama.svg
             href: https://llama.cowlab.org/
             description: LLM Inference Server (Vulkan GPU)
 
