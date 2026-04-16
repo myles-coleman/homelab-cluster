@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-cpp
+  namespace: llama-cpp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llama-cpp
+  template:
+    metadata:
+      labels:
+        app: llama-cpp
+    spec:
+      nodeSelector:
+        gpu.node/type: amd-vulkan
+      tolerations:
+        - key: gpu
+          operator: Equal
+          value: amd
+          effect: NoSchedule
+      initContainers:
+        - name: model-download
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              if [ -f "/models/${MODEL_FILENAME}" ]; then
+                echo "Model already exists at /models/${MODEL_FILENAME}, skipping download"
+              else
+                echo "Downloading model from ${MODEL_URL}..."
+                curl -L -o "/models/${MODEL_FILENAME}" "${MODEL_URL}"
+                echo "Download complete"
+              fi
+          envFrom:
+            - configMapRef:
+                name: llama-cpp-config
+          volumeMounts:
+            - name: models
+              mountPath: /models
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+      containers:
+        - name: llama-cpp
+          image: beebecomebigbee/llama-cpp-vulkan:latest
+          command:
+            - sh
+            - -c
+            - |
+              exec llama-server $LLAMA_ARGS -m /models/$MODEL_FILENAME
+          envFrom:
+            - configMapRef:
+                name: llama-cpp-config
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "2000m"
+              gpu.cowlab.org/dri: 1
+            limits:
+              memory: "6Gi"
+              cpu: "4000m"
+              gpu.cowlab.org/dri: 1
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - name: models
+              mountPath: /models
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: models
+          hostPath:
+            path: /var/lib/llama-models
+            type: DirectoryOrCreate
+        - name: tmp
+          emptyDir: {}

@@ -30,3 +30,4 @@ resources:
 # - authentik
 - cloudflared
 - generic-device-plugin
+- llama-cpp

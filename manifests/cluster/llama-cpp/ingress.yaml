@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: llama-cpp
+  namespace: llama-cpp
+  annotations:
+    kubernetes.io/ingress.class: traefik-external
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`llama.cowlab.org`)
+      kind: Rule
+      services:
+        - name: llama-cpp
+          port: 8080
