@@ -83,6 +83,12 @@ To schedule a GPU workload, a pod spec needs: nodeSelector (`gpu.node/type: amd-
 
 ## 3. Deployment Flow
 
+### ⚠️ GitOps-Only Workflow
+
+**All cluster changes MUST follow the GitOps flow.** Edit manifests in Git, commit, and let ArgoCD sync them to the cluster. **Never use `kubectl apply`, `kubectl create`, or any imperative write command to deploy or modify resources.** ArgoCD's self-heal will revert manual changes, and imperative applies bypass review, history, and the sync wave dependency chain.
+
+`kubectl` is permitted only for **read-only operations** (e.g., `get`, `logs`, `describe`, `top`, `exec` for debugging) and **one-off operational commands** (e.g., `rollout restart`, `delete pod` to force a restart). It must never be used to apply or patch manifests.
+
 ### GitOps Pipeline
 
 On push to main, GitHub Actions runs these workflows based on changed paths:
