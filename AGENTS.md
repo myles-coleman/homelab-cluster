@@ -213,7 +213,22 @@ All modules use OpenTofu (`terraform_binary = "tofu"` in `root.hcl`) with S3 rem
 
 ---
 
-## 7. Guardrails
+## 7. Debugging
+
+When diagnosing cluster issues, always gather information yourself using kubectl rather than asking the user to paste logs. The kubeconfig is available on the local machine. Useful commands:
+
+- `kubectl get pods -n <namespace>` — check pod status and restarts
+- `kubectl logs <pod> -n <namespace>` — get container logs (add `--previous` for crash loops)
+- `kubectl describe pod <pod> -n <namespace>` — events, conditions, image pull errors
+- `kubectl get events -n <namespace> --sort-by=.lastTimestamp` — recent namespace events
+- `kubectl get nodes -o wide` — node status and readiness
+- `kubectl top pods -n <namespace>` — resource usage (if metrics-server is running)
+
+For ArgoCD sync issues: `kubectl get applications -n argocd` and check sync status/health. For Helm-based services, check the rendered resources match expectations.
+
+---
+
+## 8. Guardrails
 
 ### ⛔ NEVER Do These
 
@@ -242,7 +257,7 @@ All modules use OpenTofu (`terraform_binary = "tofu"` in `root.hcl`) with S3 rem
 
 ---
 
-## 8. Sensitive Information
+## 9. Sensitive Information
 
 ### ✅ Safe to Reference (Non-Secret)
 
