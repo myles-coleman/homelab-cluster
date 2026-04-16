@@ -20,6 +20,8 @@ spec:
           operator: Equal
           value: amd
           effect: NoSchedule
+      securityContext:
+        fsGroup: 1001
       initContainers:
         - name: model-download
           image: curlimages/curl:latest
