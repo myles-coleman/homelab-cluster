@@ -33,8 +33,13 @@ spec:
                 echo "Model already exists at /models/${MODEL_FILENAME}, skipping download"
               else
                 echo "Downloading model from ${MODEL_URL}..."
-                curl -L -o "/models/${MODEL_FILENAME}" "${MODEL_URL}"
-                echo "Download complete"
+                if curl -fL -o "/models/${MODEL_FILENAME}" "${MODEL_URL}"; then
+                  echo "Download complete"
+                else
+                  echo "Download failed, removing partial file"
+                  rm -f "/models/${MODEL_FILENAME}"
+                  exit 1
+                fi
               fi
           envFrom:
             - configMapRef:
