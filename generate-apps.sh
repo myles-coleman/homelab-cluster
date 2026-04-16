@@ -12,6 +12,7 @@ resources=$(grep "^- " "$CLUSTER_KUSTOMIZATION" | sed 's/^- //')
 # Namespace mapping for cases where directory name != namespace
 declare -A namespace_map
 namespace_map["metallb"]="metallb-system"
+namespace_map["generic-device-plugin"]="device-system"
 
 # Sync wave mapping for deployment order (lower numbers deploy first)
 declare -A sync_wave_map
@@ -25,6 +26,8 @@ sync_wave_map["metallb"]="2"
 sync_wave_map["longhorn"]="3"
 # Wave 4: Auth
 sync_wave_map["dex"]="4"
+# Wave 5: GPU device registration
+sync_wave_map["generic-device-plugin"]="5"
 # Wave 10: Applications (default)
 # All other apps will use wave 10
 

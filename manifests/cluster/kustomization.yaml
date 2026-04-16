@@ -29,3 +29,4 @@ resources:
 - argocd-secret
 # - authentik
 - cloudflared
+- generic-device-plugin

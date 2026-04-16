@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: generic-device-plugin
+  namespace: device-system
+  labels:
+    app: generic-device-plugin
+spec:
+  selector:
+    matchLabels:
+      app: generic-device-plugin
+  template:
+    metadata:
+      labels:
+        app: generic-device-plugin
+    spec:
+      priorityClassName: system-node-critical
+      nodeSelector:
+        gpu.node/type: amd-vulkan
+      tolerations:
+        - key: gpu
+          operator: Equal
+          value: amd
+          effect: NoSchedule
+      containers:
+        - name: generic-device-plugin
+          image: squat/generic-device-plugin:latest
+          args:
+            - --device
+            - '{"name": "dri", "groups": [{"paths": [{"path": "/dev/dri/renderD128"}, {"path": "/dev/dri/card0"}]}]}'
+            - --domain
+            - gpu.cowlab.org
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "50m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: device-plugin
+              mountPath: /var/lib/kubelet/device-plugins
+            - name: dev
+              mountPath: /dev
+              readOnly: true
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/rancher/k3s/agent/kubelet/device-plugins
+        - name: dev
+          hostPath:
+            path: /dev
