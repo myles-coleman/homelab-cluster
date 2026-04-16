@@ -24,7 +24,7 @@ spec:
         fsGroup: 1001
       initContainers:
         - name: model-download
-          image: curlimages/curl:latest
+          image: busybox:latest
           command:
             - sh
             - -c
@@ -33,7 +33,7 @@ spec:
                 echo "Model already exists at /models/${MODEL_FILENAME}, skipping download"
               else
                 echo "Downloading model from ${MODEL_URL}..."
-                if curl -fL -o "/models/${MODEL_FILENAME}" "${MODEL_URL}"; then
+                if wget -O "/models/${MODEL_FILENAME}" "${MODEL_URL}"; then
                   echo "Download complete"
                 else
                   echo "Download failed, removing partial file"
