@@ -103,8 +103,7 @@ spec:
               type: RuntimeDefault
       volumes:
         - name: models
-          hostPath:
-            path: /var/lib/llama-models
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: llama-models
         - name: tmp
           emptyDir: {}
