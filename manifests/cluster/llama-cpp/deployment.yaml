@@ -45,7 +45,9 @@ spec:
                 fi
               }
               download_file "${MODEL_URL}" "${MODEL_FILENAME}"
-              download_file "${MMPROJ_URL}" "${MMPROJ_FILENAME}"
+              if [ -n "${MMPROJ_URL}" ] && [ -n "${MMPROJ_FILENAME}" ]; then
+                download_file "${MMPROJ_URL}" "${MMPROJ_FILENAME}"
+              fi
           envFrom:
             - configMapRef:
                 name: llama-cpp-config
