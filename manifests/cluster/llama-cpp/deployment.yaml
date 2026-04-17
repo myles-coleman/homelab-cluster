@@ -29,18 +29,23 @@ spec:
             - sh
             - -c
             - |
-              if [ -f "/models/${MODEL_FILENAME}" ]; then
-                echo "Model already exists at /models/${MODEL_FILENAME}, skipping download"
-              else
-                echo "Downloading model from ${MODEL_URL}..."
-                if wget -O "/models/${MODEL_FILENAME}" "${MODEL_URL}"; then
-                  echo "Download complete"
+              download_file() {
+                url="$1"; filename="$2"
+                if [ -f "/models/${filename}" ]; then
+                  echo "Already exists: /models/${filename}, skipping"
                 else
-                  echo "Download failed, removing partial file"
-                  rm -f "/models/${MODEL_FILENAME}"
-                  exit 1
+                  echo "Downloading ${filename}..."
+                  if wget -O "/models/${filename}" "${url}"; then
+                    echo "Download complete: ${filename}"
+                  else
+                    echo "Download failed: ${filename}"
+                    rm -f "/models/${filename}"
+                    exit 1
+                  fi
                 fi
-              fi
+              }
+              download_file "${MODEL_URL}" "${MODEL_FILENAME}"
+              download_file "${MMPROJ_URL}" "${MMPROJ_FILENAME}"
           envFrom:
             - configMapRef:
                 name: llama-cpp-config
