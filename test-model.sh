@@ -178,11 +178,14 @@ success "All llama-cpp pods terminated"
 
 # --- 2.2: PVC cleanup ---
 info "Running cleanup pod to delete old models from PVC..."
+# Delete any leftover cleanup pod from a previous failed run
+kubectl delete pod llama-pvc-cleanup -n "$NAMESPACE" --ignore-not-found >/dev/null 2>&1
 CLEANUP_POD_EXISTS=true
 kubectl run llama-pvc-cleanup \
   -n "$NAMESPACE" \
   --image=busybox:latest \
   --restart=Never \
+  --override-type=strategic \
   --overrides='{
     "spec": {
       "nodeSelector": {"gpu.node/type": "amd-vulkan"},
@@ -191,22 +194,21 @@ kubectl run llama-pvc-cleanup \
       "containers": [{
         "name": "llama-pvc-cleanup",
         "image": "busybox:latest",
-        "command": ["sh", "-c", "rm -f /models/*.gguf && ls -la /models/ && echo Done"],
+        "command": ["sh", "-c", "echo Before cleanup: && du -sh /models/*.gguf 2>/dev/null || echo No .gguf files found && rm -fv /models/*.gguf && echo After cleanup: && ls -la /models/ && echo Done"],
         "volumeMounts": [{"name": "models", "mountPath": "/models"}],
         "securityContext": {
           "runAsNonRoot": true,
           "runAsUser": 1001,
           "allowPrivilegeEscalation": false,
-          "capabilities": {"drop": ["ALL"]}
+          "capabilities": {"drop": ["ALL"]},
+          "seccompProfile": {"type": "RuntimeDefault"}
         }
       }],
       "volumes": [{"name": "models", "persistentVolumeClaim": {"claimName": "llama-models"}}]
     }
-  }' \
-  -- sh -c "rm -f /models/*.gguf && ls -la /models/ && echo Done"
+  }'
 
 info "Waiting for cleanup pod to complete..."
-# Poll until pod succeeds or fails (kubectl wait --for=jsonpath doesn't work on all versions)
 CLEANUP_WAIT=0
 while [[ $CLEANUP_WAIT -lt 120 ]]; do
   POD_PHASE=$(kubectl get pod llama-pvc-cleanup -n "$NAMESPACE" -o jsonpath='{.status.phase}' 2>/dev/null || echo "Pending")
@@ -441,7 +443,7 @@ if [[ -z "$STATUS" ]]; then
       continue
     fi
 
-    TOKS=$(echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'{d[\"timings\"][\"predicted_per_second\"]:.2f}')" 2>/dev/null || echo "0")
+    TOKS=$(echo "$RESPONSE" | jq -r '.timings.predicted_per_second // 0 | . * 100 | round / 100' 2>/dev/null || echo "0")
     TOKS_VALUES+=("$TOKS")
     info "  Iteration $i: $TOKS tok/s"
     sleep 2
@@ -478,12 +480,7 @@ if [[ -z "$STATUS" ]]; then
     }' 2>/dev/null || echo "")
 
   if [[ -n "$TOOL_RESPONSE" ]]; then
-    HAS_TOOL_CALLS=$(echo "$TOOL_RESPONSE" | python3 -c "
-import json,sys
-d=json.load(sys.stdin)
-tc=d.get('choices',[{}])[0].get('message',{}).get('tool_calls',[])
-print('yes' if tc else 'no')
-" 2>/dev/null || echo "no")
+    HAS_TOOL_CALLS=$(echo "$TOOL_RESPONSE" | jq -r 'if (.choices[0].message.tool_calls // [] | length) > 0 then "yes" else "no" end' 2>/dev/null || echo "no")
     if [[ "$HAS_TOOL_CALLS" == "yes" ]]; then
       TOOL_CALLING="Yes"
       success "Tool calling: supported"
@@ -518,18 +515,7 @@ if [[ -z "$STATUS" ]]; then
       }" 2>/dev/null || echo "")
 
     if [[ -n "$VISION_RESPONSE" ]]; then
-      VISION_CONTENT=$(echo "$VISION_RESPONSE" | python3 -c "
-import json,sys
-d=json.load(sys.stdin)
-c=d.get('choices',[{}])[0].get('message',{}).get('content','')
-err=d.get('error',{})
-if err:
-    print('error')
-elif c:
-    print('yes')
-else:
-    print('no')
-" 2>/dev/null || echo "no")
+      VISION_CONTENT=$(echo "$VISION_RESPONSE" | jq -r 'if .error then "error" elif (.choices[0].message.content // "") != "" then "yes" else "no" end' 2>/dev/null || echo "no")
       if [[ "$VISION_CONTENT" == "yes" ]]; then
         VISION="Yes"
         success "Vision: supported"
@@ -656,24 +642,26 @@ else
 SECTION
   )
 
-  # Insert before "## Performance Summary" using python3 for reliable multi-line insertion
+  # Insert before "## Performance Summary" using awk for reliable multi-line insertion
   TEMP_SECTION=$(mktemp)
   echo "$NEW_SECTION" > "$TEMP_SECTION"
-  python3 -c "
-marker = '## Performance Summary'
-with open('$TEMP_SECTION') as f:
-    section = f.read()
-with open('$DOC_PATH', 'r') as f:
-    content = f.read()
-if marker in content:
-    content = content.replace(marker, section + '\n' + marker)
-else:
-    content += '\n' + section
-with open('$DOC_PATH', 'w') as f:
-    f.write(content)
-" && success "Added model entry #$NEXT_NUM to documentation" \
-    || warn "Could not insert model entry"
-  rm -f "$TEMP_SECTION"
+  TEMP_DOC=$(mktemp)
+  if grep -q '^## Performance Summary' "$DOC_PATH"; then
+    awk -v section_file="$TEMP_SECTION" '
+      /^## Performance Summary/ {
+        while ((getline line < section_file) > 0) print line
+        close(section_file)
+        print ""
+      }
+      { print }
+    ' "$DOC_PATH" > "$TEMP_DOC" && mv "$TEMP_DOC" "$DOC_PATH"
+    success "Added model entry #$NEXT_NUM to documentation"
+  else
+    warn "Could not find '## Performance Summary' header — appending to end of file"
+    cat "$TEMP_SECTION" >> "$DOC_PATH"
+    success "Appended model entry #$NEXT_NUM to end of documentation"
+  fi
+  rm -f "$TEMP_SECTION" "$TEMP_DOC"
 
   # --- 4.5: Add row to Performance Summary table ---
   # Build table row
@@ -683,33 +671,21 @@ with open('$DOC_PATH', 'w') as f:
   TABLE_ROW="| ${NAME_PART:-$DISPLAY_NAME} | ${QUANT:-N/A} | ${MODEL_SIZE} | ${SPEED_DISPLAY} | ${TOOLS_EMOJI} | ${VISION_EMOJI} | ${STATUS} |"
 
   # Find the last table row in the Performance Summary section and append after it
-  TEMP_ROW=$(mktemp)
-  echo "$TABLE_ROW" > "$TEMP_ROW"
-  python3 -c "
-import sys
-with open('$TEMP_ROW') as f:
-    new_row = f.read().strip() + '\n'
-with open('$DOC_PATH', 'r') as f:
-    lines = f.readlines()
-in_summary = False
-last_table_line = -1
-for i, line in enumerate(lines):
-    if line.strip() == '## Performance Summary':
-        in_summary = True
-        continue
-    if in_summary:
-        if line.startswith('|'):
-            last_table_line = i
-        elif line.strip() == '' and last_table_line > 0:
-            break
-        elif line.startswith('#'):
-            break
-if last_table_line >= 0:
-    lines.insert(last_table_line + 1, new_row)
-    with open('$DOC_PATH', 'w') as f:
-        f.writelines(lines)
-" 2>/dev/null && success "Added row to Performance Summary table" || warn "Could not update Performance Summary table"
-  rm -f "$TEMP_ROW"
+  # Strategy: find the last pipe-delimited row before the next blank line or heading after "## Performance Summary"
+  TEMP_DOC=$(mktemp)
+  awk -v new_row="$TABLE_ROW" '
+    /^## Performance Summary/ { in_summary=1 }
+    in_summary && /^\|/ { last_table=NR; last_line=$0 }
+    in_summary && last_table && !/^\|/ && !inserted {
+      print new_row
+      inserted=1
+    }
+    { print }
+    END { if (in_summary && !inserted) print new_row }
+  ' "$DOC_PATH" > "$TEMP_DOC" && mv "$TEMP_DOC" "$DOC_PATH" \
+    && success "Added row to Performance Summary table" \
+    || warn "Could not update Performance Summary table"
+  rm -f "$TEMP_DOC"
 
   # --- 4.6: Final status ---
   success "Test complete: $STATUS. Results saved to $DOC_FILE"
