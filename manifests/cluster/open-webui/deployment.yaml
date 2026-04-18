@@ -49,18 +49,23 @@ spec:
           requests:
             memory: "512Mi"
             cpu: "250m"
-        livenessProbe:
+        startupProbe:
           httpGet:
             path: /health
             port: 8080
           initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 30
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
           periodSeconds: 30
           failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health
             port: 8080
-          initialDelaySeconds: 15
           periodSeconds: 10
           failureThreshold: 3
         volumeMounts:
