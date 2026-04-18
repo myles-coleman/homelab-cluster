@@ -41,4 +41,6 @@ spec:
               kubernetes.io/metadata.name: argocd
       ports:
         - protocol: TCP
-          port: 8080
+          port: 80
+        - protocol: TCP
+          port: 443
