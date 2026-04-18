@@ -73,6 +73,10 @@ data:
             icon: ollama.svg
             href: https://llama.cowlab.org/
             description: LLM Inference Server (Vulkan GPU)
+        - Open WebUI:
+            icon: open-webui.svg
+            href: https://openwebui.cowlab.org/
+            description: AI Chat Interface
 
     - System:
         - Pikvm:
