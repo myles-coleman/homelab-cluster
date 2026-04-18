@@ -34,13 +34,11 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # ArgoCD API server (in-cluster)
+    # ArgoCD API server (in-cluster, container port 8080)
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: argocd
       ports:
         - protocol: TCP
-          port: 80
-        - protocol: TCP
-          port: 443
+          port: 8080

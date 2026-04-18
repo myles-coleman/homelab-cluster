@@ -20,7 +20,7 @@ spec:
         - name: TZ
           value: "Etc/UTC"
         - name: ARGOCD_BASE_URL
-          value: "https://argocd-server.argocd.svc.cluster.local"
+          value: "http://argocd-server.argocd.svc.cluster.local"
         - name: ARGOCD_API_TOKEN
           valueFrom:
             secretKeyRef:
