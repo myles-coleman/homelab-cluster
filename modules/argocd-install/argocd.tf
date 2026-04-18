@@ -52,8 +52,8 @@ configs:
 
   cm:
     exec.enabled: true
-    admin.enabled: false
-    accounts.admin: apiKey, login
+    admin.enabled: true
+    accounts.admin: apiKey
 
     url: https://${var.argocd_host}
     oidc.config: |
