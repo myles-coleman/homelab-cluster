@@ -1,12 +1,12 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: llama-cpp
-  namespace: llama-cpp
+  name: argocd-mcp
+  namespace: argocd-mcp
 spec:
   podSelector:
     matchLabels:
-      app: llama-cpp
+      app: argocd-mcp
   policyTypes:
     - Ingress
     - Egress
@@ -18,15 +18,15 @@ spec:
               kubernetes.io/metadata.name: traefik
       ports:
         - protocol: TCP
-          port: 8080
-    # Open WebUI LLM client
+          port: 3000
+    # Open WebUI MCP client
     - from:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: open-webui
       ports:
         - protocol: TCP
-          port: 8080
+          port: 3000
   egress:
     # DNS resolution
     - ports:
@@ -34,10 +34,11 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # HTTPS for HuggingFace model downloads
+    # ArgoCD API server (in-cluster)
     - to:
-        - ipBlock:
-            cidr: 0.0.0.0/0
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: argocd
       ports:
         - protocol: TCP
-          port: 443
+          port: 8080

@@ -1,12 +1,12 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: llama-cpp
-  namespace: llama-cpp
+  name: open-webui
+  namespace: open-webui
 spec:
   podSelector:
     matchLabels:
-      app: llama-cpp
+      app: open-webui
   policyTypes:
     - Ingress
     - Egress
@@ -19,14 +19,6 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-    # Open WebUI LLM client
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: open-webui
-      ports:
-        - protocol: TCP
-          port: 8080
   egress:
     # DNS resolution
     - ports:
@@ -34,7 +26,23 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # HTTPS for HuggingFace model downloads
+    # llama.cpp OpenAI-compatible API
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: llama-cpp
+      ports:
+        - protocol: TCP
+          port: 8080
+    # ArgoCD MCP server
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: argocd-mcp
+      ports:
+        - protocol: TCP
+          port: 3000
+    # HTTPS for external resources (model info, updates, etc.)
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
