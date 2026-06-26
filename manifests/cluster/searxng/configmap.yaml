@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-config
+  namespace: searxng
+data:
+  settings.yml: |
+    use_default_settings: true
+    server:
+      secret_key: "changeme" # This will be overridden by environment variable if possible, or better, we use the secret key from environment
+      limiter: false
+      image_proxy: true
+    search:
+      safe_search: 0
+      autocomplete: ""
+    ui:
+      static_use_hash: true
+    format:
+      html:
+        enabled: true
+      json:
+        enabled: true

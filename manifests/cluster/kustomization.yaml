@@ -32,4 +32,5 @@ resources:
 - generic-device-plugin
 - llama-cpp
 - argocd-mcp
+- searxng
 - open-webui
