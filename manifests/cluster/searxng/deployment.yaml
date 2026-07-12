@@ -13,13 +13,21 @@ spec:
       labels:
         app: searxng
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: node1
       containers:
       - name: searxng
         image: searxng/searxng:latest
         env:
         - name: TZ
           value: "Etc/UTC"
-        - name: SEARXNG_SECRET_KEY
+        - name: PORT
+          value: "8080"
+        - name: SEARXNG_PORT
+          value: "8080"
+        - name: SEARXNG_SERVER__PORT
+          value: "8080"
+        - name: SEARXNG_SERVER__SECRET_KEY
           valueFrom:
             secretKeyRef:
               name: searxng-secrets
