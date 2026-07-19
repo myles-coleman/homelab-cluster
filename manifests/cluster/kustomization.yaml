@@ -31,6 +31,7 @@ resources:
 - cloudflared
 - generic-device-plugin
 - llama-cpp
+- mastra
 - argocd-mcp
 - searxng
 - open-webui

@@ -109,6 +109,10 @@ spec:
           value: "America/Los_Angeles"
         - name: WEBUI_PORT
           value: "8080"
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
         resources:
           limits:
             memory: "1Gi"
