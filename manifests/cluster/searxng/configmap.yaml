@@ -10,13 +10,11 @@ data:
       secret_key: "changeme" # This will be overridden by environment variable if possible, or better, we use the secret key from environment
       limiter: false
       image_proxy: true
-    search:
-      safe_search: 0
-      autocomplete: ""
-    ui:
-      static_use_hash: true
-    format:
-      html:
-        enabled: true
-      json:
-        enabled: true
+     search:
+       safe_search: 0
+       autocomplete: ""
+       formats:
+         - html
+         - json
+     ui:
+       static_use_hash: true
