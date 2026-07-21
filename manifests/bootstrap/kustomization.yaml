@@ -35,6 +35,7 @@ resources:
 - cloudflared-app.yaml
 - generic-device-plugin-app.yaml
 - llama-cpp-app.yaml
+- mastra-app.yaml
 - argocd-mcp-app.yaml
 - searxng-app.yaml
 - open-webui-app.yaml
