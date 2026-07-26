@@ -29,8 +29,8 @@ resources:
 - argocd-secret
 # - authentik
 - cloudflared
-- generic-device-plugin
-- llama-cpp
+# - generic-device-plugin
+# - llama-cpp
 - mastra
 - argocd-mcp
 - searxng
