@@ -33,8 +33,6 @@ resources:
 - traefik-app.yaml
 - argocd-secret-app.yaml
 - cloudflared-app.yaml
-- generic-device-plugin-app.yaml
-- llama-cpp-app.yaml
 - mastra-app.yaml
 - argocd-mcp-app.yaml
 - searxng-app.yaml
