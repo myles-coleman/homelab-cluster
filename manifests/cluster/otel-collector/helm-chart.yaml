@@ -202,7 +202,7 @@ spec:
             - --config=/conf/relay.yaml
           securityContext:
             {}
-          image: "otel/opentelemetry-collector:0.172.0"
+          image: "otel/opentelemetry-collector:0.159.0"
           imagePullPolicy: IfNotPresent
           ports:
             

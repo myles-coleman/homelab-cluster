@@ -1,6 +1,6 @@
 image:
   repository: otel/opentelemetry-collector
-  tag: 0.172.0
+  tag: 0.159.0
 
 mode: deployment
 
