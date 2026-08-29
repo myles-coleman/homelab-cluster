@@ -31,8 +31,7 @@ metadata:
 data:
   relay: |
     exporters:
-      debug: {}
-      logging:
+      debug:
         verbosity: normal
     extensions:
       health_check:
@@ -74,19 +73,19 @@ data:
       pipelines:
         logs:
           exporters:
-          - logging
+          - debug
           processors: []
           receivers:
           - otlp
         metrics:
           exporters:
-          - logging
+          - debug
           processors: []
           receivers:
           - otlp
         traces:
           exporters:
-          - logging
+          - debug
           processors: []
           receivers:
           - otlp
@@ -183,7 +182,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: f31082556c780884c86a068342b6599f06f161f17ed194211357e73eff0340cc
+        checksum/config: b2900ebece2004e93f4e17a638b83c519e44bd1a6aea8bb482cf656aaf456362
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
