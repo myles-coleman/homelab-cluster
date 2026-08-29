@@ -35,3 +35,4 @@ resources:
 - argocd-mcp
 - searxng
 - open-webui
+- otel-collector

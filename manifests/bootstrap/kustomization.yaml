@@ -37,3 +37,4 @@ resources:
 - argocd-mcp-app.yaml
 - searxng-app.yaml
 - open-webui-app.yaml
+- otel-collector-app.yaml
