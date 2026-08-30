@@ -4,7 +4,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: signoz-clickhouse
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -20,7 +20,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: signoz-clickhouse-operator
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -76,7 +76,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: signoz-clickhouse-operator
-  namespace: default
+  namespace: signoz
   labels: 
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -95,7 +95,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: signoz-zookeeper-scripts
-  namespace: default
+  namespace: signoz
   labels:
     app.kubernetes.io/name: zookeeper
     helm.sh/chart: zookeeper-0.0.1
@@ -130,7 +130,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: signoz-clickhouse-custom-functions
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -167,7 +167,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: signoz-clickhouse-scripts
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -205,7 +205,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: signoz-clickhouse-operator-etc-confd-files
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -222,7 +222,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: signoz-clickhouse-operator-etc-configd-files
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -388,7 +388,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: signoz-clickhouse-operator-etc-files
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -684,7 +684,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: signoz-clickhouse-operator-etc-templatesd-files
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -782,7 +782,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: signoz-clickhouse-operator-etc-usersd-files
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -994,8 +994,8 @@ data:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: signoz-otel-collector-default
-  namespace: default
+  name: signoz-otel-collector-signoz
+  namespace: signoz
 rules: 
   - apiGroups:
     - ""
@@ -1036,23 +1036,23 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: signoz-otel-collector-default
-  namespace: default
+  name: signoz-otel-collector-signoz
+  namespace: signoz
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: signoz-otel-collector-default
+  name: signoz-otel-collector-signoz
 subjects:
   - name: signoz-otel-collector
     kind: ServiceAccount
-    namespace: default
+    namespace: signoz
 ---
 # Source: signoz/charts/clickhouse/templates/clickhouse-operator/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: signoz-clickhouse-operator
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -1206,7 +1206,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: signoz-clickhouse-operator
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -1222,14 +1222,14 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: signoz-clickhouse-operator
-  namespace: default
+  namespace: signoz
 ---
 # Source: signoz/charts/clickhouse/charts/zookeeper/templates/metrics-svc.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: signoz-zookeeper-metrics
-  namespace: default
+  namespace: signoz
   labels:
     app.kubernetes.io/name: zookeeper
     helm.sh/chart: zookeeper-0.0.1
@@ -1256,7 +1256,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: signoz-zookeeper-headless
-  namespace: default
+  namespace: signoz
   labels:
     app.kubernetes.io/name: zookeeper
     helm.sh/chart: zookeeper-0.0.1
@@ -1287,7 +1287,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: signoz-zookeeper
-  namespace: default
+  namespace: signoz
   labels:
     app.kubernetes.io/name: zookeeper
     helm.sh/chart: zookeeper-0.0.1
@@ -1318,7 +1318,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: signoz-clickhouse-operator-metrics
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -1432,7 +1432,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: signoz-clickhouse-operator
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse
@@ -1453,11 +1453,11 @@ spec:
       annotations:
         signoz.io/port: "8888"
         signoz.io/scrape: "true"
-        checksum/files: 0126c9bfc647e9b69db4c0d042e8575bdbfdf62c22c752599e9f97e07391df0a
-        checksum/confd-files: 9f9486b7742c8a8004f96a5948c479cdb337be02e6e72295abc3d0a94cb206ab
-        checksum/configd-files: a452404abdac5d26fb0273233809c94b2842305538d42584264263d9d999c3bf
-        checksum/templatesd-files: 74f78b5e3bb09c76998a23e63307a74eb0df3cd8aeb3cec9dd1ebbcdbb545666
-        checksum/usersd-files: ea5d517b6e91b46edcefca1c3e81487d79e96024f928a86da67a88a8a0d343f2
+        checksum/files: c8d653d0277e2f36fadae729f5508e66acfb92307c8990324f56169d68566179
+        checksum/confd-files: 94f3e09ff7956c5a88558260c7c4f78b39abaac064f1753a0d7783178237f648
+        checksum/configd-files: cf3d35a6112c36b0b929dbd91bd08e819e859f4a83044514f65976416c60d95c
+        checksum/templatesd-files: d65e4c1431979c24903978a1679116472d94ea7e063f98fd8b83ef163a00c446
+        checksum/usersd-files: 7924fd74a6d6fc630e48a6e867b458ebe2011175b536950821c5ccb05619ece7
       labels:
         app.kubernetes.io/name: clickhouse
         app.kubernetes.io/instance: signoz
@@ -1830,7 +1830,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: signoz-zookeeper
-  namespace: default
+  namespace: signoz
   labels:
     app.kubernetes.io/name: zookeeper
     helm.sh/chart: zookeeper-0.0.1
@@ -1928,7 +1928,7 @@ spec:
             - name: ZOO_MAX_SESSION_TIMEOUT
               value: "40000"
             - name: ZOO_SERVERS
-              value: signoz-zookeeper-0.signoz-zookeeper-headless.default.svc.cluster.local:2888:3888::1 
+              value: signoz-zookeeper-0.signoz-zookeeper-headless.signoz.svc.cluster.local:2888:3888::1 
             - name: ZOO_ENABLE_AUTH
               value: "no"
             - name: ZOO_ENABLE_QUORUM_AUTH
@@ -2276,7 +2276,7 @@ apiVersion: clickhouse.altinity.com/v1
 kind: ClickHouseInstallation
 metadata:
   name: signoz-clickhouse
-  namespace: default
+  namespace: signoz
   labels:
     helm.sh/chart: clickhouse-24.1.18
     app.kubernetes.io/name: clickhouse

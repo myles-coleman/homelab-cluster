@@ -5,5 +5,6 @@ releases:
   - name: signoz
     chart: signoz/signoz
     version: 0.139.0
+    namespace: signoz
     values:
       - values.yaml
