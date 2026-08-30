@@ -38,3 +38,4 @@ resources:
 - searxng-app.yaml
 - open-webui-app.yaml
 - otel-collector-app.yaml
+- signoz-app.yaml

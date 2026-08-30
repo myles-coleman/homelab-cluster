@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: signoz
+
+resources:
+  - namespace.yaml
+  - helm-chart.yaml
+  - externalsecrets/clickhouse-operator-secret.yaml
+  - externalsecrets/clickhouse-admin-secret.yaml
+
+patches:
+  - target:
+      kind: Secret
+      name: signoz-clickhouse-operator
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: signoz-clickhouse-operator-old
+  - path: patches/patch-otel-collector-env.yaml
+  - path: patches/patch-telemetrystore-migrator-env.yaml
+  - path: patches/patch-signoz-statefulset-env.yaml
+  - path: patches/patch-clickhouse-installation.yaml
+

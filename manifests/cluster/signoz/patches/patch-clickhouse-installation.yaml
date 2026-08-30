@@ -1,0 +1,10 @@
+apiVersion: patches/v1
+kind: Patch
+metadata:
+  name: patch-clickhouse-installation
+patch: |-
+  - op: remove
+    path: /spec/configuration/users/admin/password
+target:
+  kind: ClickHouseInstallation
+  name: signoz-clickhouse

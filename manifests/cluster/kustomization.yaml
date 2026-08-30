@@ -36,3 +36,4 @@ resources:
 - searxng
 - open-webui
 - otel-collector
+- signoz

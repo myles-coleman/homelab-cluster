@@ -1,0 +1,10 @@
+global:
+  storageClass: longhorn
+
+clickhouse:
+  persistence:
+    storageClass: longhorn
+
+signoz:
+  persistence:
+    storageClass: longhorn
