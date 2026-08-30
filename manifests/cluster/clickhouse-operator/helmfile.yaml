@@ -1,0 +1,11 @@
+repositories:
+- name: altinity
+  url: https://altinity.github.io/clickhouse-operator/
+
+releases:
+- name: clickhouse-operator
+  namespace: clickhouse-operator
+  chart: altinity/altinity-clickhouse-operator
+  version: 0.27.3
+  values:
+    - values.yaml

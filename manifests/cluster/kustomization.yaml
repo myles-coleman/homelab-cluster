@@ -9,6 +9,7 @@ resources:
 - jellyfin
 - jellyseerr
 # - vaultwarden
+- clickhouse-operator
 - discord-bot
 - longhorn
 # - pihole
