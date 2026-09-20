@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: speedtest-collector
+  namespace: speedtest
+data:
+  config.yaml: |
+    receivers:
+      prometheus:
+        config:
+          global:
+            scrape_interval: 6h
+            scrape_timeout: 2m
+          scrape_configs:
+            - job_name: speedtest
+              scrape_interval: 6h
+              scrape_timeout: 2m
+              static_configs:
+                - targets: ["speedtest-exporter.speedtest.svc.cluster.local:9798"]
+              metric_relabel_configs:
+                # Drop go/process runtime noise; keep only speedtest_* metrics.
+                - source_labels: [__name__]
+                  regex: "speedtest_.*"
+                  action: keep
+    processors:
+      batch: {}
+      resourcedetection:
+        detectors: [env]
+        override: false
+      resource:
+        attributes:
+          - key: service.name
+            value: speedtest-exporter
+            action: upsert
+          - key: deployment.environment
+            value: homelab-cluster
+            action: upsert
+    exporters:
+      otlphttp:
+        endpoint: http://signoz-otel-collector.signoz.svc.cluster.local:4318
+        tls:
+          insecure: true
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+    service:
+      extensions: [health_check]
+      pipelines:
+        metrics:
+          receivers: [prometheus]
+          processors: [resourcedetection, resource, batch]
+          exporters: [otlphttp]
