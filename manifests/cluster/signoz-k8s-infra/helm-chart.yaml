@@ -717,6 +717,10 @@ spec:
         - effect: NoSchedule
           key: node.kubernetes.io/unschedulable
           operator: Exists
+        - effect: NoExecute
+          key: CriticalAddonsOnly
+          operator: Equal
+          value: "true"
       volumes:
         - name: otel-agent-config-vol
           configMap:
