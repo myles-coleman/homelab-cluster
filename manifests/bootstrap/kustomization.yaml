@@ -40,3 +40,4 @@ resources:
 - open-webui-app.yaml
 - otel-collector-app.yaml
 - signoz-app.yaml
+- ai-artifacts-site-app.yaml

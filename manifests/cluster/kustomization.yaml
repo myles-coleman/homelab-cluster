@@ -38,3 +38,4 @@ resources:
 - open-webui
 - otel-collector
 - signoz
+- ai-artifacts-site
