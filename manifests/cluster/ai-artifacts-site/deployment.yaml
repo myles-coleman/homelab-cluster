@@ -20,7 +20,7 @@ spec:
         - name: nginx
           # Immutable vault-SHA tag. Bump manually until the Renovate follow-up
           # spec exists (see docs/runbook.md in myles-coleman/ai-artifacts-site).
-          image: ghcr.io/myles-coleman/ai-artifacts-site:sha-2110426e295b
+          image: ghcr.io/myles-coleman/ai-artifacts-site:sha-734320ebe422
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
