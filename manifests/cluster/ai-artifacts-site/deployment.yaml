@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-artifacts-site
+  namespace: ai-artifacts-site
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-artifacts-site
+  template:
+    metadata:
+      labels:
+        app: ai-artifacts-site
+    spec:
+      # Private GHCR image; the pull credential is synced by External Secrets.
+      imagePullSecrets:
+        - name: ai-artifacts-site-ghcr
+      containers:
+        - name: nginx
+          # Immutable vault-SHA tag. Bump manually until the Renovate follow-up
+          # spec exists (see docs/runbook.md in myles-coleman/ai-artifacts-site).
+          image: ghcr.io/myles-coleman/ai-artifacts-site:sha-2110426e295b
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
