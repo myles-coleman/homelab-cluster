@@ -61,6 +61,12 @@ otelAgent:
     - key: node.kubernetes.io/unschedulable
       operator: Exists
       effect: NoSchedule
+    # node0 is a control-plane node tainted CriticalAddonsOnly; tolerate it so
+    # its kubelet metrics/logs are collected too.
+    - key: CriticalAddonsOnly
+      operator: Equal
+      value: "true"
+      effect: NoExecute
   resources:
     requests:
       cpu: 50m
