@@ -5,6 +5,7 @@ namespace: signoz
 resources:
   - namespace.yaml
   - helm-chart.yaml
+  - ingress.yaml
   - externalsecrets/clickhouse-operator-secret.yaml
   - externalsecrets/clickhouse-admin-secret.yaml
   - externalsecrets/signoz-secrets.yaml
