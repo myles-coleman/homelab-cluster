@@ -55,7 +55,7 @@ patches:
           - name: SIGNOZ_OTEL_COLLECTOR_TIMEOUT
             value: "10m"
           - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION
-            value: "true"
+            value: "false"
       - op: replace
         path: /spec/template/spec/containers/0/env
         value:
@@ -154,7 +154,7 @@ patches:
           - name: SIGNOZ_OTEL_COLLECTOR_TIMEOUT
             value: "10m"
           - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION
-            value: "true"
+            value: "false"
       - op: replace
         path: /spec/template/spec/initContainers/1/env
         value:
@@ -185,7 +185,7 @@ patches:
           - name: SIGNOZ_OTEL_COLLECTOR_TIMEOUT
             value: "10m"
           - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION
-            value: "true"
+            value: "false"
       - op: replace
         path: /spec/template/spec/initContainers/2/env
         value:
@@ -216,7 +216,7 @@ patches:
           - name: SIGNOZ_OTEL_COLLECTOR_TIMEOUT
             value: "10m"
           - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION
-            value: "true"
+            value: "false"
       - op: replace
         path: /spec/template/spec/containers/0/env
         value:
@@ -276,6 +276,17 @@ patches:
                 fieldPath: metadata.namespace
           - name: LOW_CARDINAL_EXCEPTION_GROUPING
             value: "false"
+          # The async migrator needs the DSN/cluster/replication settings too.
+          # Without these it defaults to tcp://0.0.0.0:9001 and fails. This is
+          # a single-shard/replica ClickHouse, so replication must be false.
+          - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN
+            value: "tcp://$(CLICKHOUSE_USER):$(CLICKHOUSE_PASSWORD)@$(CLICKHOUSE_HOST):$(CLICKHOUSE_PORT)"
+          - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER
+            value: $(CLICKHOUSE_CLUSTER)
+          - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION
+            value: "false"
+          - name: SIGNOZ_OTEL_COLLECTOR_TIMEOUT
+            value: "10m"
   - target:
       kind: StatefulSet
       name: signoz
