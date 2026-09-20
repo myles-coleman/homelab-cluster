@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: speedtest-exporter
+  namespace: speedtest
+  labels:
+    app: speedtest-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: speedtest-exporter
+  template:
+    metadata:
+      labels:
+        app: speedtest-exporter
+    spec:
+      # Run on a gigabit node (node4's NIC tops out ~250-450Mbps and would
+      # cap the measured result). Avoid node4 and the control-plane node0.
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - node1
+                      - node2
+                      - node3
+      containers:
+        - name: exporter
+          image: ghcr.io/ishioni/speedtest-exporter:latest
+          ports:
+            - name: metrics
+              containerPort: 9798
+          env:
+            # Cache results for 30m so repeated scrapes don't each run a test.
+            - name: SPEEDTEST_CACHE_FOR
+              value: "30m"
+            - name: SPEEDTEST_TIMEOUT
+              value: "120s"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: speedtest-exporter
+  namespace: speedtest
+  labels:
+    app: speedtest-exporter
+spec:
+  selector:
+    app: speedtest-exporter
+  ports:
+    - name: metrics
+      port: 9798
+      targetPort: metrics

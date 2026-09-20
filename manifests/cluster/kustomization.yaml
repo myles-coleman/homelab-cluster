@@ -40,3 +40,4 @@ resources:
 - signoz
 - signoz-k8s-infra
 - ai-artifacts-site
+- speedtest
