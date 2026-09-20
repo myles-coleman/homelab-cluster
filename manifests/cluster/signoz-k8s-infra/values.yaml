@@ -1,0 +1,77 @@
+global:
+  clusterName: homelab-cluster
+
+# Send telemetry to the SigNoz otel-collector in the signoz namespace.
+otelCollectorEndpoint: http://signoz-otel-collector.signoz.svc.cluster.local:4318
+otelInsecure: true
+
+presets:
+  # Node, pod and container metrics via kubeletstats + host metrics.
+  kubeletMetrics:
+    enabled: true
+  clusterMetrics:
+    enabled: true
+  hostMetrics:
+    enabled: true
+  kubernetesAttributes:
+    enabled: true
+  # Kubernetes events as logs.
+  k8sEvents:
+    enabled: true
+  # Container logs via filelog. Exclude the noisy control-plane namespaces and
+  # SigNoz's own logs to keep ingestion/storage bounded.
+  logsCollection:
+    enabled: true
+    blacklist:
+      enabled: true
+      signozLogs: true
+      namespaces:
+        - kube-system
+        - longhorn-system
+        - cert-manager
+      pods: []
+      containers: []
+
+otelAgent:
+  # Run the agent on every node. Tolerate the GPU taint (node4) and the usual
+  # node conditions. node0's CriticalAddonsOnly taint is intentionally not
+  # tolerated, matching the other DaemonSets in this cluster.
+  tolerations:
+    - key: gpu
+      operator: Equal
+      value: amd
+      effect: NoSchedule
+    - key: node.kubernetes.io/not-ready
+      operator: Exists
+      effect: NoExecute
+      tolerationSeconds: 300
+    - key: node.kubernetes.io/unreachable
+      operator: Exists
+      effect: NoExecute
+      tolerationSeconds: 300
+    - key: node.kubernetes.io/disk-pressure
+      operator: Exists
+      effect: NoSchedule
+    - key: node.kubernetes.io/memory-pressure
+      operator: Exists
+      effect: NoSchedule
+    - key: node.kubernetes.io/pid-pressure
+      operator: Exists
+      effect: NoSchedule
+    - key: node.kubernetes.io/unschedulable
+      operator: Exists
+      effect: NoSchedule
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+    limits:
+      memory: 256Mi
+
+otelDeployment:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+    limits:
+      memory: 256Mi

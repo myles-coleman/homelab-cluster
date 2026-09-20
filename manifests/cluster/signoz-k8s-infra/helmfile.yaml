@@ -1,0 +1,10 @@
+repositories:
+  - name: signoz
+    url: https://charts.signoz.io
+releases:
+  - name: k8s-infra
+    chart: signoz/k8s-infra
+    version: 0.17.1
+    namespace: signoz-k8s-infra
+    values:
+      - values.yaml
