@@ -397,8 +397,10 @@ patches:
         path: /spec/templates/volumeClaimTemplates/0/spec/resources/requests/storage
         value: "50Gi"
       # Cap ClickHouse memory so it cannot starve the node (node1 is 4GiB).
-      # ClickHouse derives max_server_memory_usage from the cgroup limit.
+      # ClickHouse derives max_server_memory_usage from the cgroup limit; at
+      # 2Gi the ~1.8GiB ceiling was too low and bootstrap/merges hit
+      # MEMORY_LIMIT_EXCEEDED. 3Gi leaves room while protecting the node.
       - op: add
         path: /spec/templates/podTemplates/0/spec/containers/0/resources/limits
         value:
-          memory: 2Gi
+          memory: 3Gi
