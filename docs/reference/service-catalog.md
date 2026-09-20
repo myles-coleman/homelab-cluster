@@ -30,6 +30,7 @@ This catalog lists all services defined in `manifests/cluster/`. The **source of
 | authentik | authentik | 10 | authentik.cowlab.org | Yes | Helm | Identity provider and SSO |
 | cloudflared | cloudflared | 10 | — | No | Helm | Cloudflare Zero Trust Tunnel agent |
 | argocd-secret | argocd-secret | 10 | — | No | Raw | ArgoCD secret configuration |
+| node-exporter | node-exporter | 10 | — | No | Raw | Host thermal and CPU-frequency metrics for the Pi 5 nodes |
 
 ## Disabled Services
 

@@ -41,3 +41,4 @@ resources:
 - signoz-k8s-infra
 - ai-artifacts-site
 - speedtest
+- node-exporter

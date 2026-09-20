@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: node-exporter
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: node-exporter
+  project: default
+  source:
+    path: manifests/cluster/node-exporter
+    repoURL: "https://github.com/myles-coleman/homelab-cluster"
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+    retry:
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 2m
+      limit: 5
