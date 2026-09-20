@@ -18,7 +18,7 @@ root.hcl                          # S3 backend config, tofu binary
 - **`root.hcl`** — Defines the S3 backend and sets `tofu` as the Terraform binary
 - **`common-inputs.yaml`** — Shared variables: environment (`production`), project name (`homelab-cluster`), cluster name, AWS region, kubeconfig path, ArgoCD host, Authentik URL, domain (`cowlab.org`)
 - **`modules/terragrunt.hcl`** — Common include that references `root.hcl` via `find_in_parent_folders()`
-- **Per-module `terragrunt.hcl`** — Loads common inputs, defines module-specific inputs, declares dependencies, and generates provider configurations (Kubernetes, Helm) from kubeconfig
+- **Per-module `terragrunt.hcl`** — Loads common inputs, defines module-specific inputs, declares dependencies, and generates provider configurations (Kubernetes, Helm) from kubeconfig. The `signoz-dashboards` module is the exception: its provider is HTTP-based and configured from environment variables (see below).
 
 ### CI/CD Pipeline
 
@@ -84,6 +84,16 @@ Infrastructure changes are deployed via the `deploy.yaml` GitHub Actions workflo
     - IAM user with scoped permissions
     - IAM policy for bucket access
 - **Notes**: Longhorn is configured to use this bucket for automatic volume backups
+
+## Module: `signoz-dashboards`
+
+- **Purpose**: Manages SigNoz dashboards as code via the official `SignNoz/signoz` Terraform provider.
+- **Key resources**:
+    - One `signoz_dashboard` resource per Terragrunt unit
+- **Units**: `homelab-overview`, `kubernetes-nodes`, `pi5-thermal` — each with its own state key so a broken dashboard cannot block the others.
+- **Inputs**: none; the provider is configured from the `SIGNOZ_ENDPOINT` and `SIGNOZ_ACCESS_TOKEN` environment variables.
+- **Providers**: SigNoz (HTTP API, **not** generated from kubeconfig)
+- **Notes**: This module deviates from the kubeconfig-based provider pattern used by the other modules. The SigNoz provider talks to the SigNoz HTTP API, so `modules/signoz-dashboards/common.hcl` supplies the endpoint and token, and each unit generates `_provider.tf` from it. The endpoint (`https://signoz.cowlab.org`) is reachable over Tailscale from CI. See the [SigNoz dashboard API key runbook](runbooks/signoz-dashboard-api-key.md) for the manual token bootstrap and rotation.
 
 ## Module: `authentik`
 
