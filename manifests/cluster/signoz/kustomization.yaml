@@ -7,15 +7,20 @@ resources:
   - helm-chart.yaml
   - externalsecrets/clickhouse-operator-secret.yaml
   - externalsecrets/clickhouse-admin-secret.yaml
+  - externalsecrets/signoz-secrets.yaml
 
 patches:
+  # The chart renders this Secret with the default operator credentials in
+  # plaintext. Delete it so the ESO-managed Secret of the same name is used.
   - target:
       kind: Secret
       name: signoz-clickhouse-operator
     patch: |-
-      - op: replace
-        path: /metadata/name
-        value: signoz-clickhouse-operator-old
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: signoz-clickhouse-operator
+      $patch: delete
   - target:
       kind: Deployment
       name: signoz-otel-collector
@@ -110,6 +115,11 @@ patches:
                 fieldPath: metadata.namespace
           - name: LOW_CARDINAL_EXCEPTION_GROUPING
             value: "false"
+          - name: TENANT_ID
+            valueFrom:
+              secretKeyRef:
+                name: signoz-secrets
+                key: tenant-id
   - target:
       kind: Job
       name: signoz-telemetrystore-migrator
@@ -305,9 +315,60 @@ patches:
             value: "http://localhost:8080"
           - name: SIGNOZ_ALERTMANAGER_PROVIDER
             value: "signoz"
+          - name: SIGNOZ_TOKENIZER_JWT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: signoz-secrets
+                key: jwt-secret
   - target:
       kind: ClickHouseInstallation
       name: signoz-clickhouse
     patch: |-
+      # Drop the chart's plaintext admin password; it is supplied by ESO.
       - op: remove
         path: /spec/configuration/users/admin~1password
+      # Cap ClickHouse's internal system logs. The chart only sets TTLs for
+      # text/latency/error/query_metric logs, so trace_log grew unbounded and
+      # filled the 20Gi volume (18.5GiB in ~6 days).
+      - op: replace
+        path: /spec/configuration/files/config.d~1system_log.xml
+        value: |
+          <clickhouse>
+            <text_log>
+              <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+            </text_log>
+            <latency_log>
+              <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+            </latency_log>
+            <error_log>
+              <ttl>event_date + INTERVAL 7 DAY DELETE</ttl>
+            </error_log>
+            <query_metric_log>
+              <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+            </query_metric_log>
+            <trace_log>
+              <ttl>event_date + INTERVAL 2 DAY DELETE</ttl>
+            </trace_log>
+            <part_log>
+              <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+            </part_log>
+            <query_log>
+              <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+            </query_log>
+            <metric_log>
+              <ttl>event_date + INTERVAL 7 DAY DELETE</ttl>
+            </metric_log>
+            <asynchronous_metric_log>
+              <ttl>event_date + INTERVAL 1 DAY DELETE</ttl>
+            </asynchronous_metric_log>
+          </clickhouse>
+      # Give the data volume headroom; Longhorn supports online expansion.
+      - op: replace
+        path: /spec/templates/volumeClaimTemplates/0/spec/resources/requests/storage
+        value: "50Gi"
+      # Cap ClickHouse memory so it cannot starve the node (node1 is 4GiB).
+      # ClickHouse derives max_server_memory_usage from the cgroup limit.
+      - op: add
+        path: /spec/templates/podTemplates/0/spec/containers/0/resources/limits
+        value:
+          memory: 2Gi
