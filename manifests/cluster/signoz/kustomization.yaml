@@ -327,9 +327,13 @@ patches:
       # Drop the chart's plaintext admin password; it is supplied by ESO.
       - op: remove
         path: /spec/configuration/users/admin~1password
-      # Cap ClickHouse's internal system logs. The chart only sets TTLs for
-      # text/latency/error/query_metric logs, so trace_log grew unbounded and
-      # filled the 20Gi volume (18.5GiB in ~6 days).
+      # Cap ClickHouse's internal system logs. text/latency/error/query_metric
+      # have no operator-defined engine, so a plain <ttl> is valid. The tables
+      # below are declared with an explicit <engine> by the operator, so their
+      # TTL must be set inside the engine (a standalone <ttl> is rejected:
+      # "If 'engine' is specified... 'ttl' setting doesn't make sense").
+      # trace_log previously ran with a 7-day engine TTL and filled the 20Gi
+      # volume (18.5GiB in ~6 days).
       - op: replace
         path: /spec/configuration/files/config.d~1system_log.xml
         value: |
@@ -346,20 +350,35 @@ patches:
             <query_metric_log>
               <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
             </query_metric_log>
-            <trace_log>
-              <ttl>event_date + INTERVAL 2 DAY DELETE</ttl>
+            <trace_log replace="1">
+              <database>system</database>
+              <table>trace_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 2 day</engine>
+              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
             </trace_log>
-            <part_log>
-              <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+            <part_log replace="1">
+              <database>system</database>
+              <table>part_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 3 day</engine>
+              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
             </part_log>
-            <query_log>
-              <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+            <query_log replace="1">
+              <database>system</database>
+              <table>query_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 3 day</engine>
+              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
             </query_log>
-            <metric_log>
-              <ttl>event_date + INTERVAL 7 DAY DELETE</ttl>
+            <metric_log replace="1">
+              <database>system</database>
+              <table>metric_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 7 day</engine>
+              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
             </metric_log>
-            <asynchronous_metric_log>
-              <ttl>event_date + INTERVAL 1 DAY DELETE</ttl>
+            <asynchronous_metric_log replace="1">
+              <database>system</database>
+              <table>asynchronous_metric_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 1 day</engine>
+              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
             </asynchronous_metric_log>
           </clickhouse>
       # Give the data volume headroom; Longhorn supports online expansion.
