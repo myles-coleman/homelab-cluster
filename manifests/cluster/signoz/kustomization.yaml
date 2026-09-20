@@ -404,3 +404,9 @@ patches:
         path: /spec/templates/podTemplates/0/spec/containers/0/resources/limits
         value:
           memory: 3Gi
+      # Pin ClickHouse to node4 (8GiB). node4 also hosts the volume's running
+      # Longhorn replica, so scheduling there avoids cross-node engine I/O.
+      - op: add
+        path: /spec/templates/podTemplates/0/spec/nodeSelector
+        value:
+          kubernetes.io/hostname: node4
