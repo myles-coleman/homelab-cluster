@@ -391,6 +391,70 @@ data:
             enabled: true
       k8s_events:
         auth_type: serviceAccount
+      prometheus/scraper:
+        config:
+          scrape_configs:
+          - job_name: signoz-scraper
+            kubernetes_sd_configs:
+            - namespaces:
+                names:
+                - node-exporter
+              role: pod
+            relabel_configs:
+            - action: keep
+              regex: true
+              source_labels:
+              - __meta_kubernetes_pod_annotation_signoz_io_scrape
+            - action: replace
+              regex: (.+)
+              source_labels:
+              - __meta_kubernetes_pod_annotation_signoz_io_path
+              target_label: __metrics_path__
+            - action: replace
+              separator: ':'
+              source_labels:
+              - __meta_kubernetes_pod_ip
+              - __meta_kubernetes_pod_annotation_signoz_io_port
+              target_label: __address__
+            - replacement: signoz-scraper
+              target_label: job_name
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_label_app_kubernetes_io_name
+              target_label: signoz_k8s_name
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_label_app_kubernetes_io_instance
+              target_label: signoz_k8s_instance
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_label_app_kubernetes_io_component
+              target_label: signoz_k8s_component
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_namespace
+              target_label: k8s_namespace_name
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_name
+              target_label: k8s_pod_name
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_uid
+              target_label: k8s_pod_uid
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_node_name
+              target_label: k8s_node_name
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_ready
+              target_label: k8s_pod_ready
+            - action: replace
+              source_labels:
+              - __meta_kubernetes_pod_phase
+              target_label: k8s_pod_phase
+            scrape_interval: 60s
     service:
       extensions:
       - health_check
@@ -415,6 +479,14 @@ data:
           - batch
           receivers:
           - k8s_cluster
+        metrics/scraper:
+          exporters:
+          - otlphttp
+          processors:
+          - resourcedetection
+          - batch
+          receivers:
+          - prometheus/scraper
       telemetry:
         logs:
           encoding: json
@@ -834,10 +906,10 @@ spec:
             failureThreshold: 6
           resources:
             limits:
-              memory: 256Mi
+              memory: 384Mi
             requests:
               cpu: 50m
-              memory: 100Mi
+              memory: 128Mi
 ---
 # Source: k8s-infra/templates/otel-deployment/deployment.yaml
 apiVersion: apps/v1
@@ -866,7 +938,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: c04cf8fcae1f0476034acf4a90f434b7f49b40510c3f700091a99441ab200e24
+        checksum/config: f9ca507d8d8d2bdb024a3048578170c2b2342f6e70bcdfa0c195029ec86a7fe5
       labels:
         app.kubernetes.io/name: k8s-infra
         app.kubernetes.io/instance: k8s-infra

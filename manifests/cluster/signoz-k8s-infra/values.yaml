@@ -31,6 +31,16 @@ presets:
         - cert-manager
       pods: []
       containers: []
+  # Scrape Prometheus endpoints discovered via pod annotations. Scoped to the
+  # node-exporter namespace so only node_exporter is scraped; ClickHouse,
+  # Zookeeper and the SigNoz collector are intentionally left out.
+  prometheus:
+    enabled: true
+    namespaces:
+      - node-exporter
+    scrapeInterval: 60s
+    includePodLabel: false
+    includeContainerName: false
 
 otelAgent:
   # Run the agent on every node. Tolerate the GPU taint (node4) and the usual
@@ -68,11 +78,12 @@ otelAgent:
       value: "true"
       effect: NoExecute
   resources:
+    # Extra headroom for the prometheus receiver scraping node_exporter.
     requests:
       cpu: 50m
-      memory: 100Mi
+      memory: 128Mi
     limits:
-      memory: 256Mi
+      memory: 384Mi
 
 otelDeployment:
   resources:
