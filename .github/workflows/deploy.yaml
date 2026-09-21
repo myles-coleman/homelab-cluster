@@ -36,16 +36,11 @@ jobs:
           - argocd-install
           - cloudflare
           - s3-backups
-          - signoz-dashboards/homelab-overview
-          - signoz-dashboards/kubernetes-nodes
-          - signoz-dashboards/pi5-thermal
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
       GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
       ALLOWED_EMAILS: ${{ vars.ALLOWED_EMAILS }}
-      SIGNOZ_ENDPOINT: ${{ vars.SIGNOZ_ENDPOINT }}
-      SIGNOZ_ACCESS_TOKEN: ${{ secrets.SIGNOZ_ACCESS_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -127,8 +122,6 @@ jobs:
       GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
       GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
       ALLOWED_EMAILS: ${{ vars.ALLOWED_EMAILS }}
-      SIGNOZ_ENDPOINT: ${{ vars.SIGNOZ_ENDPOINT }}
-      SIGNOZ_ACCESS_TOKEN: ${{ secrets.SIGNOZ_ACCESS_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -181,39 +174,3 @@ jobs:
           tofu_version: ${{ env.tofu_version }}
           tg_command: "apply --all --non-interactive"
           tg_add_approve: true
-
-  smoke:
-    name: Dashboard smoke query
-    needs: apply
-    if: github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    env:
-      SIGNOZ_ENDPOINT: ${{ vars.SIGNOZ_ENDPOINT }}
-      SIGNOZ_ACCESS_TOKEN: ${{ secrets.SIGNOZ_ACCESS_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-      - name: Tailscale
-        uses: tailscale/github-action@53acf823325fe9ca47f4cdaa951f90b4b0de5bb9 # v4.1.1
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
-
-      - name: Accept Tailscale routes
-        run: sudo tailscale set --accept-routes
-
-      # Accepting Tailscale routes breaks DNS resolution (systemd-resolved at
-      # 127.0.0.53 times out). Override with Google public DNS to restore
-      # connectivity; the wildcard *.cowlab.org record still resolves to the
-      # MetalLB IP, which is routed over Tailscale.
-      - name: Fix DNS resolution
-        run: |
-          echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
-          echo "nameserver 8.8.4.4" | sudo tee -a /etc/resolv.conf > /dev/null
-
-      - name: Run dashboard smoke query
-        run: ./scripts/signoz-dashboard-smoke.sh

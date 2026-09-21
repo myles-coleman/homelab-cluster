@@ -43,9 +43,12 @@ network:
 curl -sS -o /dev/null -w '%{http_code}\n' "$SIGNOZ_ENDPOINT/"
 ```
 
-Run the dashboard smoke check, which queries each dashboard's principal series:
+Run the dashboard smoke check from the
+[`homelab-terraform`](https://github.com/myles-coleman/homelab-terraform)
+repository, which queries each dashboard's principal series:
 
 ```bash
+# from the homelab-terraform repository
 ./scripts/signoz-dashboard-smoke.sh
 ```
 
@@ -55,16 +58,17 @@ Rotate the key periodically, or immediately if it is exposed.
 
 1. Create a new API key for the same service account in SigNoz.
 2. Update the `SIGNOZ_ACCESS_TOKEN` GitHub secret with the new value.
-3. Confirm the next `deploy.yaml` run plans/applies cleanly and the smoke job
-   passes.
+3. Confirm the next `deploy.yaml` run in `homelab-terraform` plans/applies
+   cleanly and the smoke job passes.
 4. Revoke the old key in SigNoz.
 
 ## Known failure mode: expired key
 
 An expired or revoked key does **not** fail only the dashboards. Because the
-`signoz-dashboards` units share the `deploy.yaml` apply run with the other
-modules, an invalid key can fail an otherwise unrelated `terragrunt apply`
-until it is rotated. If a deploy fails with a SigNoz authentication error:
+`signoz-dashboards` units share the `homelab-terraform` `deploy.yaml` apply run
+with the other modules, an invalid key can fail an otherwise unrelated
+`terragrunt apply` until it is rotated. If a deploy fails with a SigNoz
+authentication error:
 
 1. Rotate the key as above.
 2. Re-run the failed workflow (or `terragrunt apply` for the affected units).
@@ -73,8 +77,8 @@ until it is rotated. If a deploy fails with a SigNoz authentication error:
 
 The dashboards are additive and do not touch existing resources. To roll back:
 
-1. Revert the relevant commit in this repository, or remove the unit from the
-   `deploy.yaml` matrix.
+1. Revert the relevant commit in `homelab-terraform`, or remove the unit from
+   its `deploy.yaml` matrix.
 2. Run `terragrunt destroy` in the affected unit directory (dashboards only).
 3. The `node-exporter` DaemonSet and the `signoz-k8s-infra` preset are
    independent; revert their commits separately if needed.
@@ -82,7 +86,7 @@ The dashboards are additive and do not touch existing resources. To roll back:
 ## Security notes
 
 - Never commit the API key, put it in `common.hcl`/`terragrunt.hcl`, or paste it
-  into proof artifacts. The generated `_provider.tf` is gitignored for this
-  reason.
-- Prefer the `SIGNOZ_ACCESS_TOKEN` environment variable over the provider
-  `access_token` argument so the value is not written to Terraform state.
+  into proof artifacts.
+- The provider is configured to read `SIGNOZ_ACCESS_TOKEN` from the environment,
+  so the value is never written to the generated `_provider.tf` or to Terraform
+  state. Do not add an `access_token` argument to the provider block.
