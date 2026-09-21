@@ -47,9 +47,12 @@ spec:
               memory: 64Mi
             limits:
               memory: 256Mi
+          # Probe /readyz, not /metrics: hitting /metrics triggers a real
+          # Speedtest run bound to the probe request context, and the 1s probe
+          # timeout cancels the CLI and caches a failure for SPEEDTEST_CACHE_FOR.
           readinessProbe:
             httpGet:
-              path: /metrics
+              path: /readyz
               port: metrics
             initialDelaySeconds: 5
             periodSeconds: 15
