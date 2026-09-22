@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: youtubedl-material
-        image: tzahi12345/youtubedl-material:latest
+        image: voc0der/ytdl-material@sha256:7ce087dc5d07071fac9d2e37b6f63c26a14506a3445f17fdef918b0063c02515
         resources:
           limits:
             memory: "2048Mi"
@@ -28,6 +28,8 @@ spec:
           value: "mongodb://ytdl-mongo-db:27017"
         - name: ytdl_use_local_db
           value: "false"
+        - name: ytdl_remote_db_type
+          value: "mongo"
         - name: write_ytdl_config
           value: "true"
         ports:
