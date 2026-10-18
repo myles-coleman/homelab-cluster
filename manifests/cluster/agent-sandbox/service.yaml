@@ -1,0 +1,16 @@
+# A plain ClusterIP Service selecting the sandbox pod. No `sandbox-router`: it
+# requires an X-Sandbox-ID header with no default target, and only port-forward
+# (not pod ingress) is broken under gVisor.
+apiVersion: v1
+kind: Service
+metadata:
+  name: opencode-sandbox
+  namespace: agent-sandbox
+spec:
+  selector:
+    app: opencode-sandbox
+  ports:
+    - name: http
+      protocol: TCP
+      port: 4096
+      targetPort: 4096

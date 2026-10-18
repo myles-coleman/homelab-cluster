@@ -1,0 +1,16 @@
+# A fixed ClusterIP so the DNS-less sandbox can reach the proxy by IP literal
+# (spec 20, Unit 3). Confirm 10.43.0.250 is free in the k3s service CIDR.
+apiVersion: v1
+kind: Service
+metadata:
+  name: squid
+  namespace: squid
+spec:
+  clusterIP: 10.43.0.250
+  selector:
+    app: squid
+  ports:
+    - name: proxy
+      protocol: TCP
+      port: 3128
+      targetPort: 3128

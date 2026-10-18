@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: squid
+  namespace: squid
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: squid
+  template:
+    metadata:
+      labels:
+        app: squid
+    spec:
+      initContainers:
+        # squid's ssl-bump port wants a certificate even when it only peeks and
+        # splices (it is never presented to a client).
+        - name: make-bump-cert
+          image: docker.io/alpine/openssl:3.3.1
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              openssl req -x509 -newkey rsa:2048 -nodes \
+                -keyout /tmp/key.pem -out /tmp/cert.pem -days 3650 \
+                -subj "/CN=agent-sandbox-egress"
+              cat /tmp/key.pem /tmp/cert.pem > /etc/squid/cert.pem
+          volumeMounts:
+            - name: cert
+              mountPath: /etc/squid
+      containers:
+        - name: squid
+          image: docker.io/ubuntu/squid:6.6-24.04_edge
+          ports:
+            - name: proxy
+              containerPort: 3128
+          volumeMounts:
+            - name: config
+              mountPath: /etc/squid/squid.conf
+              subPath: squid.conf
+            - name: cert
+              mountPath: /etc/squid
+          readinessProbe:
+            tcpSocket:
+              port: 3128
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: squid-config
+        - name: cert
+          emptyDir: {}

@@ -1,0 +1,59 @@
+# NetworkPolicy has no deny rules, so the egress policy is 0.0.0.0/0 with the
+# private ranges as exceptions, and DNS to kube-dns is allowed explicitly — a
+# naive version blocks CoreDNS and breaks squid's own resolution.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: squid-egress
+  namespace: squid
+spec:
+  podSelector:
+    matchLabels:
+      app: squid
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+              # the tailnet range is not RFC1918
+              - 100.64.0.0/10
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: squid-ingress
+  namespace: squid
+spec:
+  podSelector:
+    matchLabels:
+      app: squid
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: agent-sandbox
+      ports:
+        - protocol: TCP
+          port: 3128

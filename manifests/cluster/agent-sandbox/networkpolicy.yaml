@@ -1,0 +1,62 @@
+# Hand-written policies (spec 20, Unit 3): a plain Sandbox gets no controller-
+# created policy. Written against pods/namespaces/IP blocks, never a Service
+# ClusterIP (kube-proxy rewrites ClusterIPs before the filter runs).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: agent-sandbox
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: opencode-sandbox-egress
+  namespace: agent-sandbox
+spec:
+  podSelector:
+    matchLabels:
+      app: opencode-sandbox
+  policyTypes:
+    - Egress
+  egress:
+    # the allowlisting proxy (matched by namespace; the ClusterIP is DNAT'd first)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: squid
+      ports:
+        - protocol: TCP
+          port: 3128
+    # Strata, reached by its tailnet IP (an external address, so an ipBlock)
+    - to:
+        - ipBlock:
+            cidr: 100.127.170.8/32
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: opencode-sandbox-ingress
+  namespace: agent-sandbox
+spec:
+  podSelector:
+    matchLabels:
+      app: opencode-sandbox
+  policyTypes:
+    - Ingress
+  ingress:
+    # Operator path only: `tailscale serve` runs on the same (pinned) node, so the
+    # source is the guest's own address. Never a NodePort, never an IngressRoute.
+    - from:
+        - ipBlock:
+            cidr: 10.0.0.146/32
+      ports:
+        - protocol: TCP
+          port: 4096

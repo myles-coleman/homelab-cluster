@@ -1,0 +1,82 @@
+# A plain Sandbox with an inline podTemplate (spec 20, Unit 3). Deliberately NOT a
+# SandboxTemplate/Claim/WarmPool: the extensions/Template path is the only path
+# with controller-created NetworkPolicy reconciliation, and its `Managed` default
+# allows public-internet egress. Because a plain Sandbox gets no secure defaults,
+# automountServiceAccountToken and dnsPolicy are set by hand.
+apiVersion: agents.x-k8s.io/v1beta1
+kind: Sandbox
+metadata:
+  name: opencode
+  namespace: agent-sandbox
+spec:
+  podTemplate:
+    metadata:
+      labels:
+        app: opencode-sandbox
+    spec:
+      runtimeClassName: gvisor
+      automountServiceAccountToken: false
+      # No DNS: name resolution is its own exfiltration channel, and the sandbox
+      # needs none (the proxy and the model are reached by IP literal).
+      dnsPolicy: None
+      dnsConfig:
+        nameservers: []
+        searches: []
+      nodeSelector:
+        sandbox.node/runtime: gvisor
+      tolerations:
+        - key: sandbox
+          operator: Equal
+          value: gvisor
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: opencode
+          image: ghcr.io/myles-coleman/opencode-sandbox@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          imagePullPolicy: IfNotPresent
+          command: ["opencode"]
+          args: ["serve", "--hostname", "0.0.0.0", "--port", "4096"]
+          ports:
+            - name: http
+              containerPort: 4096
+          env:
+            - name: HOME
+              value: /home/agent
+            - name: OPENCODE_SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-sandbox-secrets
+                  key: opencode-server-password
+            # No DNS, so the proxy and the model are addressed by IP literal.
+            # NOTE (deviation): the spec's Unit 4 named the Strata Service DNS
+            # name; with dnsPolicy None that cannot resolve, so the tailnet IP is
+            # used instead.
+            - name: HTTP_PROXY
+              value: http://10.43.0.250:3128
+            - name: HTTPS_PROXY
+              value: http://10.43.0.250:3128
+            - name: NO_PROXY
+              value: 10.43.0.250,100.127.170.8,localhost,127.0.0.1
+            - name: OPENCODE_DISABLE_MODELS_FETCH
+              value: "1"
+            - name: OPENCODE_DISABLE_LSP_DOWNLOAD
+              value: "1"
+            - name: OPENCODE_DISABLE_AUTOUPDATE
+              value: "1"
+          volumeMounts:
+            - name: workspace
+              mountPath: /home/agent
+          resources:
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: opencode-workspace
