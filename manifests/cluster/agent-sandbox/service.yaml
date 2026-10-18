@@ -7,6 +7,10 @@ metadata:
   name: opencode-sandbox
   namespace: agent-sandbox
 spec:
+  # Pinned so the guest's `tailscale serve` unit can target it: the node's resolver
+  # is not cluster DNS, so a Service name would not resolve there. Confirm 10.43.0.251
+  # is free in the k3s service CIDR.
+  clusterIP: 10.43.0.251
   selector:
     app: opencode-sandbox
   ports:
