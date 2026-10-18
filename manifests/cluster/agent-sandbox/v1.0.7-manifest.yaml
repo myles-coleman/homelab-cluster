@@ -1,3 +1,14 @@
+# Vendored: kubernetes-sigs/agent-sandbox v1.0.7 release manifest (core install).
+#
+#   Version:          v1.0.7   (CRD is v1beta1 only — v1alpha1 was removed in v1.0.0)
+#   Source:           https://github.com/kubernetes-sigs/agent-sandbox/releases/download/v1.0.7/sandbox.yaml
+#   Upstream sha256:  437e6875cf7dfbd1c1230de3641f73bb9dad595a581366ef7f98f9b2813dd686
+#
+# Local modification (the only one): the controller image is pinned by DIGEST rather
+# than the :v1.0.7 tag, for the same supply-chain rigour as the Strata image. The tag
+# is retained as a trailing comment. This is why the file no longer hashes to the
+# upstream sha256 above; the upstream value is recorded for provenance.
+
 ---
 kind: Namespace
 apiVersion: v1
@@ -69,7 +80,7 @@ spec:
       serviceAccountName: agent-sandbox-controller
       containers:
       - name: agent-sandbox-controller
-        image: registry.k8s.io/agent-sandbox/agent-sandbox-controller:v1.0.7
+        image: registry.k8s.io/agent-sandbox/agent-sandbox-controller@sha256:f254384c24605436ce35d7077427559e24bda8f5691cff5a54a4c2e030d81083 # v1.0.7
         args:
         - --leader-elect=true
         # Uncomment to serve metrics over HTTPS with a TLS profile.
