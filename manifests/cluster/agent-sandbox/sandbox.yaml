@@ -40,8 +40,13 @@ spec:
           command: ["opencode"]
           args: ["serve", "--hostname", "0.0.0.0", "--port", "4096"]
           ports:
+            # `protocol` is required: the Sandbox CRD's schema makes this a keyed
+            # list, and omitting it makes ArgoCD fail to calculate a diff
+            # ("associative list with keys has an element that omits key field
+            # protocol"), which silently blocks the whole Application.
             - name: http
               containerPort: 4096
+              protocol: TCP
           env:
             - name: HOME
               value: /home/agent
