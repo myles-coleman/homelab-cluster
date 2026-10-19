@@ -32,7 +32,11 @@ spec:
               mountPath: /etc/squid
       containers:
         - name: squid
-          image: docker.io/ubuntu/squid:6.6-24.04_edge
+          # Ubuntu's OpenSSL squid build (images/squid in the nixos repo). The
+          # upstream `ubuntu/squid` image is a GnuTLS build with no SSL-bump ACLs,
+          # so the SNI allowlist config cannot load there. Digest-pinned; built by
+          # the nixos `build-images.yaml` workflow.
+          image: ghcr.io/myles-coleman/squid@sha256:5ac591be080c24672fed88c02cee31c3bec0625c94a302c4d9fbcd28f30c9e21
           ports:
             - name: proxy
               containerPort: 3128
