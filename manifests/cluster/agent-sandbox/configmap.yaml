@@ -1,0 +1,53 @@
+# OpenCode configuration for the sandbox (spec 20, Unit 4).
+#
+# Mounted read-only over the agent's ~/.config/opencode, so the workspace PVC stays
+# intact underneath. The API key is NOT inlined here — OpenCode substitutes
+# {env:...} at config load (packages/opencode/src/config/variable.ts), and
+# STRATA_API_KEY comes from the ESO secret, so no credential is ever written to a
+# ConfigMap.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opencode-sandbox-config
+  namespace: agent-sandbox
+data:
+  opencode.json: |
+    {
+      "$schema": "https://opencode.ai/config.json",
+      "provider": {
+        "strata": {
+          "npm": "@ai-sdk/openai-compatible",
+          "name": "Strata (bee-gpu-server)",
+          "options": {
+            "baseURL": "http://100.127.170.8:8080/v1",
+            "apiKey": "{env:STRATA_API_KEY}"
+          },
+          "models": {
+            "qwen3.8-flash-next": {
+              "name": "Qwen3.8 Flash Next (Strata)"
+            }
+          }
+        }
+      },
+      "model": "strata/qwen3.8-flash-next",
+      "tools": {
+        "webfetch": false,
+        "websearch": false
+      },
+      "permission": {
+        "bash": "allow",
+        "edit": "allow",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "list": "allow",
+        "lsp": "allow",
+        "skill": "allow",
+        "task": "allow",
+        "todowrite": "allow",
+        "external_directory": "allow",
+        "webfetch": "deny",
+        "websearch": "deny",
+        "question": "deny"
+      }
+    }

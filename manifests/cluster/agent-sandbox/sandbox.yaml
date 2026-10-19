@@ -50,6 +50,21 @@ spec:
                 secretKeyRef:
                   name: opencode-sandbox-secrets
                   key: opencode-server-password
+            # The model's API key: OpenCode's config references it as
+            # {env:STRATA_API_KEY}, so it never lands in the ConfigMap.
+            - name: STRATA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-sandbox-secrets
+                  key: strata-api-key
+            # Scoped git PAT for the workspace clone. Deliberately NOT baked into a
+            # remote URL — the sandbox uses it via a credential helper so it stays
+            # out of git config, argv and logs.
+            - name: GIT_PAT
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-sandbox-secrets
+                  key: git-pat
             # No DNS, so the proxy and the model are addressed by IP literal.
             # NOTE (deviation): the spec's Unit 4 named the Strata Service DNS
             # name; with dnsPolicy None that cannot resolve, so the tailnet IP is
@@ -69,6 +84,9 @@ spec:
           volumeMounts:
             - name: workspace
               mountPath: /home/agent
+            # Shadows only ~/.config/opencode; the PVC stays intact underneath.
+            - name: opencode-config
+              mountPath: /home/agent/.config/opencode
           resources:
             requests:
               cpu: "500m"
@@ -80,3 +98,6 @@ spec:
         - name: workspace
           persistentVolumeClaim:
             claimName: opencode-workspace
+        - name: opencode-config
+          configMap:
+            name: opencode-sandbox-config

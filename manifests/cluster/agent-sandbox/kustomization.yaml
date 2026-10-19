@@ -9,6 +9,7 @@ resources:
   - storageclass.yaml
   - pvc.yaml
   - external-secret.yaml
+  - configmap.yaml
   - sandbox.yaml
   - service.yaml
   - networkpolicy.yaml
