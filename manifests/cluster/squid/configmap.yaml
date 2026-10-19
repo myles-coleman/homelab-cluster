@@ -1,6 +1,10 @@
 # Allowlisting forward proxy (spec 20, Unit 3), reproducing the Spec 18 model:
 # deny by default, FQDN-allowlisted, SNI peek-then-splice with NO TLS interception.
 # Hardened for its new position next to Vaultwarden/ArgoCD/the API server.
+#
+# The image (images/squid in the nixos repo) is Ubuntu's `squid-openssl` build.
+# Ubuntu's default squid is a GnuTLS build with no SSL-bump ACLs, so this config
+# cannot load there — see the Dockerfile for the full explanation.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -32,6 +36,15 @@ data:
 
     http_port 3128 ssl-bump cert=/etc/squid/cert.pem
 
-    access_log stdio:/dev/stdout
-    cache_log stdio:/dev/stderr
+    # An ssl-bump port spawns squid's certificate helper even though we only peek
+    # at the SNI and splice (no certificate is ever minted), so its database has
+    # to exist and the program has to be named — squid's built-in default does not
+    # resolve in this image. The entrypoint recreates /var/spool/squid/ssl_db.
+    sslcrtd_program /usr/lib/squid/security_file_certgen -s /var/spool/squid/ssl_db -M 4MB
+
+    # squid drops to the unprivileged `proxy` user, which cannot reopen the
+    # container's stdout/stderr pipes, so it logs to files and the image's
+    # entrypoint forwards them to the container streams (`kubectl logs`).
+    access_log /var/log/squid/access.log squid
+    cache_log /var/log/squid/cache.log
     coredump_dir /var/spool/squid

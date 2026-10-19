@@ -35,7 +35,8 @@ spec:
         runAsGroup: 1000
       containers:
         - name: opencode
-          image: ghcr.io/myles-coleman/opencode-sandbox@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          # Digest-pinned; built by the nixos `build-images.yaml` workflow.
+          image: ghcr.io/myles-coleman/opencode-sandbox@sha256:f3407b83a28f2c49f31d73fef318c15c2c91242e6fda19e0768f45cfebca65e0
           imagePullPolicy: IfNotPresent
           command: ["opencode"]
           args: ["serve", "--hostname", "0.0.0.0", "--port", "4096"]
