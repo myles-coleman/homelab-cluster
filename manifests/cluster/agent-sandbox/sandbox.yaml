@@ -20,7 +20,12 @@ spec:
       # needs none (the proxy and the model are reached by IP literal).
       dnsPolicy: None
       dnsConfig:
-        nameservers: []
+        # Kubernetes rejects `dnsPolicy: None` with an empty nameserver list
+        # ("must provide at least one DNS nameserver"), so point at the pod's own
+        # loopback, where no resolver listens: names never resolve. Port 53 is
+        # also absent from the egress NetworkPolicy, so this is belt-and-braces.
+        nameservers:
+          - 127.0.0.1
         searches: []
       nodeSelector:
         sandbox.node/runtime: gvisor
