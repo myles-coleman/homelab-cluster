@@ -21,13 +21,18 @@ spec:
           value: "Etc/UTC"
         - name: ENV
           value: "prod"
-        # Disable Ollama, use OpenAI-compatible API (llama.cpp)
+        # Disable Ollama, use OpenAI-compatible API (Strata)
         - name: ENABLE_OLLAMA_API
           value: "False"
         - name: ENABLE_OPENAI_API
           value: "True"
+        # Strata's tailnet address, reached by IP literal (spec 20, Unit 3). Every
+        # node runs Tailscale, so this is a route, not a proxy. Deliberately NOT a
+        # Kubernetes Service: the cluster's ArgoCD config excludes EndpointSlice
+        # from management, so a selectorless Service would silently have no
+        # endpoints (see the spec's Unit 3 deviation note).
         - name: OPENAI_API_BASE_URL
-          value: "http://strata.strata.svc.cluster.local:8080/v1"
+          value: "http://100.127.170.8:8080/v1"
         - name: OPENAI_API_KEY
           value: "sk-placeholder"
         # Auth - first registered user becomes admin

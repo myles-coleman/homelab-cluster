@@ -43,6 +43,6 @@ resources:
 - speedtest
 - node-exporter
 # spec 20 — Kubernetes Agent Sandbox on k3s with Strata as the model backend
-- strata
+# (Strata itself is reached by tailnet IP literal, not a Service — see Unit 3.)
 - squid
 - agent-sandbox
