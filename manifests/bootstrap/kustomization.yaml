@@ -44,3 +44,6 @@ resources:
 - ai-artifacts-site-app.yaml
 - speedtest-app.yaml
 - node-exporter-app.yaml
+- strata-app.yaml
+- squid-app.yaml
+- agent-sandbox-app.yaml
