@@ -1,0 +1,10 @@
+# A Retain reclaim policy for the sandbox workspace: deleting the PVC must not
+# destroy the agent's work (spec 20, Unit 4). ArgoCD never prunes the PVC either
+# (see pvc.yaml).
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-path-retain
+provisioner: rancher.io/local-path
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer

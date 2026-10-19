@@ -1,0 +1,37 @@
+# Allowlisting forward proxy (spec 20, Unit 3), reproducing the Spec 18 model:
+# deny by default, FQDN-allowlisted, SNI peek-then-splice with NO TLS interception.
+# Hardened for its new position next to Vaultwarden/ArgoCD/the API server.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: squid-config
+  namespace: squid
+data:
+  squid.conf: |
+    acl SSL_ports port 443
+    acl CONNECT method CONNECT
+    acl step1 at_step SslBump1
+
+    # The Spec 18 allowlist minus cache.nixos.org / channels.nixos.org (there is no
+    # nix in the sandbox any more).
+    acl allowed_domains dstdomain .github.com .api.github.com .codeload.github.com registry.npmjs.org
+    acl allowed_sni ssl::server_name .github.com .api.github.com .codeload.github.com registry.npmjs.org
+
+    # Deny CONNECT to IP-literal destinations: the spoofed-SNI tunnel.
+    acl ip_literal url_regex -i ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+
+
+    http_access deny CONNECT ip_literal
+    # CONNECT is restricted to 443 (SSL_ports) and to allowlisted server names.
+    http_access allow CONNECT SSL_ports allowed_sni
+    http_access allow allowed_domains
+    http_access deny all
+
+    # Peek at the ClientHello for SNI, then splice without decrypting.
+    ssl_bump peek step1
+    ssl_bump splice all
+
+    http_port 3128 ssl-bump cert=/etc/squid/cert.pem
+
+    access_log stdio:/dev/stdout
+    cache_log stdio:/dev/stderr
+    coredump_dir /var/spool/squid

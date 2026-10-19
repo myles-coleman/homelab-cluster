@@ -1,0 +1,16 @@
+# Pre-created and never pruned, so an ArgoCD prune or a Sandbox delete cannot wipe
+# the workspace or the OpenCode session DB.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: opencode-workspace
+  namespace: agent-sandbox
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path-retain
+  resources:
+    requests:
+      storage: 20Gi

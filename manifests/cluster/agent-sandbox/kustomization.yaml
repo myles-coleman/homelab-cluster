@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Vendored pinned v1.0.7 release manifest: the CRD (v1beta1 only) and the
+  # controller into agent-sandbox-system. Vendored, never applied from the internet.
+  - v1.0.7-manifest.yaml
+  - namespace.yaml
+  - runtimeclass.yaml
+  - storageclass.yaml
+  - pvc.yaml
+  - external-secret.yaml
+  - configmap.yaml
+  - sandbox.yaml
+  - service.yaml
+  - networkpolicy.yaml

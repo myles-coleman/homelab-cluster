@@ -27,7 +27,7 @@ spec:
         - name: ENABLE_OPENAI_API
           value: "True"
         - name: OPENAI_API_BASE_URL
-          value: "http://llama-cpp.llama-cpp.svc.cluster.local:8080/v1"
+          value: "http://strata.strata.svc.cluster.local:8080/v1"
         - name: OPENAI_API_KEY
           value: "sk-placeholder"
         # Auth - first registered user becomes admin

@@ -1,0 +1,20 @@
+# A plain ClusterIP Service selecting the sandbox pod. No `sandbox-router`: it
+# requires an X-Sandbox-ID header with no default target, and only port-forward
+# (not pod ingress) is broken under gVisor.
+apiVersion: v1
+kind: Service
+metadata:
+  name: opencode-sandbox
+  namespace: agent-sandbox
+spec:
+  # Pinned so the guest's `tailscale serve` unit can target it: the node's resolver
+  # is not cluster DNS, so a Service name would not resolve there. Confirm 10.43.0.251
+  # is free in the k3s service CIDR.
+  clusterIP: 10.43.0.251
+  selector:
+    app: opencode-sandbox
+  ports:
+    - name: http
+      protocol: TCP
+      port: 4096
+      targetPort: 4096
