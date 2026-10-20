@@ -50,7 +50,7 @@ spec:
       containers:
         - name: opencode
           # Digest-pinned; built by the nixos `build-images.yaml` workflow.
-          image: ghcr.io/myles-coleman/opencode-sandbox@sha256:f3407b83a28f2c49f31d73fef318c15c2c91242e6fda19e0768f45cfebca65e0
+          image: ghcr.io/myles-coleman/opencode-sandbox@sha256:557db5201c0c389fbe34a57d571cdc8d50c389d7b8fe208d9c2c1f0a8c53df1a
           imagePullPolicy: IfNotPresent
           command: ["opencode"]
           args: ["serve", "--hostname", "0.0.0.0", "--port", "4096"]
