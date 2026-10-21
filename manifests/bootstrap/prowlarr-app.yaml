@@ -12,6 +12,27 @@ spec:
     server: https://kubernetes.default.svc
     namespace: prowlarr
   project: default
+  # Everything is applied with ServerSideApply, so live objects carry no
+  # kubectl.kubernetes.io/last-applied-configuration. Without it ArgoCD compares
+  # desired vs live literally, and every CRD-defaulted field reads as drift.
+  # The ESO API server fills these in on write, so an ExternalSecret that omits
+  # them is OutOfSync forever:
+  #   spec.data[].remoteRef.{conversionStrategy,decodingStrategy,metadataPolicy}
+  #   spec.dataFrom[].extract.{conversionStrategy,decodingStrategy,metadataPolicy}
+  #   spec.target.deletionPolicy, spec.target.template.{engineVersion,mergePolicy}
+  ignoreDifferences:
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - .spec.data[].remoteRef.conversionStrategy
+        - .spec.data[].remoteRef.decodingStrategy
+        - .spec.data[].remoteRef.metadataPolicy
+        - .spec.dataFrom[].extract.conversionStrategy
+        - .spec.dataFrom[].extract.decodingStrategy
+        - .spec.dataFrom[].extract.metadataPolicy
+        - .spec.target.deletionPolicy
+        - .spec.target.template.engineVersion
+        - .spec.target.template.mergePolicy
   source:
     path: manifests/cluster/prowlarr
     repoURL: "https://github.com/myles-coleman/homelab-cluster"
