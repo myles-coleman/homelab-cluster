@@ -353,6 +353,49 @@ patches:
             <text_log>
               <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
             </text_log>
+            <!-- ClickHouse's own diagnostic logs grow faster than the telemetry
+                 they describe: zookeeper_log alone reached 7.8GiB of a 20Gi
+                 volume and filled it, which stopped every insert. The chart
+                 gives these 7-30 day TTLs and leaves
+                 background_schedule_pool_log without one at all, so declare
+                 them here with the engine (the chart's entries use
+                 replace="1", so a bare <ttl> is rejected). -->
+            <zookeeper_log replace="1">
+              <database>system</database>
+              <table>zookeeper_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 2 day</engine>
+              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+            </zookeeper_log>
+            <aggregated_zookeeper_log replace="1">
+              <database>system</database>
+              <table>aggregated_zookeeper_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 2 day</engine>
+              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+            </aggregated_zookeeper_log>
+            <background_schedule_pool_log replace="1">
+              <database>system</database>
+              <table>background_schedule_pool_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 2 day</engine>
+              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+            </background_schedule_pool_log>
+            <processors_profile_log replace="1">
+              <database>system</database>
+              <table>processors_profile_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 2 day</engine>
+              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+            </processors_profile_log>
+            <query_views_log replace="1">
+              <database>system</database>
+              <table>query_views_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 3 day</engine>
+              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+            </query_views_log>
+            <session_log replace="1">
+              <database>system</database>
+              <table>session_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 7 day</engine>
+              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+            </session_log>
             <latency_log>
               <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
             </latency_log>
@@ -405,12 +448,14 @@ patches:
         path: /spec/templates/podTemplates/0/spec/containers/0/resources/limits
         value:
           memory: 3Gi
-      # Pin ClickHouse to node4 (8GiB). node4 also hosts the volume's running
-      # Longhorn replica, so scheduling there avoids cross-node engine I/O.
+      # Pin ClickHouse to node3: NVMe (154G free for Longhorn, so the volume is
+      # not competing with an SD card), and the only 4GiB node with real memory
+      # headroom (1.5Gi requested, 90% limits). It used to run on node4, whose SD
+      # card made kubelet stall whenever the volume did heavy I/O.
       - op: add
         path: /spec/templates/podTemplates/0/spec/nodeSelector
         value:
-          kubernetes.io/hostname: node4
+          kubernetes.io/hostname: node3
   # The chart omits apiVersion/kind on the volumeClaimTemplates, so the API
   # server fills them in on write and ArgoCD's structured-merge diff (enabled
   # because the app syncs with ServerSideApply) reports them as drift.
