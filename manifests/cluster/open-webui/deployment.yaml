@@ -11,9 +11,15 @@ spec:
   # SQLite lives on a ReadWriteOnce Longhorn volume. A rolling update starts the
   # replacement pod before the old one exits, and because both pods land on the
   # same node the RWO volume is mounted twice — two writers on one webui.db.
-  # Recreate tears the old pod down first.
+  # maxSurge 0 makes the rollout sequential: the old pod is gone before the new
+  # one is created. (Not `type: Recreate` — the API server has already defaulted
+  # `rollingUpdate` on the live object, and SSA cannot drop it, so Recreate is
+  # rejected as invalid on sync.)
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   template:
     metadata:
       labels:
