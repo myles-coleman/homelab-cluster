@@ -8,6 +8,12 @@ spec:
   selector:
     matchLabels:
       app: open-webui
+  # SQLite lives on a ReadWriteOnce Longhorn volume. A rolling update starts the
+  # replacement pod before the old one exits, and because both pods land on the
+  # same node the RWO volume is mounted twice — two writers on one webui.db.
+  # Recreate tears the old pod down first.
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
@@ -15,7 +21,13 @@ spec:
     spec:
       containers:
       - name: open-webui
-        image: ghcr.io/open-webui/open-webui:main
+        # Pinned: the GHCR `:main` tag currently resolves to v0.9.5 (May 2026),
+        # whose alembic head predates the per-key config migration, so it cannot
+        # open a database written by v0.10+ ("Can't locate revision
+        # identified by '42e2978c7933'"). v0.12.3 migrates the existing DB
+        # forward cleanly. Bump this tag deliberately, never back to `:main`.
+        image: ghcr.io/open-webui/open-webui:v0.12.3
+        imagePullPolicy: IfNotPresent
         env:
         - name: TZ
           value: "Etc/UTC"
