@@ -33,6 +33,11 @@ spec:
         - .spec.target.deletionPolicy
         - .spec.target.template.engineVersion
         - .spec.target.template.mergePolicy
+    - group: apps
+      kind: Deployment
+      name: signoz-clickhouse-operator
+      jqPathExpressions:
+        - .spec.template.spec.containers[].env[].valueFrom.resourceFieldRef.divisor
   source:
     path: manifests/cluster/signoz
     repoURL: "https://github.com/myles-coleman/homelab-cluster"

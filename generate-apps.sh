@@ -46,6 +46,15 @@ extra_ignore_differences["metallb"]='    - group: apiextensions.k8s.io
         - /spec/conversion/webhook/clientConfig/caBundle
         - /spec/conversion/webhook/clientConfig/service/port
 '
+# signoz: the ClickHouse operator chart declares env vars with resourceFieldRef
+# but no divisor, and the API server defaults it to "0". ArgoCD's structured-merge
+# diff keeps that server-side default, so it reads as drift.
+extra_ignore_differences["signoz"]='    - group: apps
+      kind: Deployment
+      name: signoz-clickhouse-operator
+      jqPathExpressions:
+        - .spec.template.spec.containers[].env[].valueFrom.resourceFieldRef.divisor
+'
 
 for resource in $resources; do
   echo "Generating Application for $resource..."
