@@ -436,10 +436,14 @@ patches:
               <flush_interval_milliseconds>7500</flush_interval_milliseconds>
             </asynchronous_metric_log>
           </clickhouse>
-      # Give the data volume headroom; Longhorn supports online expansion.
+      # Longhorn schedules a replica only if StorageScheduled + size stays under
+      # its over-provisioning/pressure limits. nodes 1-3 already carry 157.7G of
+      # provisioned replicas on a 233G disk, so 50Gi lands at 89% and is refused;
+      # 40Gi fits at 85%. Together with the 2-3 day system-log TTLs that is ample
+      # for 30-day telemetry retention.
       - op: replace
         path: /spec/templates/volumeClaimTemplates/0/spec/resources/requests/storage
-        value: "50Gi"
+        value: "40Gi"
       # Cap ClickHouse memory so it cannot starve the node (node1 is 4GiB).
       # ClickHouse derives max_server_memory_usage from the cgroup limit; at
       # 2Gi the ~1.8GiB ceiling was too low and bootstrap/merges hit
