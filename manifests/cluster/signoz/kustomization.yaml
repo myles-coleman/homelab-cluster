@@ -411,43 +411,26 @@ patches:
         path: /spec/templates/podTemplates/0/spec/nodeSelector
         value:
           kubernetes.io/hostname: node4
-  # These three objects are mutated after apply, so ArgoCD's default two-way
-  # diff reports permanent drift:
-  #   - the ClickHouse operator stamps clickhouse.altinity.com/* labels onto its
-  #     own Deployment
-  #   - the chart renders nulls and empty strings (args: null, initContainers:
-  #     null, an empty env value) that the API server drops on write, and the
-  #     desired-but-absent field reads as drift
-  #   - the API server defaults fields the chart leaves out
-  # Compare with ServerSideDiff, which diffs only the fields the manifest
-  # actually manages. kubectl diff --server-side reports these as identical.
-  - target:
-      kind: Deployment
-      name: signoz-clickhouse-operator
-    patch: |-
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: signoz-clickhouse-operator
-        annotations:
-          argocd.argoproj.io/compare-options: ServerSideDiff=true
+  # The chart omits apiVersion/kind on the volumeClaimTemplates, so the API
+  # server fills them in on write and ArgoCD's structured-merge diff (enabled
+  # because the app syncs with ServerSideApply) reports them as drift.
   - target:
       kind: StatefulSet
       name: signoz
     patch: |-
-      apiVersion: apps/v1
-      kind: StatefulSet
-      metadata:
-        name: signoz
-        annotations:
-          argocd.argoproj.io/compare-options: ServerSideDiff=true
+      - op: add
+        path: /spec/volumeClaimTemplates/0/apiVersion
+        value: v1
+      - op: add
+        path: /spec/volumeClaimTemplates/0/kind
+        value: PersistentVolumeClaim
   - target:
       kind: StatefulSet
       name: signoz-zookeeper
     patch: |-
-      apiVersion: apps/v1
-      kind: StatefulSet
-      metadata:
-        name: signoz-zookeeper
-        annotations:
-          argocd.argoproj.io/compare-options: ServerSideDiff=true
+      - op: add
+        path: /spec/volumeClaimTemplates/0/apiVersion
+        value: v1
+      - op: add
+        path: /spec/volumeClaimTemplates/0/kind
+        value: PersistentVolumeClaim
