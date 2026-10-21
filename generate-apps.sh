@@ -31,6 +31,22 @@ sync_wave_map["generic-device-plugin"]="5"
 # Wave 10: Applications (default)
 # All other apps will use wave 10
 
+# Per-service extra ignoreDifferences entries, emitted verbatim below the shared
+# ExternalSecret rule. Keep these tightly scoped: each entry documents a field
+# that something other than this repo owns at runtime.
+declare -A extra_ignore_differences
+# metallb: the chart ships a placeholder CA (CN "Default Company Ltd") in the
+# bgppeers conversion webhook, and cert-manager injects the real bundle after
+# apply, so the value can never match. The API server also defaults the webhook
+# service port to 443, which the rendered chart omits.
+extra_ignore_differences["metallb"]='    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      name: bgppeers.metallb.io
+      jsonPointers:
+        - /spec/conversion/webhook/clientConfig/caBundle
+        - /spec/conversion/webhook/clientConfig/service/port
+'
+
 for resource in $resources; do
   echo "Generating Application for $resource..."
   
@@ -76,7 +92,7 @@ spec:
         - .spec.target.deletionPolicy
         - .spec.target.template.engineVersion
         - .spec.target.template.mergePolicy
-  source:
+${extra_ignore_differences[$resource]:-}  source:
     path: manifests/cluster/$resource
     repoURL: "https://github.com/myles-coleman/homelab-cluster"
     targetRevision: main
