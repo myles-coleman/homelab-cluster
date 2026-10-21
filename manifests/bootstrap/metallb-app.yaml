@@ -33,6 +33,12 @@ spec:
         - .spec.target.deletionPolicy
         - .spec.target.template.engineVersion
         - .spec.target.template.mergePolicy
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      name: bgppeers.metallb.io
+      jsonPointers:
+        - /spec/conversion/webhook/clientConfig/caBundle
+        - /spec/conversion/webhook/clientConfig/service/port
   source:
     path: manifests/cluster/metallb
     repoURL: "https://github.com/myles-coleman/homelab-cluster"
