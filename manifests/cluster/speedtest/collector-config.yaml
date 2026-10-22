@@ -8,12 +8,18 @@ data:
     receivers:
       prometheus:
         config:
+          # Scrape often, test rarely. The exporter re-runs the Ookla CLI only
+          # when its cache expires (SPEEDTEST_CACHE_FOR), so a 5m scrape against
+          # a 6h cache republishes the last result ~288x/day while still running
+          # only 4 real tests. A 6h scrape interval meant the dashboard was blank
+          # for hours at a time (and blank entirely after the ClickHouse reset,
+          # since no scrape had happened yet).
           global:
-            scrape_interval: 6h
+            scrape_interval: 5m
             scrape_timeout: 2m
           scrape_configs:
             - job_name: speedtest
-              scrape_interval: 6h
+              scrape_interval: 5m
               scrape_timeout: 2m
               static_configs:
                 - targets: ["speedtest-exporter.speedtest.svc.cluster.local:9798"]

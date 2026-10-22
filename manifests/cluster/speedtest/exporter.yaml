@@ -36,9 +36,11 @@ spec:
             - name: metrics
               containerPort: 9798
           env:
-            # Cache results for 30m so repeated scrapes don't each run a test.
+            # Each uncached scrape runs a real Ookla test (~1GB down at gigabit),
+            # so cache for 6h: 4 tests/day, with the 5m collector scrape
+            # republishing the cached numbers in between.
             - name: SPEEDTEST_CACHE_FOR
-              value: "30m"
+              value: "6h"
             - name: SPEEDTEST_TIMEOUT
               value: "120s"
           resources:
