@@ -7,3 +7,4 @@ manifests/cluster/external-secrets/secret.yaml
 .env
 _provider.tf
 .direnv/
+.worktrees
