@@ -8,3 +8,8 @@ defaultBackupStore:
   backupTarget: "s3://myles-homelab-backups@us-west-1/longhorn-backups/"
   backupTargetCredentialSecret: "longhorn-backup-secret"
   pollInterval: 86400
+# Two replicas instead of three: the cluster is heavily over-provisioned
+# (188G of volume requests against ~22G actually used) and a third replica on
+# 233G disks is what pushed new volumes past Longhorn's scheduling limits.
+persistence:
+  defaultClassReplicaCount: 2
