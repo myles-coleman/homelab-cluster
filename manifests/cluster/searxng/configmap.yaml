@@ -5,16 +5,108 @@ metadata:
   namespace: searxng
 data:
   settings.yml: |
-    use_default_settings: true
+    # Tuned for single-user, programmatic use: an AI agent calling
+    # /search?format=json a few dozen times a day. The goal is predictable
+    # results, not a rich web UI.
+    #
+    # `use_default_settings` as a mapping means "ship defaults, then prune":
+    # the dict form replaces the boolean form, so there must be exactly one.
+    use_default_settings:
+      engines:
+        # keep_only prunes the news/image/video/map verticals that a text
+        # search agent never calls, plus the scrapers that break weekly.
+        # Engine names must match searx/settings.yml exactly.
+        keep_only:
+          - duckduckgo
+          - brave
+          - google cse
+          - wikipedia
+          - github
+          - stackoverflow
+          - mwmbl
+
+    general:
+      instance_name: "searxng"
+
     server:
-      secret_key: "changeme" # This will be overridden by environment variable if possible, or better, we use the secret key from environment
+      # secret_key is overridden by SEARXNG_SERVER__SECRET_KEY from the
+      # searxng-secrets Secret; do not put a literal key here.
+      secret_key: "changeme"
+      # Single-user instance. The limiter needs Valkey and would throttle the
+      # agent rather than protect anything.
       limiter: false
       image_proxy: true
+
     search:
       safe_search: 0
+      # Without an explicit default, a headless client gets a locale-dependent
+      # language, which changes result sets between runs.
+      default_lang: "en"
       autocomplete: ""
+      # Cap paging so a looping agent cannot walk 20 pages of a slow engine.
+      max_page: 5
       formats:
         - html
         - json
+      ban_time_on_fail: 5
+      max_ban_time_on_fail: 60
+      # Defaults are hostile to automation: one Google reCAPTCHA benches the
+      # engine for 7 days and one generic CAPTCHA for 24 hours, which makes a
+      # cold instance look broken until someone notices.
+      suspended_times:
+        SearxEngineAccessDenied: 3600        # default 86400 (24 h)
+        SearxEngineCaptcha: 3600             # default 86400 (24 h)
+        SearxEngineTooManyRequests: 900      # default 3600 (1 h)
+        cf_SearxEngineCaptcha: 21600         # default 1296000 (15 d)
+        cf_SearxEngineAccessDenied: 3600     # default 86400 (24 h)
+        recaptcha_SearxEngineCaptcha: 86400  # default 604800 (7 d)
+
+    outgoing:
+      # The slowest enabled engine sets the worst-case tail latency.
+      request_timeout: 3.0
+      max_request_timeout: 8.0
+      pool_connections: 100
+      # Retries rotate source IPs and add latency; the client falls back instead.
+      retries: 0
+      enable_http2: true
+
+    engines:
+      - name: duckduckgo
+        disabled: false
+        timeout: 3.0
+        weight: 1.0
+
+      - name: brave
+        disabled: false
+        timeout: 3.0
+        weight: 1.2
+
+      # Google CSE is the only lane that stays up when the HTML scrapers are
+      # blocked. Note: the engine ships with a hardcoded third-party CX
+      # (blackle.com's), so results depend on someone else's quota.
+      - name: google cse
+        disabled: false
+        timeout: 3.0
+        weight: 1.0
+
+      - name: wikipedia
+        timeout: 3.0
+        weight: 0.8
+
+      - name: github
+        timeout: 5.0
+        weight: 1.0
+
+      - name: stackoverflow
+        timeout: 5.0
+        weight: 1.0
+
+      # Independent index (Mwmbl, ~777M pages), keyless, and the only engine
+      # here that is not a scraper of a major search engine.
+      - name: mwmbl
+        disabled: false
+        timeout: 5.0
+        weight: 1.0
+
     ui:
       static_use_hash: true
