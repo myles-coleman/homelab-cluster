@@ -13,5 +13,9 @@ kind: Kustomization
 namespace: agent-sandbox
 resources:
   - networkpolicy.yaml
+  - workspace-copy.yaml
+  - seed-workspace-copy.yaml
   - row1-emptydir-noconfig.yaml
   - row2-emptydir-config.yaml
+  - row3-pvc-noconfig.yaml
+  - row4-pvc-config.yaml
