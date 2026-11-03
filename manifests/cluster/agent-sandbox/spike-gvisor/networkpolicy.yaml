@@ -1,0 +1,33 @@
+# Egress-only policy for the bisect pods (spec 22, task 2.2).
+#
+# The namespace default-deny already denies ingress to every pod, so this only has
+# to grant the two paths the workload needs: the allowlisting squid and Strata's
+# tailnet address. No DNS: the pods copy production's `dnsPolicy: None` with a
+# loopback nameserver, so names never resolve by design.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spike-gvisor-bisect-egress
+  namespace: agent-sandbox
+  labels:
+    spike: gvisor-bisect
+spec:
+  podSelector:
+    matchLabels:
+      spike: gvisor-bisect
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: squid
+      ports:
+        - protocol: TCP
+          port: 3128
+    - to:
+        - ipBlock:
+            cidr: 100.127.170.8/32
+      ports:
+        - protocol: TCP
+          port: 8080
