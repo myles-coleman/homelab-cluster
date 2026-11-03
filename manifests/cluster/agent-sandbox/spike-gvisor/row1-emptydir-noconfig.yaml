@@ -1,0 +1,105 @@
+apiVersion: agents.x-k8s.io/v1beta1
+kind: Sandbox
+metadata:
+  name: spike-r1
+  namespace: agent-sandbox
+spec:
+  podTemplate:
+    metadata:
+      labels:
+        spike: gvisor-bisect
+        spike-row: r1
+    spec:
+      # The production pod's runtime is the variable under test (spec 22, FR-2.3).
+      runtimeClassName: gvisor
+      # The first exit stands; a crash loop would destroy the evidence. The
+      # deadline bounds the run at 40 minutes so a pass cannot outlive the task.
+      restartPolicy: Never
+      activeDeadlineSeconds: 2400
+      automountServiceAccountToken: false
+      # Copied verbatim from sandbox.yaml: no DNS means the proxy and the model
+      # are reached by IP literal, and name resolution is not an exfiltration path.
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 127.0.0.1
+        searches: []
+      nodeSelector:
+        sandbox.node/runtime: gvisor
+      tolerations:
+        - key: sandbox
+          operator: Equal
+          value: gvisor
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: opencode
+          image: ghcr.io/myles-coleman/opencode-sandbox@sha256:557db5201c0c389fbe34a57d571cdc8d50c389d7b8fe208d9c2c1f0a8c53df1a
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          # Production runs the image ENTRYPOINT shape (`opencode`, i.e. the Node
+          # shim) as PID 1. Keeping it is the point: the shim re-raises the child's
+          # signal, which is why exit 130 is ambiguous.
+          command: ["opencode"]
+          args: ["serve", "--hostname", "0.0.0.0", "--port", "4096"]
+          ports:
+            - name: http
+              containerPort: 4096
+              protocol: TCP
+          env:
+            - name: HOME
+              value: /home/agent
+            - name: OPENCODE_SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-sandbox-secrets
+                  key: opencode-server-password
+            - name: STRATA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: opencode-sandbox-secrets
+                  key: strata-api-key
+            - name: HTTP_PROXY
+              value: http://10.43.0.250:3128
+            - name: HTTPS_PROXY
+              value: http://10.43.0.250:3128
+            - name: NO_PROXY
+              value: 10.43.0.250,100.127.170.8,localhost,127.0.0.1
+            - name: OPENCODE_DISABLE_MODELS_FETCH
+              value: "1"
+            - name: OPENCODE_DISABLE_LSP_DOWNLOAD
+              value: "1"
+            - name: OPENCODE_DISABLE_AUTOUPDATE
+              value: "1"
+            - name: GIT_COMMITTER_NAME
+              value: OpenCode Sandbox Agent
+            - name: GIT_COMMITTER_EMAIL
+              value: agent@sandbox.invalid
+          volumeMounts:
+            - name: workspace
+              mountPath: /home/agent
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+      volumes:
+        - name: workspace
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
