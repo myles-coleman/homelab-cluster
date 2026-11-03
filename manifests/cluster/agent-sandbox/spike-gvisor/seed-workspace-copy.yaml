@@ -1,0 +1,85 @@
+# One-shot seed of the two PVC copies (spec 22, FR-2.2).
+#
+# Runs on sandbox-node because `local-path-retain` binds WaitForFirstConsumer: the
+# first consumer decides the node, and the copies must live where the gVisor
+# runtime does. PSA `restricted` is enforced namespace-wide, so this is a non-root
+# pod with a numeric fsGroup; local-path provisions world-writable volume dirs, so
+# uid 1000 can write. If that assumption ever breaks, the fallback is to seed from
+# a pod that mounts both volumes rather than to relax PSA.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: spike-seed
+  namespace: agent-sandbox
+  labels:
+    spike: gvisor-bisect
+spec:
+  restartPolicy: Never
+  activeDeadlineSeconds: 900
+  nodeSelector:
+    sandbox.node/runtime: gvisor
+  tolerations:
+    - key: sandbox
+      operator: Equal
+      value: gvisor
+      effect: NoSchedule
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: copy-r3
+      image: ghcr.io/myles-coleman/opencode-sandbox@sha256:557db5201c0c389fbe34a57d571cdc8d50c389d7b8fe208d9c2c1f0a8c53df1a
+      imagePullPolicy: IfNotPresent
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        readOnlyRootFilesystem: true
+      command: ["/bin/sh", "-c"]
+      args:
+        - cp -a --no-preserve=ownership /src/. /dst/ && echo "copied $(du -sh /dst | cut -f1)"
+      volumeMounts:
+        - name: src
+          mountPath: /src
+          readOnly: true
+        - name: dst
+          mountPath: /dst
+        - name: tmp
+          mountPath: /tmp
+    - name: copy-r4
+      image: ghcr.io/myles-coleman/opencode-sandbox@sha256:557db5201c0c389fbe34a57d571cdc8d50c389d7b8fe208d9c2c1f0a8c53df1a
+      imagePullPolicy: IfNotPresent
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        readOnlyRootFilesystem: true
+      command: ["/bin/sh", "-c"]
+      args:
+        - cp -a --no-preserve=ownership /src/. /dst/ && echo "copied $(du -sh /dst | cut -f1)"
+      volumeMounts:
+        - name: src
+          mountPath: /src
+          readOnly: true
+        - name: dst4
+          mountPath: /dst
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: src
+      persistentVolumeClaim:
+        claimName: opencode-workspace
+        readOnly: true
+    - name: dst
+      persistentVolumeClaim:
+        claimName: workspace-copy-r3
+    - name: dst4
+      persistentVolumeClaim:
+        claimName: workspace-copy-r4
+    - name: tmp
+      emptyDir:
+        sizeLimit: 1Gi
