@@ -14,16 +14,26 @@ spec:
       labels:
         app: opencode-sandbox
     spec:
-      # ── spec 21, Unit 4: the gVisor fallback is retired ────────────────────
-      # The spec 20 fallback (DEV-3, 2026-10-19) recorded Bun/OpenCode exiting 130
-      # on a ~75 s cycle under gVisor. That did not reproduce (spec 21, task 6.0):
-      # the same image and env ran 33 minutes under `gvisor` with zero restarts,
-      # executed bash/edit/read, cloned through squid, and completed a model call.
-      # Diagnosis-first was the point of the spike, and there was no failure to
-      # diagnose, so no JIT workaround was applied.
+      # ── gVisor is OFF for this pod (spec 21, task 6.0) ─────────────────────
+      # The spec 20 fallback (DEV-3) recorded Bun/OpenCode exiting 130 on a ~75 s
+      # cycle under gVisor. Task 6.0 tried to retire it and found the failure is
+      # REAL but configuration-dependent:
       #
-      # Reverting is still one line: comment this out and delete the pod.
-      runtimeClassName: gvisor
+      #   * A throwaway Sandbox with the same image and env, on an emptyDir
+      #     workspace, ran 33 minutes with 0 restarts and completed bash/edit/read,
+      #     a git clone through squid and a model call.
+      #   * THIS pod, with the local-path PVC mounted at /home/agent and the
+      #     opencode-sandbox-config ConfigMap at ~/.config/opencode, exits 130
+      #     every ~90 s (`lastState.terminated = Error/130`, kubelet BackOff).
+      #
+      # So the difference is the workspace/config mounts, not the runtime itself.
+      # The next spike should start there — local-path is a hostPath, and gVisor
+      # serves hostPath through a gofer with different filesystem and inotify
+      # behaviour. Do not re-enable this line without testing the PVC and
+      # ConfigMap mounts together, which the emptyDir spike did not do.
+      #
+      # Re-enabling is one line plus a pod delete, but verify the above first.
+      # runtimeClassName: gvisor
       automountServiceAccountToken: false
       # No DNS: name resolution is its own exfiltration channel, and the sandbox
       # needs none (the proxy and the model are reached by IP literal).
