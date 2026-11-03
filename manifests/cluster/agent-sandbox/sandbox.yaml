@@ -14,16 +14,16 @@ spec:
       labels:
         app: opencode-sandbox
     spec:
-      # ── spec 20 fallback (DEV-3, 2026-10-19): gVisor is OFF for the pilot ────
-      # Bun/OpenCode is unstable under gVisor/systrap: the container logs
-      # "server listening" and then exits 130 on a ~75 s cycle (CrashLoopBackOff),
-      # while the *same* image with the same env runs indefinitely under the node's
-      # default runtime. This is the fallback the spec names (Open Question #2 /
-      # residual-risk item 7). Omitting `runtimeClassName` uses the node default
-      # (runc); re-enable the line below to restore the gVisor boundary once a
-      # working Bun/gVisor combination is found. The node, RuntimeClass and gVisor
-      # handler all remain in place, so this is a one-line revert.
-      # runtimeClassName: gvisor
+      # ── spec 21, Unit 4: the gVisor fallback is retired ────────────────────
+      # The spec 20 fallback (DEV-3, 2026-10-19) recorded Bun/OpenCode exiting 130
+      # on a ~75 s cycle under gVisor. That did not reproduce (spec 21, task 6.0):
+      # the same image and env ran 33 minutes under `gvisor` with zero restarts,
+      # executed bash/edit/read, cloned through squid, and completed a model call.
+      # Diagnosis-first was the point of the spike, and there was no failure to
+      # diagnose, so no JIT workaround was applied.
+      #
+      # Reverting is still one line: comment this out and delete the pod.
+      runtimeClassName: gvisor
       automountServiceAccountToken: false
       # No DNS: name resolution is its own exfiltration channel, and the sandbox
       # needs none (the proxy and the model are reached by IP literal).
