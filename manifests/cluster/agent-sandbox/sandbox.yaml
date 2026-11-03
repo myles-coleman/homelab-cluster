@@ -77,14 +77,12 @@ spec:
                 secretKeyRef:
                   name: opencode-sandbox-secrets
                   key: strata-api-key
-            # Scoped git PAT for the workspace clone. Deliberately NOT baked into a
-            # remote URL — the sandbox uses it via a credential helper so it stays
-            # out of git config, argv and logs.
-            - name: GIT_PAT
-              valueFrom:
-                secretKeyRef:
-                  name: opencode-sandbox-secrets
-                  key: git-pat
+            # No git credential here (spec 21, Unit 1). The sandbox used to carry a
+            # fine-grained PAT with Contents: write, which is also the merge
+            # permission — and a merge runs `deploy.yaml` as a user with passwordless
+            # sudo on `homelab` and `bee-gpu-server`. The token is revoked; the agent
+            # clones the public repo read-only and hands work back as patch files
+            # via `git format-patch`. Do not re-add a write credential.
             # No DNS, so the proxy and the model are addressed by IP literal.
             # NOTE (deviation): the spec's Unit 4 named the Strata Service DNS
             # name; with dnsPolicy None that cannot resolve, so the tailnet IP is
