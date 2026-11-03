@@ -14,26 +14,17 @@ spec:
       labels:
         app: opencode-sandbox
     spec:
-      # ── gVisor is OFF for this pod (spec 21, task 6.0) ─────────────────────
-      # The spec 20 fallback (DEV-3) recorded Bun/OpenCode exiting 130 on a ~75 s
-      # cycle under gVisor. Task 6.0 tried to retire it and found the failure is
-      # REAL but configuration-dependent:
-      #
-      #   * A throwaway Sandbox with the same image and env, on an emptyDir
-      #     workspace, ran 33 minutes with 0 restarts and completed bash/edit/read,
-      #     a git clone through squid and a model call.
-      #   * THIS pod, with the local-path PVC mounted at /home/agent and the
-      #     opencode-sandbox-config ConfigMap at ~/.config/opencode, exits 130
-      #     every ~90 s (`lastState.terminated = Error/130`, kubelet BackOff).
-      #
-      # So the difference is the workspace/config mounts, not the runtime itself.
-      # The next spike should start there — local-path is a hostPath, and gVisor
-      # serves hostPath through a gofer with different filesystem and inotify
-      # behaviour. Do not re-enable this line without testing the PVC and
-      # ConfigMap mounts together, which the emptyDir spike did not do.
-      #
-      # Re-enabling is one line plus a pod delete, but verify the above first.
-      # runtimeClassName: gvisor
+      # ── ADOPTED: gVisor is ON (spec 22, 2026-11-03) ─────────────────────────
+      # Spec 21's finding was real but version- and mount-dependent. Spec 22
+      # re-ran the differential on gVisor 20261102.0 — a release that contains the
+      # CVE-2026-96812 fix — with this pod's exact topology: four throwaway
+      # Sandboxes (emptyDir and PVC workspaces, with and without the config
+      # ConfigMap) all ran 35 minutes with zero restarts, including the
+      # production-equivalent row. This pod then soaked on the live workspace.
+      # Evidence and the decision record live in the artifacts vault under
+      # nixos/docs/specs/22-spec-gvisor-sandbox-runtime/.
+      # Reverting is commenting this line out and deleting the pod.
+      runtimeClassName: gvisor
       automountServiceAccountToken: false
       # No DNS: name resolution is its own exfiltration channel, and the sandbox
       # needs none (the proxy and the model are reached by IP literal).
