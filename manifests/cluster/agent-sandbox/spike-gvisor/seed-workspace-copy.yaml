@@ -41,7 +41,7 @@ spec:
         readOnlyRootFilesystem: true
       command: ["/bin/sh", "-c"]
       args:
-        - cp -a --no-preserve=ownership /src/. /dst/ && echo "copied $(du -sh /dst | cut -f1)"
+        - cp -r --no-preserve=mode,ownership,timestamps /src/. /dst/ && echo "copied $(du -sh /dst | cut -f1)"
       volumeMounts:
         - name: src
           mountPath: /src
@@ -60,7 +60,7 @@ spec:
         readOnlyRootFilesystem: true
       command: ["/bin/sh", "-c"]
       args:
-        - cp -a --no-preserve=ownership /src/. /dst/ && echo "copied $(du -sh /dst | cut -f1)"
+        - cp -r --no-preserve=mode,ownership,timestamps /src/. /dst/ && echo "copied $(du -sh /dst | cut -f1)"
       volumeMounts:
         - name: src
           mountPath: /src
