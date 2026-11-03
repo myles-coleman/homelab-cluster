@@ -41,7 +41,13 @@ spec:
         readOnlyRootFilesystem: true
       command: ["/bin/sh", "-c"]
       args:
-        - cp -r --no-preserve=mode,ownership,timestamps /src/. /dst/ && echo "copied $(du -sh /dst | cut -f1)"
+        # Wipe first: a previous attempt that preserved modes can leave 0555
+        # directories owned by this uid, which this uid then cannot write into.
+        - >
+          chmod -R u+rwX /dst 2>/dev/null;
+          rm -rf /dst/* /dst/.[!.]* /dst/..?* 2>/dev/null;
+          cp -r --no-preserve=mode,ownership,timestamps /src/. /dst/ &&
+          echo "copied $(du -sh /dst | cut -f1)"
       volumeMounts:
         - name: src
           mountPath: /src
@@ -60,7 +66,13 @@ spec:
         readOnlyRootFilesystem: true
       command: ["/bin/sh", "-c"]
       args:
-        - cp -r --no-preserve=mode,ownership,timestamps /src/. /dst/ && echo "copied $(du -sh /dst | cut -f1)"
+        # Wipe first: a previous attempt that preserved modes can leave 0555
+        # directories owned by this uid, which this uid then cannot write into.
+        - >
+          chmod -R u+rwX /dst 2>/dev/null;
+          rm -rf /dst/* /dst/.[!.]* /dst/..?* 2>/dev/null;
+          cp -r --no-preserve=mode,ownership,timestamps /src/. /dst/ &&
+          echo "copied $(du -sh /dst | cut -f1)"
       volumeMounts:
         - name: src
           mountPath: /src
