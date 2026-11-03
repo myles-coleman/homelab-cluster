@@ -47,11 +47,24 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         runAsGroup: 1000
+        # Pod Security Admission `restricted` requires an explicit seccomp profile.
+        # RuntimeDefault is an errno-returning profile, not a trapping one, so it
+        # does not hit Bun's SECCOMP_RET_TRAP handler bug.
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: opencode
           # Digest-pinned; built by the nixos `build-images.yaml` workflow.
           image: ghcr.io/myles-coleman/opencode-sandbox@sha256:557db5201c0c389fbe34a57d571cdc8d50c389d7b8fe208d9c2c1f0a8c53df1a
           imagePullPolicy: IfNotPresent
+          # Enforced (verified in-pod, not merely declared): no privilege gain, no
+          # capabilities, and an immutable root filesystem. Writable state lives on
+          # the PVC at /home/agent and in the /tmp emptyDir below.
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
           command: ["opencode"]
           args: ["serve", "--hostname", "0.0.0.0", "--port", "4096"]
           ports:
@@ -99,12 +112,25 @@ spec:
               value: "1"
             - name: OPENCODE_DISABLE_AUTOUPDATE
               value: "1"
+            # A git identity is required for the agent to commit locally and run
+            # `git format-patch` (spec 21, Unit 2). It is set here rather than
+            # baked into the image so no image rebuild and digest repin is needed
+            # for a two-line change; git falls back to these for the author fields
+            # too. The address is deliberately unroutable.
+            - name: GIT_COMMITTER_NAME
+              value: OpenCode Sandbox Agent
+            - name: GIT_COMMITTER_EMAIL
+              value: agent@sandbox.invalid
           volumeMounts:
             - name: workspace
               mountPath: /home/agent
             # Shadows only ~/.config/opencode; the PVC stays intact underneath.
             - name: opencode-config
               mountPath: /home/agent/.config/opencode
+            # The root filesystem is read-only, so anything that needs a writable
+            # scratch path uses this bounded emptyDir.
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: "500m"
@@ -119,3 +145,7 @@ spec:
         - name: opencode-config
           configMap:
             name: opencode-sandbox-config
+        - name: tmp
+          emptyDir:
+            # Bounded so a runaway agent cannot fill the node's disk.
+            sizeLimit: 1Gi
