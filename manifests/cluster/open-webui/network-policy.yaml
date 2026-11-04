@@ -34,6 +34,15 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+    # Strata on bee-gpu-server, reached by its tailnet address (spec 24). An
+    # external address, so this is an ipBlock and not a namespace selector; the
+    # tailnet grant is scoped to this same host and port.
+    - to:
+        - ipBlock:
+            cidr: 100.127.170.8/32
+      ports:
+        - protocol: TCP
+          port: 8080
     # ArgoCD MCP server
     - to:
         - namespaceSelector:
