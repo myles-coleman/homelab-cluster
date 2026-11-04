@@ -46,3 +46,5 @@ resources:
 # (Strata itself is reached by tailnet IP literal, not a Service — see Unit 3.)
 - squid
 - agent-sandbox
+# issue #74 — pull-based sandbox + Strata telemetry, pinned to the sandbox node
+- sandbox-telemetry

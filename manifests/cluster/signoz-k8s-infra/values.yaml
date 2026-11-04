@@ -29,6 +29,10 @@ presets:
         - kube-system
         - longhorn-system
         - cert-manager
+        # The sandbox collector's own logs. It is a telemetry producer, not a
+        # workload anyone alerts on; `kubectl logs` is the debugging path and
+        # this avoids a self-ingestion series that only grows with retries.
+        - sandbox-telemetry
       pods: []
       containers: []
   # Scrape Prometheus endpoints discovered via pod annotations. Scoped to the
@@ -77,6 +81,15 @@ otelAgent:
       operator: Equal
       value: "true"
       effect: NoExecute
+    # The agent sandbox node is deliberately tainted so only the sandbox and the
+    # telemetry agents that must watch it land there. Without this toleration the
+    # agent never runs on the one node the sandbox telemetry (spec 19 / issue #74)
+    # is about: no kubeletstats for the sandbox pod, no host metrics for the
+    # guest, and no filelog for its container output.
+    - key: sandbox
+      operator: Equal
+      value: gvisor
+      effect: NoSchedule
   resources:
     # Extra headroom for the prometheus receiver scraping node_exporter.
     requests:

@@ -116,6 +116,7 @@ data:
         - /var/log/pods/kube-system_*/*/*.log
         - /var/log/pods/longhorn-system_*/*/*.log
         - /var/log/pods/cert-manager_*/*/*.log
+        - /var/log/pods/sandbox-telemetry_*/*/*.log
         include:
         - /var/log/pods/*/*/*.log
         include_file_name: false
@@ -754,7 +755,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: a2c66213e0e6711237a49f3dc76850480cdb53c6934a2b3e0238d130aa6e9757
+        checksum/config: 99087aab8f77311d996ab44e9c6d0e928d28969960ce050639d17fbca5395fba
       labels:
         app.kubernetes.io/name: k8s-infra
         app.kubernetes.io/instance: k8s-infra
@@ -793,6 +794,10 @@ spec:
           key: CriticalAddonsOnly
           operator: Equal
           value: "true"
+        - effect: NoSchedule
+          key: sandbox
+          operator: Equal
+          value: gvisor
       volumes:
         - name: otel-agent-config-vol
           configMap:
