@@ -12,22 +12,23 @@ metadata:
   namespace: squid
 data:
   squid.conf: |
-    acl SSL_ports port 443
-    acl CONNECT method CONNECT
     acl step1 at_step SslBump1
 
-    # The Spec 18 allowlist minus cache.nixos.org / channels.nixos.org (there is no
-    # nix in the sandbox any more).
-    acl allowed_domains dstdomain .github.com .api.github.com .codeload.github.com registry.npmjs.org
-    acl allowed_sni ssl::server_name .github.com .api.github.com .codeload.github.com registry.npmjs.org
-
-    # Deny CONNECT to IP-literal destinations: the spoofed-SNI tunnel.
-    acl ip_literal url_regex -i ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+
-
-    http_access deny CONNECT ip_literal
-    # CONNECT is restricted to 443 (SSL_ports) and to allowlisted server names.
-    http_access allow CONNECT SSL_ports allowed_sni
-    http_access allow allowed_domains
+    # ── no destinations are allowed (2026-11-04) ───────────────────────────────
+    # The sandbox has no internet at all. Its workspace is seeded by the operator at
+    # a pinned revision, it holds no repository write credential, and it hands work
+    # back as patch files. Its only network peers are this proxy (which now denies
+    # everything) and the model endpoint, which is reached by IP literal and does
+    # not go through the proxy at all.
+    #
+    # Denying here rather than simply removing the proxy keeps the attempt visible:
+    # squid logs every request, so a prompt-injected agent trying to phone home
+    # produces a log line instead of a silent no-op.
+    #
+    # Restoring fetch capability is a deliberate config change: re-add a
+    # `dstdomain` + `ssl::server_name` ACL pair and the matching `http_access allow`
+    # lines above the deny. Do not make it a runtime toggle — the whole point is
+    # that the sandbox cannot widen its own egress.
     http_access deny all
 
     # Peek at the ClientHello for SNI, then splice without decrypting.
