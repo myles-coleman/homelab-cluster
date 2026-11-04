@@ -49,10 +49,21 @@ spec:
         # Kubernetes Service: the cluster's ArgoCD config excludes EndpointSlice
         # from management, so a selectorless Service would silently have no
         # endpoints (see the spec's Unit 3 deviation note).
-        - name: OPENAI_API_BASE_URL
+        #
+        # Plural names (spec 24, task 3.0): these are Open WebUI's multi-connection
+        # ConfigVars, semicolon-separated when there is more than one backend. They
+        # are only the SEED: Open WebUI persists the first values it sees into its
+        # database and reads the database from then on, so editing this alone does
+        # not change an existing volume - the runbook clears the stale openai.* rows.
+        - name: OPENAI_API_BASE_URLS
           value: "http://100.127.170.8:8080/v1"
-        - name: OPENAI_API_KEY
-          value: "sk-placeholder"
+        # The real key, from the shared Vaultwarden note (spec 24). Never a literal:
+        # the agent sandbox consumes the same note, so one rotation covers both.
+        - name: OPENAI_API_KEYS
+          valueFrom:
+            secretKeyRef:
+              name: open-webui-secrets
+              key: strata-api-key
         # Auth - first registered user becomes admin
         - name: WEBUI_AUTH
           value: "True"
