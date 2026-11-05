@@ -39,6 +39,15 @@ spec:
           operator: Equal
           value: amd
           effect: NoSchedule
+        # The agent sandbox node is tainted so only the sandbox and the telemetry
+        # agents that must watch it land there. node_exporter inside that node is
+        # the guest's own OS metrics (the DaemonSet uses hostPID and host mounts),
+        # so this is the "node_exporter on the guest" path from issue #74 — no
+        # second exporter has to be installed inside the microVM.
+        - key: sandbox
+          operator: Equal
+          value: gvisor
+          effect: NoSchedule
         # Match the other DaemonSets in this cluster for node conditions.
         - key: node.kubernetes.io/not-ready
           operator: Exists
@@ -74,6 +83,10 @@ spec:
             - --collector.disable-defaults
             - --collector.thermal_zone
             - --collector.cpufreq
+            # Conntrack table pressure is the guest signal in issue #74: a scan or
+            # a stuck egress flow grows the table before it is visible anywhere
+            # else. kubeletstats/hostmetrics do not expose it.
+            - --collector.conntrack
           ports:
             - name: metrics
               containerPort: 9100

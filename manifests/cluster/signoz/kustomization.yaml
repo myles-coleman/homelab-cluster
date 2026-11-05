@@ -402,8 +402,12 @@ patches:
             <error_log>
               <ttl>event_date + INTERVAL 7 DAY DELETE</ttl>
             </error_log>
-            <query_metric_log>
-              <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+            <query_metric_log replace="1">
+              <database>system</database>
+              <table>query_metric_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 3 day</engine>
+              <flush_interval_milliseconds>60000</flush_interval_milliseconds>
+              <collect_interval_milliseconds>60000</collect_interval_milliseconds>
             </query_metric_log>
             <trace_log replace="1">
               <database>system</database>
@@ -423,11 +427,17 @@ patches:
               <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 3 day</engine>
               <flush_interval_milliseconds>7500</flush_interval_milliseconds>
             </query_log>
+            <!-- metric_log collects every server metric once a second into a
+                 ~1000-column row. At a 7.5s flush that produced 14,248
+                 merge-seconds in 30 minutes across 5,054 merges to yield
+                 51 MiB, holding ~2.2 of node4's 4 cores on its own. A 60s
+                 collect+flush keeps the table without the churn. -->
             <metric_log replace="1">
               <database>system</database>
               <table>metric_log</table>
               <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 7 day</engine>
-              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+              <flush_interval_milliseconds>60000</flush_interval_milliseconds>
+              <collect_interval_milliseconds>60000</collect_interval_milliseconds>
             </metric_log>
             <asynchronous_metric_log replace="1">
               <database>system</database>
@@ -436,30 +446,11 @@ patches:
               <flush_interval_milliseconds>7500</flush_interval_milliseconds>
             </asynchronous_metric_log>
           </clickhouse>
-      # Longhorn schedules a replica only if StorageScheduled + size stays under
-      # its over-provisioning/pressure limits. nodes 1-3 already carry 157.7G of
-      # provisioned replicas on a 233G disk, so 50Gi lands at 89% and is refused;
-      # 40Gi fits at 85%. Together with the 2-3 day system-log TTLs that is ample
-      # for 30-day telemetry retention.
-      - op: replace
-        path: /spec/templates/volumeClaimTemplates/0/spec/resources/requests/storage
-        value: "40Gi"
-      # Cap ClickHouse memory so it cannot starve the node (node1 is 4GiB).
-      # ClickHouse derives max_server_memory_usage from the cgroup limit; at
-      # 2Gi the ~1.8GiB ceiling was too low and bootstrap/merges hit
-      # MEMORY_LIMIT_EXCEEDED. 3Gi leaves room while protecting the node.
-      - op: add
-        path: /spec/templates/podTemplates/0/spec/containers/0/resources/limits
-        value:
-          memory: 3Gi
-      # Pin ClickHouse to node3: NVMe (154G free for Longhorn, so the volume is
-      # not competing with an SD card), and the only 4GiB node with real memory
-      # headroom (1.5Gi requested, 90% limits). It used to run on node4, whose SD
-      # card made kubelet stall whenever the volume did heavy I/O.
-      - op: add
-        path: /spec/templates/podTemplates/0/spec/nodeSelector
-        value:
-          kubernetes.io/hostname: node3
+      # Sizing - claim size, memory limit and node placement - is declared in
+      # values.yaml and rendered by the chart. It deliberately does not live in
+      # this patch any more (spec 26): an op here silently overrode the chart, so
+      # a values-only change looked applied while the live object kept the old
+      # numbers. Do not re-add sizing operations to this patch.
   # The chart omits apiVersion/kind on the volumeClaimTemplates, so the API
   # server fills them in on write and ArgoCD's structured-merge diff (enabled
   # because the app syncs with ServerSideApply) reports them as drift.

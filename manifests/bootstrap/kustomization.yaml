@@ -46,3 +46,4 @@ resources:
 - node-exporter-app.yaml
 - squid-app.yaml
 - agent-sandbox-app.yaml
+- sandbox-telemetry-app.yaml

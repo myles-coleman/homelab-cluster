@@ -14,16 +14,17 @@ spec:
       labels:
         app: opencode-sandbox
     spec:
-      # ── spec 20 fallback (DEV-3, 2026-10-19): gVisor is OFF for the pilot ────
-      # Bun/OpenCode is unstable under gVisor/systrap: the container logs
-      # "server listening" and then exits 130 on a ~75 s cycle (CrashLoopBackOff),
-      # while the *same* image with the same env runs indefinitely under the node's
-      # default runtime. This is the fallback the spec names (Open Question #2 /
-      # residual-risk item 7). Omitting `runtimeClassName` uses the node default
-      # (runc); re-enable the line below to restore the gVisor boundary once a
-      # working Bun/gVisor combination is found. The node, RuntimeClass and gVisor
-      # handler all remain in place, so this is a one-line revert.
-      # runtimeClassName: gvisor
+      # ── ADOPTED: gVisor is ON (spec 22, 2026-11-03) ─────────────────────────
+      # Spec 21's finding was real but version- and mount-dependent. Spec 22
+      # re-ran the differential on gVisor 20261102.0 — a release that contains the
+      # CVE-2026-96812 fix — with this pod's exact topology: four throwaway
+      # Sandboxes (emptyDir and PVC workspaces, with and without the config
+      # ConfigMap) all ran 35 minutes with zero restarts, including the
+      # production-equivalent row. This pod then soaked on the live workspace.
+      # Evidence and the decision record live in the artifacts vault under
+      # nixos/docs/specs/22-spec-gvisor-sandbox-runtime/.
+      # Reverting is commenting this line out and deleting the pod.
+      runtimeClassName: gvisor
       automountServiceAccountToken: false
       # No DNS: name resolution is its own exfiltration channel, and the sandbox
       # needs none (the proxy and the model are reached by IP literal).
@@ -47,11 +48,24 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         runAsGroup: 1000
+        # Pod Security Admission `restricted` requires an explicit seccomp profile.
+        # RuntimeDefault is an errno-returning profile, not a trapping one, so it
+        # does not hit Bun's SECCOMP_RET_TRAP handler bug.
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: opencode
           # Digest-pinned; built by the nixos `build-images.yaml` workflow.
           image: ghcr.io/myles-coleman/opencode-sandbox@sha256:557db5201c0c389fbe34a57d571cdc8d50c389d7b8fe208d9c2c1f0a8c53df1a
           imagePullPolicy: IfNotPresent
+          # Enforced (verified in-pod, not merely declared): no privilege gain, no
+          # capabilities, and an immutable root filesystem. Writable state lives on
+          # the PVC at /home/agent and in the /tmp emptyDir below.
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
           command: ["opencode"]
           args: ["serve", "--hostname", "0.0.0.0", "--port", "4096"]
           ports:
@@ -77,14 +91,12 @@ spec:
                 secretKeyRef:
                   name: opencode-sandbox-secrets
                   key: strata-api-key
-            # Scoped git PAT for the workspace clone. Deliberately NOT baked into a
-            # remote URL — the sandbox uses it via a credential helper so it stays
-            # out of git config, argv and logs.
-            - name: GIT_PAT
-              valueFrom:
-                secretKeyRef:
-                  name: opencode-sandbox-secrets
-                  key: git-pat
+            # No git credential here (spec 21, Unit 1). The sandbox used to carry a
+            # fine-grained PAT with Contents: write, which is also the merge
+            # permission — and a merge runs `deploy.yaml` as a user with passwordless
+            # sudo on `homelab` and `bee-gpu-server`. The token is revoked; the agent
+            # clones the public repo read-only and hands work back as patch files
+            # via `git format-patch`. Do not re-add a write credential.
             # No DNS, so the proxy and the model are addressed by IP literal.
             # NOTE (deviation): the spec's Unit 4 named the Strata Service DNS
             # name; with dnsPolicy None that cannot resolve, so the tailnet IP is
@@ -116,12 +128,25 @@ spec:
               value: "1"
             - name: OPENCODE_DISABLE_AUTOUPDATE
               value: "1"
+            # A git identity is required for the agent to commit locally and run
+            # `git format-patch` (spec 21, Unit 2). It is set here rather than
+            # baked into the image so no image rebuild and digest repin is needed
+            # for a two-line change; git falls back to these for the author fields
+            # too. The address is deliberately unroutable.
+            - name: GIT_COMMITTER_NAME
+              value: OpenCode Sandbox Agent
+            - name: GIT_COMMITTER_EMAIL
+              value: agent@sandbox.invalid
           volumeMounts:
             - name: workspace
               mountPath: /home/agent
             # Shadows only ~/.config/opencode; the PVC stays intact underneath.
             - name: opencode-config
               mountPath: /home/agent/.config/opencode
+            # The root filesystem is read-only, so anything that needs a writable
+            # scratch path uses this bounded emptyDir.
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: "500m"
@@ -136,3 +161,7 @@ spec:
         - name: opencode-config
           configMap:
             name: opencode-sandbox-config
+        - name: tmp
+          emptyDir:
+            # Bounded so a runaway agent cannot fill the node's disk.
+            sizeLimit: 1Gi

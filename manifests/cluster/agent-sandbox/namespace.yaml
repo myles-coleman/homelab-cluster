@@ -2,3 +2,20 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: agent-sandbox
+  # Pod Security Admission (spec 21, Unit 2). This is the enforcement that makes
+  # the pod-level securityContext non-optional: if a future edit drops the seccomp
+  # profile, the capabilities drop, or `allowPrivilegeEscalation: false`, the pod is
+  # rejected at admission instead of silently running with the default posture.
+  #
+  # `enforce-version: latest` tracks the newest policy; pin it to a minor (e.g.
+  # v1.33) if a cluster upgrade ever changes the policy under us.
+  #
+  # `audit` and `warn` carry the same level so a rejected edit surfaces as a
+  # warning in the API response and an audit annotation, not just a hard failure.
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest

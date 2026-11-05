@@ -1,0 +1,21 @@
+# Spec 22 gVisor bisect harness.
+#
+# This directory is DELIBERATELY NOT referenced by
+# manifests/cluster/agent-sandbox/kustomization.yaml. Kustomize does not recurse,
+# so nothing here is ever applied by ArgoCD; the objects are throwaway and are
+# applied/deleted by the operator with `kubectl apply -k` / `kubectl delete -k`.
+# Verify with: kubectl kustomize manifests/cluster/agent-sandbox/ | grep -c spike
+#
+# Every object carries `spike: gvisor-bisect` so cleanup is one selector, and the
+# per-row `spike-row` label keeps the four Sandboxes distinguishable.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: agent-sandbox
+resources:
+  - networkpolicy.yaml
+  - workspace-copy.yaml
+  - seed-workspace-copy.yaml
+  - row1-emptydir-noconfig.yaml
+  - row2-emptydir-config.yaml
+  - row3-pvc-noconfig.yaml
+  - row4-pvc-config.yaml

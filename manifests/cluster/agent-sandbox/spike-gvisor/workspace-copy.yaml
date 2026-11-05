@@ -1,0 +1,39 @@
+# Disposable copies of the agent workspace (spec 22, FR-2.2).
+#
+# The bisect must differ from production in exactly one thing — the runtime — so
+# these use the SAME `local-path-retain` StorageClass as the live PVC and the same
+# size. Only the contents differ: they are seeded from a read-only mount of
+# `opencode-workspace`, which is never mounted writable into a gVisor pod.
+#
+# `Retain` means these PVs survive PVC deletion; task 5.9 deletes the two PVs by
+# the volume names recorded at creation (they are the only PVs this feature is
+# allowed to delete).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: workspace-copy-r3
+  namespace: agent-sandbox
+  labels:
+    spike: gvisor-bisect
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path-retain
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: workspace-copy-r4
+  namespace: agent-sandbox
+  labels:
+    spike: gvisor-bisect
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path-retain
+  resources:
+    requests:
+      storage: 20Gi
