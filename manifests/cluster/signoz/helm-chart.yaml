@@ -2370,11 +2370,6 @@ spec:
         <clickhouse>
           <async_load_databases replace="replace">false</async_load_databases>
         </clickhouse>
-      config.d/merge-pool.xml: |
-        <clickhouse>
-          <background_pool_size>4</background_pool_size>
-          <background_merges_mutations_concurrency_ratio>1</background_merges_mutations_concurrency_ratio>
-        </clickhouse>
       config.d/system_log.xml: |
         <clickhouse>
           <text_log>

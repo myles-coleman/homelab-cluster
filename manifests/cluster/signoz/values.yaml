@@ -18,9 +18,6 @@ clickhouse:
   # volume, and ArgoCD never reported it as drift because the Application uses
   # ServerSideApply. It is codified here first so the short TTLs survive; the
   # only edits are the two metric logs, which now collect and flush every 60s.
-  #
-  # `background_pool_size: 16` with a concurrency ratio of 2 allowed 32 merge
-  # threads on a 4-core node. Four threads with no multiplier matches the node.
   files:
     config.d/system_log.xml: |
       <clickhouse>
@@ -115,12 +112,6 @@ clickhouse:
           <flush_interval_milliseconds>7500</flush_interval_milliseconds>
         </asynchronous_metric_log>
       </clickhouse>
-    config.d/merge-pool.xml: |
-      <clickhouse>
-        <background_pool_size>4</background_pool_size>
-        <background_merges_mutations_concurrency_ratio>1</background_merges_mutations_concurrency_ratio>
-      </clickhouse>
-
 signoz:
   persistence:
     storageClass: longhorn
