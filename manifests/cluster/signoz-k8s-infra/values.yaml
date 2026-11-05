@@ -15,9 +15,10 @@ presets:
     enabled: true
   kubernetesAttributes:
     enabled: true
-  # Kubernetes events as logs.
+  # Kubernetes events as logs. Disabled (spec 26): events are high-churn and
+  # no dashboard here charts them, so they only add write and merge load.
   k8sEvents:
-    enabled: true
+    enabled: false
   # Container logs via filelog. Exclude the noisy control-plane namespaces and
   # SigNoz's own logs to keep ingestion/storage bounded.
   logsCollection:

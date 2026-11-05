@@ -389,8 +389,6 @@ data:
             enabled: true
           k8s.pod.qos_class:
             enabled: true
-      k8s_events:
-        auth_type: serviceAccount
       prometheus/scraper:
         config:
           scrape_configs:
@@ -461,15 +459,6 @@ data:
       - zpages
       - pprof
       pipelines:
-        logs:
-          exporters:
-          - otlphttp
-          processors:
-          - k8sattributes
-          - resourcedetection
-          - batch
-          receivers:
-          - k8s_events
         metrics/internal:
           exporters:
           - otlphttp
@@ -938,7 +927,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: f9ca507d8d8d2bdb024a3048578170c2b2342f6e70bcdfa0c195029ec86a7fe5
+        checksum/config: 3246e7c63b54e5e1692fe78c55e0df409757ec95f5c23f4f0cbd2f58376726ac
       labels:
         app.kubernetes.io/name: k8s-infra
         app.kubernetes.io/instance: k8s-infra
