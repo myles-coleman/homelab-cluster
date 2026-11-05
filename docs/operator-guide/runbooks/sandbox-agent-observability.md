@@ -13,8 +13,14 @@ truncates, and redacts that telemetry before it reaches SigNoz.
 `service.name` is hardcoded to `opencode` in the binary and `OTEL_SERVICE_NAME` is ignored. Do
 not use it to identify this workload. Every scope clause and every query keys on:
 
-- traces: `deployment.environment = agent-sandbox`
-- logs: `k8s.namespace.name = agent-sandbox`
+- traces and OTLP logs: `deployment.environment = agent-sandbox`
+- container-output logs (the `filelog` path): `k8s.namespace.name = agent-sandbox`
+
+The two record shapes differ. OTLP records carry `service.name`, `deployment.environment` and
+`service.namespace`, but **no `k8s.namespace.name`**: the `k8sattributes` processor cannot
+associate them with a pod, because the SDK's resource has no `k8s.pod.uid`/`k8s.pod.name` to
+join on. Records that come from `filelog` carry the namespace and no `service.name`. Query on
+the right one, or on both.
 
 ## Verify
 
@@ -38,8 +44,10 @@ least one span, usually a `SessionRunner.runStep` or `Tool.execute` with childre
 
 ### 3. Logs arrive and are correlated
 
-SigNoz → Logs → filter `k8s.namespace.name = agent-sandbox`, last hour. Records should carry a
-non-empty `trace_id` and `span_id`; opening one links to its trace.
+SigNoz → Logs → filter `deployment.environment = agent-sandbox`, last hour. Records should carry
+a non-empty `trace_id` and `span_id`; opening one links to its trace. Startup records
+(`cli starting`, `server listening`) are emitted before any span exists and therefore carry no
+`trace_id` — that is expected, not a failure.
 
 ### 4. The exporter bypassed the proxy
 
