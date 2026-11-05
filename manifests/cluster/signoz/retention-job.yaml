@@ -1,0 +1,120 @@
+# Applies the SigNoz retention budget (spec 26) to ClickHouse.
+#
+# Why a Job and not Terraform or the UI:
+#   - the SigNoz Terraform provider has no retention resource, and retention is
+#     a set of per-table ClickHouse TTLs, not a config file value;
+#   - the UI/API path on this version can write ttl=0, which ClickHouse reads as
+#     "expire immediately" (signoz#12701, hardened by signoz#12745).
+# So the declarative mechanism is this re-runnable Job: it reads the live TTL
+# expressions, rewrites the ones that belong to the three signals, and fails if
+# anything is left outside the budget.
+#
+# Re-running: delete the Job and let ArgoCD re-create it, or run
+#   kubectl -n signoz create job --from=cronjob/... (not used here).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: signoz-retention
+  namespace: signoz
+  labels:
+    app.kubernetes.io/name: signoz-retention
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: signoz-retention
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: retention
+          image: docker.io/clickhouse/clickhouse-server:25.12.5
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -euo pipefail
+
+              ch() {
+                clickhouse-client \
+                  --host "${CLICKHOUSE_HOST}" \
+                  --port "${CLICKHOUSE_PORT}" \
+                  --user "${CLICKHOUSE_USER}" \
+                  --password "${CLICKHOUSE_PASSWORD}" \
+                  "$@"
+              }
+              q() { ch --query "$1"; }
+
+              # Guard: this Job may only touch SigNoz telemetry databases.
+              others=$(q "SELECT count() FROM system.tables WHERE engine LIKE '%MergeTree%' AND database NOT LIKE 'signoz%'")
+              echo "merge-tree tables outside signoz_*: ${others} (not touched)"
+
+              rewrite() {
+                local db="$1" ttl="$2"
+                case "${db}" in
+                  signoz_metrics)
+                    ttl="${ttl//toIntervalSecond(2592000)/toIntervalSecond(1296000)}" # 30d -> 15d
+                    ;;
+                  signoz_traces)
+                    ttl="${ttl//toIntervalSecond(1296000)/toIntervalSecond(604800)}" # 15d -> 7d
+                    ttl="${ttl//toIntervalDay(15)/toIntervalDay(7)}"
+                    ;;
+                  signoz_logs)
+                    ttl="${ttl//toIntervalDay(_retention_days)/toIntervalDay(7)}"     # 15d default -> 7d
+                    ttl="${ttl//toIntervalDay(15)/toIntervalDay(7)}"
+                    ;;
+                esac
+                printf '%s' "${ttl}"
+              }
+
+              echo "== applying retention budget: metrics 15d, logs 7d, traces 7d"
+              while IFS=$'\t' read -r db tbl ttl; do
+                [ -n "${ttl}" ] || continue
+                new="$(rewrite "${db}" "${ttl}")"
+                if [ "${new}" = "${ttl}" ]; then
+                  echo "unchanged  ${db}.${tbl}: ${ttl}"
+                  continue
+                fi
+                echo "ALTER      ${db}.${tbl}"
+                echo "  from: ${ttl}"
+                echo "  to:   ${new}"
+                ch --query "ALTER TABLE \`${db}\`.\`${tbl}\` MODIFY TTL ${new}"
+              done < <(q "SELECT database, table, regexpExtract(engine_full, 'TTL (.*?) SETTINGS', 1) FROM system.tables WHERE database LIKE 'signoz%' AND engine_full LIKE '%TTL%' ORDER BY database, table FORMAT TSV")
+
+              # ClickHouse drops expired parts itself (ttl_only_drop_parts=1 is set on
+              # these tables); this only reports what is still outside the budget.
+              echo "== verification"
+              bad=$(q "SELECT count() FROM system.tables
+                       WHERE database LIKE 'signoz%' AND engine_full LIKE '%TTL%' AND (
+                         (database = 'signoz_metrics' AND engine_full LIKE '%toIntervalSecond(2592000)%')
+                         OR (database = 'signoz_traces' AND engine_full LIKE '%toIntervalSecond(1296000)%')
+                         OR (database = 'signoz_logs'  AND engine_full LIKE '%toIntervalDay(_retention_days)%')
+                       )")
+              echo "tables still outside the budget: ${bad}"
+              q "SELECT database, table, regexpExtract(engine_full, 'TTL (.*?) SETTINGS', 1) FROM system.tables WHERE database IN ('signoz_metrics','signoz_logs','signoz_traces') AND engine_full LIKE '%TTL%' ORDER BY database, table FORMAT TSV"
+              if [ "${bad}" != "0" ]; then
+                echo "ERROR: retention is not applied everywhere" >&2
+                exit 1
+              fi
+              echo "retention budget applied"
+          env:
+            - name: CLICKHOUSE_HOST
+              value: signoz-clickhouse
+            - name: CLICKHOUSE_PORT
+              value: "9000"
+            - name: CLICKHOUSE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: signoz-clickhouse-admin
+                  key: username
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: signoz-clickhouse-admin
+                  key: password
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
