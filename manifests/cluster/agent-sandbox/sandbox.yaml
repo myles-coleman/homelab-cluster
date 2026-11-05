@@ -105,8 +105,23 @@ spec:
               value: http://10.43.0.250:3128
             - name: HTTPS_PROXY
               value: http://10.43.0.250:3128
+            # 10.0.0.146 is the node-local k8s-infra agent (hostPort 4318). It is
+            # a static address defined in `nixos`
+            # hosts/homelab/modules/sandbox-node.nix and also appears in
+            # networkpolicy.yaml; change all three together.
             - name: NO_PROXY
-              value: 10.43.0.250,100.127.170.8,localhost,127.0.0.1
+              value: 10.43.0.250,100.127.170.8,10.0.0.146,localhost,127.0.0.1
+            # Observability (spec 02, Unit 1). Only OTEL_EXPORTER_OTLP_ENDPOINT is
+            # read: it gates BOTH the trace and the log exporter, while per-signal
+            # endpoint vars, protocol vars and OTEL_TRACES_EXPORTER are ignored.
+            # Do NOT add OTEL_SERVICE_NAME: `service.name` is hardcoded to
+            # `opencode` in the binary and the variable has no effect. The
+            # discriminator is `deployment.environment`, because service.name
+            # would silently merge a future desktop or CI instance into this one.
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://10.0.0.146:4318
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: deployment.environment=agent-sandbox,service.namespace=agent-sandbox
             - name: OPENCODE_DISABLE_MODELS_FETCH
               value: "1"
             - name: OPENCODE_DISABLE_LSP_DOWNLOAD
