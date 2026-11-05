@@ -2409,6 +2409,8 @@ spec:
         spec:          
           serviceAccountName: signoz-clickhouse
           priorityClassName: ""
+          nodeSelector: 
+            kubernetes.io/hostname: node4
           securityContext:
             fsGroup: 101
             fsGroupChangePolicy: OnRootMismatch
@@ -2501,6 +2503,8 @@ spec:
                 - name: data-volumeclaim-template
                   mountPath: /var/lib/clickhouse
               resources: 
+                limits:
+                  memory: 6Gi
                 requests:
                   cpu: 100m
                   memory: 200Mi
@@ -2533,7 +2537,7 @@ spec:
             - ReadWriteOnce
           resources:
             requests:
-              storage: 20Gi
+              storage: 80Gi
           storageClassName: longhorn
 ---
 # Source: signoz/templates/signoz/tests/test-connection.yaml
