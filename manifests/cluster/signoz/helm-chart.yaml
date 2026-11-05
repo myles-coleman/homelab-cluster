@@ -36,11 +36,11 @@ kind: ServiceAccount
 metadata:
   name: signoz-otel-collector
   labels:
-    helm.sh/chart: signoz-0.139.0
+    helm.sh/chart: signoz-0.143.0
     app.kubernetes.io/name: signoz
     app.kubernetes.io/instance: signoz
     app.kubernetes.io/component: otel-collector
-    app.kubernetes.io/version: "v0.139.0"
+    app.kubernetes.io/version: "v0.143.0"
     app.kubernetes.io/managed-by: Helm
 ---
 # Source: signoz/templates/signoz/serviceaccount.yaml
@@ -49,11 +49,11 @@ kind: ServiceAccount
 metadata:
   name: signoz
   labels:
-    helm.sh/chart: signoz-0.139.0
+    helm.sh/chart: signoz-0.143.0
     app.kubernetes.io/name: signoz
     app.kubernetes.io/instance: signoz
     app.kubernetes.io/component: signoz
-    app.kubernetes.io/version: "v0.139.0"
+    app.kubernetes.io/version: "v0.143.0"
     app.kubernetes.io/managed-by: Helm
 ---
 # Source: signoz/templates/telemetrystore-migrator/serviceaccount.yaml
@@ -62,11 +62,11 @@ kind: ServiceAccount
 metadata:
   name: signoz-telemetrystore-migrator
   labels:
-    helm.sh/chart: signoz-0.139.0
+    helm.sh/chart: signoz-0.143.0
     app.kubernetes.io/name: signoz
     app.kubernetes.io/instance: signoz
     app.kubernetes.io/component: signoz-telemetrystore-migrator
-    app.kubernetes.io/version: "v0.139.0"
+    app.kubernetes.io/version: "v0.143.0"
     app.kubernetes.io/managed-by: Helm
   annotations:
     argocd.argoproj.io/sync-options: Force=true,Replace=true
@@ -838,11 +838,11 @@ kind: ConfigMap
 metadata:
   name: signoz-otel-collector
   labels:
-    helm.sh/chart: signoz-0.139.0
+    helm.sh/chart: signoz-0.143.0
     app.kubernetes.io/name: signoz
     app.kubernetes.io/instance: signoz
     app.kubernetes.io/component: otel-collector
-    app.kubernetes.io/version: "v0.139.0"
+    app.kubernetes.io/version: "v0.143.0"
     app.kubernetes.io/managed-by: Helm
 data:
   otel-collector-config.yaml: |-
@@ -892,6 +892,23 @@ data:
         send_batch_max_size: 25000
         send_batch_size: 20000
         timeout: 1s
+      signozllmpricing:
+        attrs:
+          cache_read: gen_ai.usage.cache_read.input_tokens
+          cache_write: gen_ai.usage.cache_creation.input_tokens
+          in: gen_ai.usage.input_tokens
+          model: gen_ai.request.model
+          out: gen_ai.usage.output_tokens
+        default_pricing:
+          rules: []
+        output_attrs:
+          cache_read: signoz.gen_ai.usage.cache_read.input_tokens.cost
+          cache_write: signoz.gen_ai.usage.cache_write.input_tokens.cost
+          in: signoz.gen_ai.usage.input_tokens.cost
+          out: signoz.gen_ai.usage.output_tokens.cost
+          total: signoz.gen_ai.usage.tokens.cost
+      signozspanmapper:
+        groups: []
       signozspanmetrics/delta:
         aggregation_temporality: AGGREGATION_TEMPORALITY_DELTA
         dimensions:
@@ -980,6 +997,8 @@ data:
           - signozmeter
           processors:
           - signozspanmetrics/delta
+          - signozspanmapper
+          - signozllmpricing
           - batch
           receivers:
           - otlp
@@ -1343,11 +1362,11 @@ kind: Service
 metadata:
   name: signoz-otel-collector
   labels:
-    helm.sh/chart: signoz-0.139.0
+    helm.sh/chart: signoz-0.143.0
     app.kubernetes.io/name: signoz
     app.kubernetes.io/instance: signoz
     app.kubernetes.io/component: otel-collector
-    app.kubernetes.io/version: "v0.139.0"
+    app.kubernetes.io/version: "v0.143.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   type: ClusterIP
@@ -1398,11 +1417,11 @@ kind: Service
 metadata:
   name: signoz
   labels:
-    helm.sh/chart: signoz-0.139.0
+    helm.sh/chart: signoz-0.143.0
     app.kubernetes.io/name: signoz
     app.kubernetes.io/instance: signoz
     app.kubernetes.io/component: signoz
-    app.kubernetes.io/version: "v0.139.0"
+    app.kubernetes.io/version: "v0.143.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   type: ClusterIP
@@ -1627,11 +1646,11 @@ kind: Deployment
 metadata:
   name: signoz-otel-collector
   labels:
-    helm.sh/chart: signoz-0.139.0
+    helm.sh/chart: signoz-0.143.0
     app.kubernetes.io/name: signoz
     app.kubernetes.io/instance: signoz
     app.kubernetes.io/component: otel-collector
-    app.kubernetes.io/version: "v0.139.0"
+    app.kubernetes.io/version: "v0.143.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   selector:
@@ -1649,7 +1668,7 @@ spec:
       annotations:
         signoz.io/port: "8888"
         signoz.io/scrape: "true"
-        checksum/config: daa4e834d1535b8af57935902c4f128140e5d66f3e359348ef41cbb2e13b0b6d
+        checksum/config: dbbf951278cd449c462ca0ac79948cb634d810e67586aa7008887c1d189a9cec
       labels:
         app.kubernetes.io/name: signoz
         app.kubernetes.io/instance: signoz
@@ -1668,7 +1687,7 @@ spec:
         {}
       initContainers:
         - name: check
-          image: docker.io/signoz/signoz-otel-collector:v0.144.8
+          image: docker.io/signoz/signoz-otel-collector:v0.144.11
           imagePullPolicy: IfNotPresent
           command:
             - "/signoz-otel-collector"
@@ -1702,7 +1721,7 @@ spec:
               value: "true"
       containers:
         - name: collector
-          image: docker.io/signoz/signoz-otel-collector:v0.144.8
+          image: docker.io/signoz/signoz-otel-collector:v0.144.11
           imagePullPolicy: IfNotPresent
           ports:
             - name: jaeger-grpc
@@ -2007,11 +2026,11 @@ kind: StatefulSet
 metadata:
   name: signoz
   labels:
-    helm.sh/chart: signoz-0.139.0
+    helm.sh/chart: signoz-0.143.0
     app.kubernetes.io/name: signoz
     app.kubernetes.io/instance: signoz
     app.kubernetes.io/component: signoz
-    app.kubernetes.io/version: "v0.139.0"
+    app.kubernetes.io/version: "v0.143.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   serviceName: signoz
@@ -2036,7 +2055,7 @@ spec:
         - name: signoz
           securityContext:
             {}
-          image: docker.io/signoz/signoz:v0.139.0
+          image: docker.io/signoz/signoz:v0.143.0
           imagePullPolicy: IfNotPresent
           args:
           ports:
@@ -2147,7 +2166,7 @@ spec:
       serviceAccountName: signoz-telemetrystore-migrator
       initContainers:
         - name: ready
-          image: docker.io/signoz/signoz-otel-collector:v0.144.8
+          image: docker.io/signoz/signoz-otel-collector:v0.144.11
           imagePullPolicy: IfNotPresent
           env:
             
@@ -2177,7 +2196,7 @@ spec:
             - "migrate"
             - "ready"
         - name: bootstrap
-          image: docker.io/signoz/signoz-otel-collector:v0.144.8
+          image: docker.io/signoz/signoz-otel-collector:v0.144.11
           imagePullPolicy: IfNotPresent
           env:
             
@@ -2207,7 +2226,7 @@ spec:
             - "migrate"
             - "bootstrap"
         - name: sync
-          image: docker.io/signoz/signoz-otel-collector:v0.144.8
+          image: docker.io/signoz/signoz-otel-collector:v0.144.11
           imagePullPolicy: IfNotPresent
           env:
             
@@ -2239,7 +2258,7 @@ spec:
             - "up"
       containers:
         - name: async
-          image: docker.io/signoz/signoz-otel-collector:v0.144.8
+          image: docker.io/signoz/signoz-otel-collector:v0.144.11
           imagePullPolicy: IfNotPresent
           env:
             
@@ -2559,11 +2578,11 @@ kind: Pod
 metadata:
   name: "signoz-test-connection"
   labels:
-    helm.sh/chart: signoz-0.139.0
+    helm.sh/chart: signoz-0.143.0
     app.kubernetes.io/name: signoz
     app.kubernetes.io/instance: signoz
     app.kubernetes.io/component: signoz
-    app.kubernetes.io/version: "v0.139.0"
+    app.kubernetes.io/version: "v0.143.0"
     app.kubernetes.io/managed-by: Helm
   annotations:
     "helm.sh/hook": test-success
