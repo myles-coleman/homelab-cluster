@@ -4,6 +4,21 @@ global:
 clickhouse:
   persistence:
     storageClass: longhorn
+    # 80Gi (spec 26): the 40Gi claim filled at roughly 3 GB/day and put the
+    # filesystem read-only, which started a two-day crash loop. Sized for the
+    # 15d metrics / 7d logs / 7d traces budget plus merge headroom.
+    size: 80Gi
+  # ClickHouse belongs on node4 (8GB): it is the only node with memory headroom
+  # for a multi-tens-of-GB dataset. On a 4GB node a 3Gi ceiling failed every
+  # merge with MEMORY_LIMIT_EXCEEDED and the pod never became Ready.
+  nodeSelector:
+    kubernetes.io/hostname: node4
+  resources:
+    requests:
+      cpu: 100m
+      memory: 200Mi
+    limits:
+      memory: 6Gi
 
 signoz:
   persistence:
