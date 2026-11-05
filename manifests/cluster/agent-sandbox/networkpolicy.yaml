@@ -39,6 +39,16 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+    # OpenCode's OTLP exporter → the node-local k8s-infra agent's hostPort 4318.
+    # One destination, one port: no DNS, no node-wide CIDR, no second port. The
+    # address is static (nixos hosts/homelab/modules/sandbox-node.nix) and also
+    # appears in sandbox.yaml; change all three together.
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.146/32
+      ports:
+        - protocol: TCP
+          port: 4318
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
