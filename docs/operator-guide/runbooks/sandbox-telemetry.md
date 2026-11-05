@@ -63,7 +63,7 @@ kubectl -n node-exporter get ds node-exporter -o wide
 In SigNoz, query the metrics:
 
 ```promql
-max(up{job="strata"})
+max({__name__="up", "service.name"="strata"})
 {__name__="strata:gpu_util"}
 {__name__="strata:live_tok_s"}
 k8s.pod.network.io{k8s.namespace.name="agent-sandbox"}
