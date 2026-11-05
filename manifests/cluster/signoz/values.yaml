@@ -4,23 +4,122 @@ global:
 clickhouse:
   persistence:
     storageClass: longhorn
-    # 80Gi (spec 26): the 40Gi claim filled at roughly 3 GB/day and put the
-    # filesystem read-only, which started a two-day crash loop. Sized for the
-    # 15d metrics / 7d logs / 7d traces budget plus merge headroom.
-    size: 80Gi
-  # ClickHouse belongs on node4 (8GB, and now an SSD): it is the only node with
-  # memory headroom for a multi-tens-of-GB dataset. The old chain pinned it to
-  # node3 (4GB) through a kustomize patch, where a 3Gi ceiling failed every merge
-  # with MEMORY_LIMIT_EXCEEDED and the pod never became Ready. Sizing is declared
-  # here and nowhere else - see the note in kustomization.yaml.
-  nodeSelector:
-    kubernetes.io/hostname: node4
-  resources:
-    requests:
-      cpu: 100m
-      memory: 200Mi
-    limits:
-      memory: 6Gi
+
+  # ClickHouse's own diagnostic logs cost more to merge than they are worth on
+  # this node. Measured on 2026-11-05 (spec 27, `27-merge-backlog-investigation`):
+  # `system.metric_log` alone produced 14,248 merge-seconds in 30 minutes across
+  # 5,054 merges to yield 51 MiB, because it collects every server metric once a
+  # second into a ~1,000-column row and flushes every 7.5s. Together with
+  # `system.query_metric_log` it held ~2.2 of the 4 cores on `node4`, which is
+  # what blocked the v0.149.0 dual-ingest headroom gate.
+  #
+  # The file below is the configuration that was running but living only in the
+  # cluster: it was applied outside Git after `zookeeper_log` filled a 20Gi
+  # volume, and ArgoCD never reported it as drift because the Application uses
+  # ServerSideApply. It is codified here first so the short TTLs survive; the
+  # only edits are the two metric logs, which now collect and flush every 60s.
+  #
+  # `background_pool_size: 16` with a concurrency ratio of 2 allowed 32 merge
+  # threads on a 4-core node. Four threads with no multiplier matches the node.
+  files:
+    config.d/system_log.xml: |
+      <clickhouse>
+        <text_log>
+          <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+        </text_log>
+        <!-- ClickHouse's own diagnostic logs grow faster than the telemetry
+             they describe: zookeeper_log alone reached 7.8GiB of a 20Gi
+             volume and filled it, which stopped every insert. The chart
+             gives these 7-30 day TTLs and leaves
+             background_schedule_pool_log without one at all, so declare
+             them here with the engine (the chart's entries use
+             replace="1", so a bare <ttl> is rejected). -->
+        <zookeeper_log replace="1">
+          <database>system</database>
+          <table>zookeeper_log</table>
+          <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 2 day</engine>
+          <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        </zookeeper_log>
+        <aggregated_zookeeper_log replace="1">
+          <database>system</database>
+          <table>aggregated_zookeeper_log</table>
+          <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 2 day</engine>
+          <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        </aggregated_zookeeper_log>
+        <background_schedule_pool_log replace="1">
+          <database>system</database>
+          <table>background_schedule_pool_log</table>
+          <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 2 day</engine>
+          <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        </background_schedule_pool_log>
+        <processors_profile_log replace="1">
+          <database>system</database>
+          <table>processors_profile_log</table>
+          <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 2 day</engine>
+          <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        </processors_profile_log>
+        <query_views_log replace="1">
+          <database>system</database>
+          <table>query_views_log</table>
+          <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 3 day</engine>
+          <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        </query_views_log>
+        <session_log replace="1">
+          <database>system</database>
+          <table>session_log</table>
+          <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 7 day</engine>
+          <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        </session_log>
+        <latency_log>
+          <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+        </latency_log>
+        <error_log>
+          <ttl>event_date + INTERVAL 7 DAY DELETE</ttl>
+        </error_log>
+        <query_metric_log replace="1">
+          <database>system</database>
+          <table>query_metric_log</table>
+          <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 3 day</engine>
+          <flush_interval_milliseconds>60000</flush_interval_milliseconds>
+          <collect_interval_milliseconds>60000</collect_interval_milliseconds>
+        </query_metric_log>
+        <trace_log replace="1">
+          <database>system</database>
+          <table>trace_log</table>
+          <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 2 day</engine>
+          <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        </trace_log>
+        <part_log replace="1">
+          <database>system</database>
+          <table>part_log</table>
+          <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 3 day</engine>
+          <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        </part_log>
+        <query_log replace="1">
+          <database>system</database>
+          <table>query_log</table>
+          <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 3 day</engine>
+          <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        </query_log>
+        <metric_log replace="1">
+          <database>system</database>
+          <table>metric_log</table>
+          <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 7 day</engine>
+          <flush_interval_milliseconds>60000</flush_interval_milliseconds>
+          <collect_interval_milliseconds>60000</collect_interval_milliseconds>
+        </metric_log>
+        <asynchronous_metric_log replace="1">
+          <database>system</database>
+          <table>asynchronous_metric_log</table>
+          <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 1 day</engine>
+          <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        </asynchronous_metric_log>
+      </clickhouse>
+    config.d/merge-pool.xml: |
+      <clickhouse>
+        <background_pool_size>4</background_pool_size>
+        <background_merges_mutations_concurrency_ratio>1</background_merges_mutations_concurrency_ratio>
+      </clickhouse>
 
 signoz:
   persistence:
