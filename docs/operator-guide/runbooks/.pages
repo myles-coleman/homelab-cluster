@@ -1,3 +1,4 @@
 nav:
 - backup-and-restore.md
+- sandbox-agent-observability.md
 - signoz-dashboard-api-key.md
