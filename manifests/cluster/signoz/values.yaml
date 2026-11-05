@@ -8,9 +8,11 @@ clickhouse:
     # filesystem read-only, which started a two-day crash loop. Sized for the
     # 15d metrics / 7d logs / 7d traces budget plus merge headroom.
     size: 80Gi
-  # ClickHouse belongs on node4 (8GB): it is the only node with memory headroom
-  # for a multi-tens-of-GB dataset. On a 4GB node a 3Gi ceiling failed every
-  # merge with MEMORY_LIMIT_EXCEEDED and the pod never became Ready.
+  # ClickHouse belongs on node4 (8GB, and now an SSD): it is the only node with
+  # memory headroom for a multi-tens-of-GB dataset. The old chain pinned it to
+  # node3 (4GB) through a kustomize patch, where a 3Gi ceiling failed every merge
+  # with MEMORY_LIMIT_EXCEEDED and the pod never became Ready. Sizing is declared
+  # here and nowhere else - see the note in kustomization.yaml.
   nodeSelector:
     kubernetes.io/hostname: node4
   resources:
