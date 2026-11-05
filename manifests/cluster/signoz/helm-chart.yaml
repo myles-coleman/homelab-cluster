@@ -2404,23 +2404,6 @@ spec:
             <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
           </query_metric_log>
         </clickhouse>
-      config.d/zz-signoz-metric-logs.xml: |
-        <clickhouse>
-          <metric_log replace="1">
-            <database>system</database>
-            <table>metric_log</table>
-            <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 7 day</engine>
-            <flush_interval_milliseconds>60000</flush_interval_milliseconds>
-            <collect_interval_milliseconds>60000</collect_interval_milliseconds>
-          </metric_log>
-          <query_metric_log replace="1">
-            <database>system</database>
-            <table>query_metric_log</table>
-            <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 3 day</engine>
-            <flush_interval_milliseconds>60000</flush_interval_milliseconds>
-            <collect_interval_milliseconds>60000</collect_interval_milliseconds>
-          </query_metric_log>
-        </clickhouse>
 
     zookeeper:
       nodes:
