@@ -402,8 +402,12 @@ patches:
             <error_log>
               <ttl>event_date + INTERVAL 7 DAY DELETE</ttl>
             </error_log>
-            <query_metric_log>
-              <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+            <query_metric_log replace="1">
+              <database>system</database>
+              <table>query_metric_log</table>
+              <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 3 day</engine>
+              <flush_interval_milliseconds>60000</flush_interval_milliseconds>
+              <collect_interval_milliseconds>60000</collect_interval_milliseconds>
             </query_metric_log>
             <trace_log replace="1">
               <database>system</database>
@@ -423,11 +427,17 @@ patches:
               <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 3 day</engine>
               <flush_interval_milliseconds>7500</flush_interval_milliseconds>
             </query_log>
+            <!-- metric_log collects every server metric once a second into a
+                 ~1000-column row. At a 7.5s flush that produced 14,248
+                 merge-seconds in 30 minutes across 5,054 merges to yield
+                 51 MiB, holding ~2.2 of node4's 4 cores on its own. A 60s
+                 collect+flush keeps the table without the churn. -->
             <metric_log replace="1">
               <database>system</database>
               <table>metric_log</table>
               <engine>Engine = MergeTree PARTITION BY event_date ORDER BY event_time TTL event_date + interval 7 day</engine>
-              <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+              <flush_interval_milliseconds>60000</flush_interval_milliseconds>
+              <collect_interval_milliseconds>60000</collect_interval_milliseconds>
             </metric_log>
             <asynchronous_metric_log replace="1">
               <database>system</database>
