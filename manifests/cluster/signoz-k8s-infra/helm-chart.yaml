@@ -108,6 +108,25 @@ data:
             os.type:
               enabled: true
         timeout: 2s
+      transform/agent_telemetry:
+        error_mode: ignore
+        log_statements:
+        - context: log
+          statements:
+          - truncate_all(attributes, 2048) where resource.attributes["deployment.environment"]
+            == "agent-sandbox" or resource.attributes["k8s.namespace.name"] == "agent-sandbox"
+          - delete_matching_keys(attributes, "(?i)^(authorization|proxy-authorization|api[_-]?key|apikey|access[_-]?token|token|secret|password|passwd|bearer)$")
+            where resource.attributes["deployment.environment"] == "agent-sandbox" or
+            resource.attributes["k8s.namespace.name"] == "agent-sandbox"
+        trace_statements:
+        - context: span
+          statements:
+          - delete_matching_keys(attributes, "^(ai|gen_ai)\\.(prompt|response|input|output|system|completion)")
+            where resource.attributes["deployment.environment"] == "agent-sandbox"
+          - delete_matching_keys(attributes, "(?i)^(authorization|proxy-authorization|api[_-]?key|apikey|access[_-]?token|token|secret|password|passwd|bearer)$")
+            where resource.attributes["deployment.environment"] == "agent-sandbox"
+          - truncate_all(attributes, 512) where resource.attributes["deployment.environment"]
+            == "agent-sandbox"
     receivers:
       filelog/k8s:
         exclude:
@@ -266,6 +285,7 @@ data:
           processors:
           - resourcedetection
           - k8sattributes
+          - transform/agent_telemetry
           - batch
           receivers:
           - otlp
@@ -287,6 +307,7 @@ data:
           processors:
           - resourcedetection
           - k8sattributes
+          - transform/agent_telemetry
           - batch
           receivers:
           - otlp
@@ -744,7 +765,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 99087aab8f77311d996ab44e9c6d0e928d28969960ce050639d17fbca5395fba
+        checksum/config: 8be1a5bb832af218c3516418ac17e41bc9259d1524def24613bc5df300386604
       labels:
         app.kubernetes.io/name: k8s-infra
         app.kubernetes.io/instance: k8s-infra
@@ -1065,3 +1086,4 @@ spec:
       command: ['wget']
       args: ['k8s-infra-otel-deployment:13133']
   restartPolicy: Never
+

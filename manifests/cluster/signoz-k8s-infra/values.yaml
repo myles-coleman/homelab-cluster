@@ -99,6 +99,56 @@ otelAgent:
     limits:
       memory: 384Mi
 
+  # ── Agent telemetry bounds (spec 02, Unit 2) ───────────────────────────────
+  # The sandbox pushes OTLP traces and logs to this agent's 4318 receiver. The
+  # statements below delete prompt-shaped and credential-shaped attributes and
+  # cap everything else, so a future OpenCode release cannot flood ClickHouse
+  # with content. Every statement is scoped: the pipeline also carries other
+  # pods' telemetry.
+  #
+  # Written against otel/opentelemetry-collector-contrib:0.139.0 (k8s-infra
+  # chart 0.17.1). `transform` is used instead of `filter` because
+  # `filter.trace_conditions` needs collector >= 0.146.
+  #
+  # Note on the two log shapes: OTLP records from the sandbox carry
+  # `deployment.environment` but no `k8s.namespace.name` (the SDK resource has
+  # no k8s.pod.uid, so k8sattributes cannot join it). `filelog` records carry
+  # the namespace and no `service.name`. Log statements therefore match either.
+  config:
+    processors:
+      transform/agent_telemetry:
+        # `propagate` (the default) would drop the whole batch on one odd value.
+        error_mode: ignore
+        trace_statements:
+          - context: span
+            statements:
+              - delete_matching_keys(attributes, "^(ai|gen_ai)\\.(prompt|response|input|output|system|completion)") where resource.attributes["deployment.environment"] == "agent-sandbox"
+              - delete_matching_keys(attributes, "(?i)^(authorization|proxy-authorization|api[_-]?key|apikey|access[_-]?token|token|secret|password|passwd|bearer)$") where resource.attributes["deployment.environment"] == "agent-sandbox"
+              - truncate_all(attributes, 512) where resource.attributes["deployment.environment"] == "agent-sandbox"
+        log_statements:
+          - context: log
+            statements:
+              - truncate_all(attributes, 2048) where resource.attributes["deployment.environment"] == "agent-sandbox" or resource.attributes["k8s.namespace.name"] == "agent-sandbox"
+              - delete_matching_keys(attributes, "(?i)^(authorization|proxy-authorization|api[_-]?key|apikey|access[_-]?token|token|secret|password|passwd|bearer)$") where resource.attributes["deployment.environment"] == "agent-sandbox" or resource.attributes["k8s.namespace.name"] == "agent-sandbox"
+    # `processors` under a pipeline is a replacing key: setting it drops the
+    # chart's preset defaults, so the two preset processors and `batch` are
+    # re-listed in order. The rendered chart is the source of truth for what
+    # actually ships; review the `helmfile template` diff, not this comment.
+    service:
+      pipelines:
+        traces:
+          processors:
+            - resourcedetection
+            - k8sattributes
+            - transform/agent_telemetry
+            - batch
+        logs:
+          processors:
+            - resourcedetection
+            - k8sattributes
+            - transform/agent_telemetry
+            - batch
+
 otelDeployment:
   resources:
     requests:
