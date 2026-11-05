@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sandbox-telemetry
+  labels:
+    # `privileged` is required only because the pod uses hostNetwork: PSA's
+    # baseline (and therefore restricted) profile forbids host namespaces, and
+    # the tailnet route to Strata exists only in the sandbox node's network
+    # namespace. The workload itself still asks for the restricted controls —
+    # non-root, read-only rootfs, no capabilities, RuntimeDefault seccomp — see
+    # deployment.yaml.
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

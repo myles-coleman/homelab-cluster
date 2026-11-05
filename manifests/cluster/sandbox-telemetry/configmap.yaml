@@ -1,0 +1,100 @@
+# Sandbox telemetry collector (issue #74).
+#
+# This is a *pull* collector, deliberately pinned to the sandbox node:
+#
+#   * Strata lives on bee-gpu-server's Docker, published only to tailscale0
+#     (`DOCKER-USER ... ! -i tailscale0 -j DROP`). Of the cluster nodes, only
+#     `sandbox-node` can reach that tailnet address (node0-node4 time out on the
+#     tailnet route), so the scrape has to originate there.
+#   * hostNetwork makes the pod use the guest's tailscale0 route.
+#   * The sandbox never pushes: a compromised pod cannot forge Strata metrics.
+#
+# The collector exports to the SigNoz collector over the normal in-cluster OTLP
+# path. It does not receive OTLP, so there are no listening ports beyond the
+# health endpoint.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sandbox-telemetry-collector
+  namespace: sandbox-telemetry
+data:
+  config.yaml: |
+    extensions:
+      health_check:
+        # Not 13133: the k8s-infra agent runs on this node too and reserves
+        # 13133 as a hostPort. This collector is hostNetwork, so the collision
+        # would be real.
+        endpoint: 0.0.0.0:13134
+
+    receivers:
+      prometheus:
+        # `up` and the scrape-duration series are the liveness signal for the
+        # "Strata metrics disappeared" alert. They are off by default in the
+        # collector's prometheus receiver.
+        report_extra_scrape_metrics: true
+        config:
+          global:
+            scrape_interval: 15s
+            scrape_timeout: 10s
+          scrape_configs:
+            - job_name: strata
+              metrics_path: /metrics
+              scheme: http
+              static_configs:
+                - targets:
+                    - 100.127.170.8:8080
+              # Strata content-negotiates: `*/*` (and a missing Accept) returns
+              # its JSON snapshot, while the Prometheus receiver's default
+              # OpenMetrics/text Accept returns the text payload. Do not add an
+              # `Accept: text/plain` header here: this receiver's Prometheus
+              # config rejects the `headers` field outright.
+              authorization:
+                type: Bearer
+                credentials_file: /etc/strata/api_key
+              # Strata exposes no per-consumer labels today: every consumer of
+              # the shared endpoint produces the same unlabelled aggregates.
+              # `strata_consumer=shared` is an honest placeholder and a stable
+              # grouping key for the day upstream adds a real client tag.
+              metric_relabel_configs:
+                - target_label: strata_endpoint
+                  replacement: "100.127.170.8:8080"
+                - target_label: strata_consumer
+                  replacement: "shared"
+
+    processors:
+      resource:
+        attributes:
+          - action: upsert
+            key: service.name
+            value: strata
+          - action: upsert
+            key: deployment.environment
+            value: homelab
+          - action: upsert
+            key: host.name
+            value: bee-gpu-server
+          - action: upsert
+            key: k8s.cluster.name
+            value: homelab-cluster
+      batch:
+        send_batch_size: 1024
+        timeout: 5s
+
+    exporters:
+      # Self-hosted SigNoz community has no OTLP ingestion key; the cluster path
+      # is plain HTTP.
+      otlphttp:
+        endpoint: http://signoz-otel-collector.signoz.svc.cluster.local:4318
+        tls:
+          insecure: true
+
+    service:
+      extensions: [health_check]
+      pipelines:
+        metrics:
+          receivers: [prometheus]
+          processors: [resource, batch]
+          exporters: [otlphttp]
+      telemetry:
+        logs:
+          encoding: json

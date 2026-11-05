@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sandbox-telemetry
+  namespace: sandbox-telemetry
+  labels:
+    app.kubernetes.io/name: sandbox-telemetry
+    app.kubernetes.io/component: collector
+spec:
+  replicas: 1
+  # A single scraper. Two replicas would duplicate every Strata sample, and the
+  # source is one endpoint behind one tailnet address.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sandbox-telemetry
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sandbox-telemetry
+        app.kubernetes.io/component: collector
+    spec:
+      # See configmap.yaml: the tailnet route to Strata only exists on the
+      # sandbox node, and hostNetwork is what puts the pod on it.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        kubernetes.io/hostname: sandbox-node
+      tolerations:
+        - key: sandbox
+          operator: Equal
+          value: gvisor
+          effect: NoSchedule
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 300
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 300
+        - key: node.kubernetes.io/disk-pressure
+          operator: Exists
+          effect: NoSchedule
+        - key: node.kubernetes.io/memory-pressure
+          operator: Exists
+          effect: NoSchedule
+        - key: node.kubernetes.io/pid-pressure
+          operator: Exists
+          effect: NoSchedule
+        - key: node.kubernetes.io/unschedulable
+          operator: Exists
+          effect: NoSchedule
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: collector
+          # otel/opentelemetry-collector-contrib 0.139.0, same version as the
+          # k8s-infra agent. Digest is the multi-arch manifest list digest.
+          image: docker.io/otel/opentelemetry-collector-contrib@sha256:faf125d656fa47cea568b2f3b4494efd2525083bc75c1e96038bc23f05cd68fd
+          imagePullPolicy: IfNotPresent
+          args:
+            - --config=/conf/config.yaml
+          ports:
+            - name: health
+              containerPort: 13134
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              memory: 192Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+              readOnly: true
+            - name: strata-token
+              mountPath: /etc/strata
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: sandbox-telemetry-collector
+        - name: strata-token
+          secret:
+            secretName: sandbox-telemetry-strata
+            defaultMode: 0440
+            items:
+              - key: api_key
+                path: api_key
