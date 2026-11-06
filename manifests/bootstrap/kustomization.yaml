@@ -34,7 +34,6 @@ resources:
 - traefik-app.yaml
 - argocd-secret-app.yaml
 - cloudflared-app.yaml
-- mastra-app.yaml
 - argocd-mcp-app.yaml
 - searxng-app.yaml
 - open-webui-app.yaml
