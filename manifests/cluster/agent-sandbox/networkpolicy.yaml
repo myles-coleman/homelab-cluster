@@ -49,14 +49,13 @@ spec:
       ports:
         - protocol: TCP
           port: 4318
-    # TEMPORARY (diagnostic): tap pod that records the raw OTLP request.
+    # TEMPORARY (diagnostic): tap listening on 4319 on the node.
     - to:
-        - podSelector:
-            matchLabels:
-              app: otlp-tap
+        - ipBlock:
+            cidr: 10.0.0.146/32
       ports:
         - protocol: TCP
-          port: 4318
+          port: 4319
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
