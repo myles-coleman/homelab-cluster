@@ -39,13 +39,15 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-    # OpenCode's OTLP exporter → the node-local k8s-infra agent's hostPort 4318.
-    # One destination, one port: no DNS, no node-wide CIDR, no second port. The
-    # address is static (nixos hosts/homelab/modules/sandbox-node.nix) and also
-    # appears in sandbox.yaml; change all three together.
+    # OpenCode's OTLP exporter → the k8s-infra agent, through its Service
+    # ClusterIP. The peer is the agent's namespace, not an ipBlock: the packet is
+    # DNAT'd to an agent pod before the policy is evaluated, so no single address
+    # stays valid across agent rollouts. One destination, one port: no DNS, no
+    # node-wide CIDR, no second port.
     - to:
-        - ipBlock:
-            cidr: 10.0.0.146/32
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: signoz-k8s-infra
       ports:
         - protocol: TCP
           port: 4318
