@@ -119,7 +119,7 @@ spec:
             # discriminator is `deployment.environment`, because service.name
             # would silently merge a future desktop or CI instance into this one.
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://10.0.0.146:4318
+              value: http://10.0.0.146:4319
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: deployment.environment=agent-sandbox,service.namespace=agent-sandbox
             - name: OPENCODE_DISABLE_MODELS_FETCH
