@@ -38,6 +38,17 @@ spec:
       name: signoz-clickhouse-operator
       jqPathExpressions:
         - .spec.template.spec.containers[].env[].valueFrom.resourceFieldRef.divisor
+    # The zookeeper StatefulSet carries a `status: {phase: Pending}` block inside
+    # its immutable volumeClaimTemplates; the API server persists it and the
+    # committed manifest has no status there, so ArgoCD reports the StatefulSet
+    # OutOfSync forever while every PVC is actually Bound. `kubectl diff` does not
+    # show it because it ignores status. Surfaced after the 2026-11 sync that also
+    # removed `mastra`; it is not upgrade-related (spec 28, node1 gate).
+    - group: apps
+      kind: StatefulSet
+      name: signoz-zookeeper
+      jqPathExpressions:
+        - .spec.volumeClaimTemplates[].status
   source:
     path: manifests/cluster/signoz
     repoURL: "https://github.com/myles-coleman/homelab-cluster"
