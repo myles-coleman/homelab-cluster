@@ -1,12 +1,13 @@
 # homelab-cluster
 
-A GitOps-managed Kubernetes homelab cluster running on 4x Raspberry Pi 5 nodes with NixOS and k3s v1.33, orchestrated by ArgoCD.
+A GitOps-managed Kubernetes homelab cluster running on 5x Raspberry Pi 5 nodes plus an amd64 microVM sandbox node, on NixOS and k3s v1.36, orchestrated by ArgoCD.
 
 ## Architecture
 
-- **4x Raspberry Pi 5** nodes (aarch64, NVMe SSD) — 1 server + 3 agents
+- **5x Raspberry Pi 5** nodes (aarch64, NVMe SSD) — 1 server + 4 agents, plus the `sandbox-node`
+  amd64 microVM agent on `homelab`
 - **NixOS** (unstable channel) for declarative OS configuration
-- **k3s v1.33** lightweight Kubernetes distribution
+- **k3s v1.36** lightweight Kubernetes distribution
 - **ArgoCD** for GitOps continuous delivery (auto-sync, prune, self-heal)
 - **Traefik** ingress controller with MetalLB load balancer (10.0.0.99)
 - **Longhorn** distributed block storage with S3 backups

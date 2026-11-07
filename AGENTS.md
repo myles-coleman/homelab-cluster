@@ -25,7 +25,7 @@ This is a personal homelab Kubernetes cluster running media management, home aut
 ### Operating System & Kubernetes
 
 - **OS**: NixOS (unstable channel) — managed in a separate repository (`rpi5-nixos`)
-- **Kubernetes**: k3s v1.33 (lightweight K8s distribution)
+- **Kubernetes**: k3s v1.36 (lightweight K8s distribution)
 - **Architecture**: aarch64 (ARM64) — all container images must support this architecture
 - **Disabled k3s defaults**: servicelb and traefik are disabled in favor of MetalLB and a custom Traefik deployment
 
