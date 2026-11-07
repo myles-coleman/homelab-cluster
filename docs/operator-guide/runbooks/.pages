@@ -1,5 +1,6 @@
 nav:
 - backup-and-restore.md
+- kubernetes-upgrade.md
 - sandbox-agent-observability.md
 - sandbox-telemetry.md
 - signoz-dashboard-api-key.md
