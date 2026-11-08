@@ -21,6 +21,9 @@ resources:
 # spec 30 — cert-manager csi-driver as its own release (gVisor node toleration);
 # arrives at wave 10 like every other non-mapped service, after cert-manager (wave 1).
 - cert-manager-csi-driver
+# spec 30 — private CA for sandbox identity; the CA Secret lives in cert-manager
+# (see the FR-2 amendment), this Application owns the agent-mtls namespace.
+- agent-mtls
 # - dapr
 - openbooks
 - calibre-web

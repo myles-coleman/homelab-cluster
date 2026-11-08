@@ -1,0 +1,18 @@
+# Logical home of the agent-mtls CA (spec 30, FR-2).
+#
+# The CA's Secret does NOT live here: cert-manager resolves a ClusterIssuer's
+# `spec.ca.secretName` only in its cluster-resource namespace (`cert-manager`), so
+# the bootstrap Issuer, the CA Certificate and the CA Secret are there. Putting a
+# second copy here would defeat the one-Secret rule in FR-2.
+#
+# This namespace exists so the CA bundle can be published as a ConfigMap for
+# consumers that cannot mount a Secret or a CSI volume, without mixing trust
+# material into a workload namespace. Nothing privileged runs here.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-mtls
+  labels:
+    app.kubernetes.io/part-of: agent-mtls
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted

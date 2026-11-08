@@ -1,0 +1,69 @@
+# Private CA for sandbox identity and broker mTLS (spec 30, FR-2).
+#
+# WHY EVERYTHING IS IN `cert-manager`:
+# cert-manager resolves a ClusterIssuer's `spec.ca.secretName` only in its
+# cluster-resource namespace, which this installation sets to its own namespace
+# (`--cluster-resource-namespace=$(POD_NAMESPACE)`). A `namespace/name` value is
+# rejected as a literal Secret name — proved on the live cluster in sub-task 1.1
+# (vault: 30-proofs/1-csi-gvisor-spike.md). A namespaced `Issuer` would fix the
+# lookup but cannot serve the sandbox: the CSI driver creates the sandbox's
+# CertificateRequest in the pod's namespace, so only a cluster-scoped issuer is
+# reachable from agent-sandbox, and a namespaced CA would require copying the CA
+# private key into agent-sandbox.
+#
+# The CA key therefore lives in exactly one Secret, `agent-mtls-ca-keypair`, in
+# cert-manager. Nothing may copy, export, or mount it elsewhere (FR-2).
+---
+# 1. Bootstrap: a self-signed Issuer exists only to sign the one CA certificate.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: agent-mtls-bootstrap
+  namespace: cert-manager
+  labels:
+    app.kubernetes.io/part-of: agent-mtls
+spec:
+  selfSigned: {}
+---
+# 2. The CA itself.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: agent-mtls-ca
+  namespace: cert-manager
+  labels:
+    app.kubernetes.io/part-of: agent-mtls
+spec:
+  isCA: true
+  commonName: agent-mtls-ca
+  secretName: agent-mtls-ca-keypair
+  # One year, renewed a month early. The CA key is NOT rotated automatically:
+  # cert-manager >= v1.18 defaults `rotationPolicy` to Always, which would
+  # silently mint a new CA key on renewal and orphan every leaf certificate that
+  # is still inside its own lifetime. Rotation is a deliberate, documented
+  # operation (FR-58 runbook): new CA -> reissue leaves -> redistribute trust.
+  duration: 8760h
+  renewBefore: 720h
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+    rotationPolicy: Never
+  usages:
+    - cert sign
+    - crl sign
+  issuerRef:
+    name: agent-mtls-bootstrap
+    kind: Issuer
+    group: cert-manager.io
+---
+# 3. The issuer every leaf references. Cluster-scoped so a CertificateRequest in
+#    any namespace (including agent-sandbox's CSI request) can use it.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: agent-mtls-ca
+  labels:
+    app.kubernetes.io/part-of: agent-mtls
+spec:
+  ca:
+    secretName: agent-mtls-ca-keypair
