@@ -160,7 +160,7 @@ func TestCacheGetCommit(t *testing.T) {
 // TestHTTPFetcherFetchesBundle pins the wire protocol in FR-14: GET
 // /internal/bundle/<repo>, commit in X-Bundle-Commit, body untouched.
 func TestHTTPFetcherFetchesBundle(t *testing.T) {
-	const commit = "feedfacecafe"
+	const commit = "0123456789abcdef0123456789abcdef01234567"
 
 	var mu sync.Mutex
 	var gotMethod, gotPath string
@@ -199,6 +199,56 @@ func TestHTTPFetcherFetchesBundle(t *testing.T) {
 	}
 	if string(got.Content) != "bundle-bytes" {
 		t.Errorf("bundle content = %q, want %q", got.Content, "bundle-bytes")
+	}
+}
+
+// TestHTTPFetcherRejectsMalformedCommit keeps a missing or non-SHA header out of
+// the cache: an empty commit would become a valid-looking cache key.
+func TestHTTPFetcherRejectsMalformedCommit(t *testing.T) {
+	for name, header := range map[string]string{
+		"missing":   "",
+		"non-hex":   "not-a-sha",
+		"too short": "abc123",
+	} {
+		t.Run(name, func(t *testing.T) {
+			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				if header != "" {
+					w.Header().Set("X-Bundle-Commit", header)
+				}
+				_, _ = w.Write([]byte("bundle-bytes"))
+			}))
+			defer server.Close()
+
+			fetcher := NewHTTPFetcher(server.URL, &tls.Config{InsecureSkipVerify: true})
+			if _, err := fetcher.Fetch(context.Background(), RepoNixos); err == nil {
+				t.Fatalf("Fetch accepted X-Bundle-Commit %q", header)
+			}
+		})
+	}
+}
+
+// TestCacheKeepsOneEntryPerRepo bounds retention: FR-11 bounds staleness, but a
+// cache that keeps every commit ever fetched grows without limit.
+func TestCacheKeepsOneEntryPerRepo(t *testing.T) {
+	clock := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	fetcher := &countingFetcher{bundle: Bundle{Commit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}
+	cache := NewCache(fetcher, time.Minute)
+	cache.now = func() time.Time { return clock }
+
+	if _, err := cache.Get(context.Background(), RepoNixos); err != nil {
+		t.Fatalf("first Get: %v", err)
+	}
+	clock = clock.Add(2 * time.Minute)
+	fetcher.setBundle(Bundle{Commit: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"})
+	if _, err := cache.Get(context.Background(), RepoNixos); err != nil {
+		t.Fatalf("second Get: %v", err)
+	}
+
+	cache.mu.Lock()
+	entries := len(cache.entries)
+	cache.mu.Unlock()
+	if entries != 1 {
+		t.Errorf("cache holds %d entries for one repo, want 1", entries)
 	}
 }
 

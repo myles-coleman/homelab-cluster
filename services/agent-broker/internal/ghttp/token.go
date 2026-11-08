@@ -136,6 +136,9 @@ func (c *AppClient) InstallationToken(ctx context.Context, owner, repo string, p
 		return Token{}, fmt.Errorf("ghttp: parse token expiry: %w", err)
 	}
 	now := c.currentTime()
+	if !expiresAt.After(now) {
+		return Token{}, fmt.Errorf("ghttp: token expiry %s is not in the future", expiresAt.Format(time.RFC3339))
+	}
 	if expiresAt.After(now.Add(maxTokenLifetime)) {
 		return Token{}, fmt.Errorf("ghttp: token expiry %s is more than %s in the future", expiresAt.Format(time.RFC3339), maxTokenLifetime)
 	}
@@ -213,5 +216,3 @@ func parsePrivateKey(pemBytes []byte) (*rsa.PrivateKey, error) {
 	}
 	return key, nil
 }
-
-var ErrNotImplemented = errors.New("ghttp: not implemented")

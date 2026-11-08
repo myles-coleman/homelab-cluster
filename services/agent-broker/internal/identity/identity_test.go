@@ -129,6 +129,7 @@ func TestResolveRejectsMalformedSAN(t *testing.T) {
 		{name: "missing pod segment", san: "spiffe://cowlab.org/ns/agent-sandbox/pod"},
 		{name: "empty pod segment", san: "spiffe://cowlab.org/ns/agent-sandbox/pod/"},
 		{name: "wrong scheme", san: "https://cowlab.org/ns/agent-sandbox/pod/" + testPodName},
+		{name: "empty query", san: "spiffe://cowlab.org/ns/agent-sandbox/pod/" + testPodName + "?"},
 	}
 
 	for _, tc := range tests {

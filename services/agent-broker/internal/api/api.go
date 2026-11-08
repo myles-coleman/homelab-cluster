@@ -37,8 +37,13 @@ func (s *Server) handleBundle(w http.ResponseWriter, r *http.Request) {
 	repo := r.PathValue("repo")
 	id, err := s.authenticate(r)
 	if err != nil {
-		// The reason names the rule, never the certificate bytes.
-		writeError(w, http.StatusUnauthorized, "unauthenticated", err.Error())
+		// Fixed classifier: the resolver's error may name Kubernetes objects and
+		// belongs in the operator log, not in a response to an unauthenticated
+		// client.
+		writeError(w, http.StatusUnauthorized, "unauthenticated", "client certificate is not a valid sandbox identity")
+		if s.Log != nil {
+			s.Log.Warn("identity rejected", "path", r.URL.Path, "err", err)
+		}
 		s.logRequest(r, repo, "", "", "reject", "unauthenticated")
 		return
 	}

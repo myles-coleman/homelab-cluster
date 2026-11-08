@@ -77,15 +77,18 @@ func Fetch(ctx context.Context, opts Options, owner, repo string) (commit string
 	env := gitEnv(opts.Token)
 	repoURL := baseURL + "/" + owner + "/" + repo + ".git"
 
-	// Depth 1 and a single branch keep the bundle to one commit with no history.
+	// Depth 1 and a single branch keep the checkout to one tree with no history.
 	if _, err := runGitCommand(ctx, gitBin, scratch, env, opts.Token,
 		"clone", "--depth", "1", "--single-branch", "--branch", "main", repoURL, cloneDir); err != nil {
 		return "", nil, err
 	}
-	if _, err := runGitCommand(ctx, gitBin, cloneDir, env, opts.Token,
-		"bundle", "create", bundleFile, "HEAD"); err != nil {
-		return "", nil, err
-	}
+
+	// `git bundle` cannot represent a shallow boundary: a bundle whose tip keeps a
+	// parent the bundle does not contain is created successfully but no consumer
+	// can clone it ("Failed to traverse parents"). Verified with git 2.54, which
+	// also ignores `--depth` on bundle fetch. So the bundle carries a synthetic
+	// root commit with the main tip's exact tree, and the real tip SHA is returned
+	// alongside it for the request's base_commit (FR-14).
 	out, err := runGitCommand(ctx, gitBin, cloneDir, env, opts.Token, "rev-parse", "HEAD")
 	if err != nil {
 		return "", nil, err
@@ -93,6 +96,22 @@ func Fetch(ctx context.Context, opts Options, owner, repo string) (commit string
 	commit = strings.TrimSpace(string(out))
 	if commit == "" {
 		return "", nil, errors.New("gitbundle: git rev-parse returned an empty commit")
+	}
+	if _, err := runGitCommand(ctx, gitBin, cloneDir, env, opts.Token,
+		"-c", "user.name=agent-broker", "-c", "user.email=agent-broker@sandbox.invalid",
+		"-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null",
+		"checkout", "--orphan", "agent-broker-bundle-base"); err != nil {
+		return "", nil, err
+	}
+	if _, err := runGitCommand(ctx, gitBin, cloneDir, env, opts.Token,
+		"-c", "user.name=agent-broker", "-c", "user.email=agent-broker@sandbox.invalid",
+		"-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null",
+		"commit", "-q", "-m", "main tip tree"); err != nil {
+		return "", nil, err
+	}
+	if _, err := runGitCommand(ctx, gitBin, cloneDir, env, opts.Token,
+		"bundle", "create", bundleFile, "HEAD"); err != nil {
+		return "", nil, err
 	}
 
 	info, err := os.Stat(bundleFile)
@@ -185,5 +204,3 @@ func validPathComponent(s string) bool {
 func isHTTPS(baseURL string) bool {
 	return strings.HasPrefix(strings.ToLower(baseURL), "https://")
 }
-
-var ErrNotImplemented = errors.New("gitbundle: not implemented")

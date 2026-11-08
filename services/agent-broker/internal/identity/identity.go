@@ -45,7 +45,6 @@ var (
 	ErrOrphanPod          = errors.New("identity: pod is not owned by a Sandbox")
 	ErrSandboxNotFound    = errors.New("identity: sandbox not found")
 	ErrSandboxUIDMismatch = errors.New("identity: sandbox UID mismatch")
-	ErrNotImplemented     = errors.New("identity: not implemented")
 )
 
 // sandboxGVR is the dynamic resource the agent-sandbox controller serves. The
@@ -132,7 +131,7 @@ func (r *Resolver) parseSAN(uriSAN string) (string, error) {
 	}
 	// Credentials, queries, fragments and opaque forms are never part of a
 	// SPIFFE ID this validator accepts.
-	if u.User != nil || u.Opaque != "" || u.RawQuery != "" || u.Fragment != "" {
+	if u.User != nil || u.Opaque != "" || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" {
 		return "", fmt.Errorf("%w: unexpected URI component", ErrMalformedSAN)
 	}
 	// Any percent-encoding is non-canonical here and is how encoded traversal

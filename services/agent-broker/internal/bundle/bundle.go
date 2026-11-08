@@ -35,7 +35,6 @@ const fetchTimeout = 30 * time.Second
 var (
 	ErrUnknownRepo       = errors.New("bundle: unknown repository")
 	ErrCommitUnavailable = errors.New("bundle: requested commit is not the fetched tip")
-	ErrNotImplemented    = errors.New("bundle: not implemented")
 )
 
 // ValidRepo reports whether repo is one of the two allowed repositories.
@@ -138,6 +137,16 @@ func (c *Cache) storeLocked(repo string, b Bundle) Bundle {
 	// The TTL starts when the bundle is cached, not when the publisher produced
 	// it, so a slow round trip cannot shorten a caller's cache window.
 	b.Fetched = c.now()
+	// Keep at most one entry per repo. A superseded tip can never be served again
+	// (the publisher only exposes the current tip), and retaining every commit
+	// ever observed would grow without bound: FR-11 bounds staleness, not
+	// retention.
+	prefix := repo + "\x00"
+	for key := range c.entries {
+		if strings.HasPrefix(key, prefix) && key != cacheKey(repo, b.Commit) {
+			delete(c.entries, key)
+		}
+	}
 	c.entries[cacheKey(repo, b.Commit)] = b
 	c.latest[repo] = b.Commit
 	return b
@@ -209,10 +218,30 @@ func (f *HTTPFetcher) Fetch(ctx context.Context, repo string) (Bundle, error) {
 		return Bundle{}, fmt.Errorf("bundle: repository %q exceeds the %d-byte limit", repo, maxBundleSize)
 	}
 
+	commit := resp.Header.Get("X-Bundle-Commit")
+	if !validCommitSHA(commit) {
+		return Bundle{}, errors.New("bundle: publisher returned a missing or malformed commit")
+	}
+
 	return Bundle{
 		Repo:    repo,
-		Commit:  resp.Header.Get("X-Bundle-Commit"),
+		Commit:  commit,
 		Content: body,
 		Fetched: time.Now(),
 	}, nil
+}
+
+// validCommitSHA accepts the 40- or 64-character hex object names git may use.
+func validCommitSHA(s string) bool {
+	if len(s) != 40 && len(s) != 64 {
+		return false
+	}
+	for _, r := range s {
+		switch {
+		case r >= '0' && r <= '9', r >= 'a' && r <= 'f':
+		default:
+			return false
+		}
+	}
+	return true
 }

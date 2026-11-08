@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -93,6 +94,18 @@ func TestBundleRequiresClientIdentity(t *testing.T) {
 	s.Handler().ServeHTTP(rec, requestWithIdentity(t, "/v1/repos/nixos/bundle", ""))
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+	// The body must be a fixed classifier, not resolver internals (pod names,
+	// namespaces, API errors).
+	var body map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode 401 body: %v", err)
+	}
+	if body["reason"] != "client certificate is not a valid sandbox identity" {
+		t.Errorf("reason = %q, want the fixed classifier", body["reason"])
+	}
+	if strings.Contains(rec.Body.String(), "opencode") || strings.Contains(rec.Body.String(), "namespace") {
+		t.Errorf("401 body leaks resolver detail: %s", rec.Body.String())
 	}
 }
 

@@ -36,8 +36,8 @@ func TestServerConfigRequiresTLS13MutualAuthAndNoResumption(t *testing.T) {
 	if !cfg.SessionTicketsDisabled {
 		t.Error("SessionTicketsDisabled = false, want true so a deleted workload's session cannot outlive its certificate")
 	}
-	if cfg.ClientAuth != tls.RequireAndVerifyClientCert {
-		t.Errorf("ClientAuth = %v, want tls.RequireAndVerifyClientCert", cfg.ClientAuth)
+	if cfg.ClientAuth != tls.VerifyClientCertIfGiven {
+		t.Errorf("ClientAuth = %v, want tls.VerifyClientCertIfGiven (absent certificate is an HTTP 401, not a handshake failure)", cfg.ClientAuth)
 	}
 	if cfg.ClientCAs == nil {
 		t.Fatal("ClientCAs is nil; a client certificate could not be verified")

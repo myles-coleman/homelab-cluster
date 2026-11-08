@@ -36,8 +36,12 @@ func ServerConfig(certFile, keyFile, clientCAFile string) (*tls.Config, error) {
 	return &tls.Config{
 		MinVersion:             tls.VersionTLS13,
 		SessionTicketsDisabled: true,
-		ClientAuth:             tls.RequireAndVerifyClientCert,
-		ClientCAs:              clientCAs,
+		// A presented client certificate is always verified, but its absence is not a
+		// handshake failure: FR-5 requires an observable 401 for a request with no
+		// certificate, and RequireAndVerifyClientCert would turn that case into a TLS
+		// alert with no status code. The HTTP layer rejects an absent identity.
+		ClientAuth: tls.VerifyClientCertIfGiven,
+		ClientCAs:  clientCAs,
 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
 			cert, err := loadKeyPair(certFile, keyFile)
 			if err != nil {

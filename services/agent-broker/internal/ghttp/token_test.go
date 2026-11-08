@@ -144,6 +144,7 @@ func TestInstallationTokenExpiryBoundary(t *testing.T) {
 	}{
 		{name: "within one hour", expiresAt: now.Add(30 * time.Minute), wantErr: false},
 		{name: "beyond one hour", expiresAt: now.Add(2 * time.Hour), wantErr: true},
+		{name: "already expired", expiresAt: now.Add(-time.Minute), wantErr: true},
 	}
 
 	for _, tc := range tests {
