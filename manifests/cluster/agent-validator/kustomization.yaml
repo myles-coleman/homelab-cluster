@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - certificates.yaml
+  # deployment, service, networkpolicy, rbac and policy ConfigMap are added in
+  # sub-tasks 1.11 / 1.9 of the same spec.

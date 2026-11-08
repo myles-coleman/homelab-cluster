@@ -1,0 +1,31 @@
+# Server identity the validator verifies when it calls the publisher (spec 30, FR-8).
+# `publisher.agent.internal` is the fixed name the validator maps with hostAliases,
+# so the SAN must match it exactly. The validator reaches the publisher over
+# mTLS using its own validator-client certificate.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: publisher-server
+  namespace: agent-publisher
+  labels:
+    app.kubernetes.io/part-of: agent-broker
+spec:
+  secretName: publisher-server-tls
+  commonName: publisher.agent.internal
+  dnsNames:
+    - publisher.agent.internal
+    - agent-publisher.agent-publisher.svc
+    - agent-publisher.agent-publisher.svc.cluster.local
+  duration: 720h
+  renewBefore: 168h
+  usages:
+    - server auth
+    - digital signature
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef:
+    name: agent-mtls-ca
+    kind: ClusterIssuer
+    group: cert-manager.io
