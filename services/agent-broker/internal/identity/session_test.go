@@ -13,18 +13,43 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/tlsconf"
 )
 
-// TestSessionTicketsAreNotResumed is the FR-6 resumption guard. ServerConfig
-// disables tickets so a workload that was deleted cannot replay a cached TLS
-// session after its certificate is gone.
+// countingCache records whether the server ever offered a resumable session.
 //
-// The client's cache is deliberately enabled here: if the server forgot to
-// disable tickets the second handshake would resume and this test would fail.
+// Resumption is disabled at the server, so no NewSessionTicket should arrive and
+// Put must never be called. Asserting the cache instead of the second handshake's
+// DidResume flag keeps the guard meaningful: a cache that always misses would
+// make DidResume false even if tickets were enabled. (Enabled tickets also stall
+// net.Pipe, because the server's ticket write has no reader — the original form of
+// this test failed by timeout instead of by its assertion.)
+type countingCache struct {
+	mu   sync.Mutex
+	puts int
+}
+
+func (c *countingCache) Get(string) (*tls.ClientSessionState, bool) { return nil, false }
+
+func (c *countingCache) Put(string, *tls.ClientSessionState) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.puts++
+}
+
+func (c *countingCache) count() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.puts
+}
+
+// TestSessionTicketsAreNotResumed is the FR-6 resumption guard: a workload that
+// was deleted must not be able to replay a cached TLS session after its
+// certificate is gone.
 func TestSessionTicketsAreNotResumed(t *testing.T) {
 	creds := newSessionCredentials(t)
 
@@ -37,19 +62,17 @@ func TestSessionTicketsAreNotResumed(t *testing.T) {
 		t.Fatalf("ClientConfig: %v", err)
 	}
 
-	clientCfg.ClientSessionCache = tls.NewLRUClientSessionCache(4)
-	// ClientConfig disables resumption too; allow caching so the assertion
-	// isolates the server's ticket policy rather than passing trivially.
+	cache := &countingCache{}
+	clientCfg.ClientSessionCache = cache
+	// The client is allowed to cache; only the server's policy is under test.
 	clientCfg.SessionTicketsDisabled = false
 
-	first := sessionHandshake(t, serverCfg, clientCfg, true)
-	if first.DidResume {
+	if state := sessionHandshake(t, serverCfg, clientCfg); state.DidResume {
 		t.Fatal("first handshake reported a resumed session")
 	}
 
-	second := sessionHandshake(t, serverCfg, clientCfg, false)
-	if second.DidResume {
-		t.Error("second handshake resumed a session; ServerConfig must disable session tickets")
+	if got := cache.count(); got != 0 {
+		t.Errorf("server offered %d resumable session ticket(s); ServerConfig must disable session tickets", got)
 	}
 }
 
@@ -144,15 +167,13 @@ func sessionPEMFile(t *testing.T, dir, name string, data []byte, mode os.FileMod
 	return path
 }
 
-// sessionHandshake runs one handshake over net.Pipe and returns the client's
-// connection state. When exchangeData is set the peers swap a byte so a TLS 1.3
-// NewSessionTicket offered after the handshake is actually consumed.
-func sessionHandshake(t *testing.T, serverCfg, clientCfg *tls.Config, exchangeData bool) tls.ConnectionState {
+// sessionHandshake runs one handshake over net.Pipe, then drains the client for a
+// short window so any post-handshake NewSessionTicket record is actually read and
+// offered to the session cache.
+func sessionHandshake(t *testing.T, serverCfg, clientCfg *tls.Config) tls.ConnectionState {
 	t.Helper()
 
 	serverConn, clientConn := net.Pipe()
-	defer serverConn.Close()
-	defer clientConn.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -165,53 +186,44 @@ func sessionHandshake(t *testing.T, serverCfg, clientCfg *tls.Config, exchangeDa
 	clientDone := make(chan result, 1)
 
 	go func() {
+		defer serverConn.Close()
 		conn := tls.Server(serverConn, serverCfg)
 		conn.SetDeadline(time.Now().Add(5 * time.Second))
 		if err := conn.HandshakeContext(ctx); err != nil {
 			serverDone <- err
 			return
 		}
-		if exchangeData {
-			buf := make([]byte, 1)
+		// Drain until the client closes so a ticket write is never left blocked.
+		buf := make([]byte, 32)
+		for {
 			if _, err := conn.Read(buf); err != nil {
-				serverDone <- err
-				return
-			}
-			if _, err := conn.Write([]byte("y")); err != nil {
-				serverDone <- err
+				serverDone <- nil
 				return
 			}
 		}
-		serverDone <- nil
 	}()
 
 	go func() {
+		defer clientConn.Close()
 		conn := tls.Client(clientConn, clientCfg)
 		conn.SetDeadline(time.Now().Add(5 * time.Second))
 		if err := conn.HandshakeContext(ctx); err != nil {
 			clientDone <- result{err: err}
 			return
 		}
-		if exchangeData {
-			if _, err := conn.Write([]byte("x")); err != nil {
-				clientDone <- result{err: err}
-				return
-			}
-			buf := make([]byte, 1)
-			if _, err := conn.Read(buf); err != nil {
-				clientDone <- result{err: err}
-				return
-			}
-		}
+		// Give the server's ticket record a reader, then return regardless.
+		_ = conn.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
+		buf := make([]byte, 32)
+		_, _ = conn.Read(buf)
 		clientDone <- result{state: conn.ConnectionState()}
 	}()
 
-	if err := <-serverDone; err != nil {
-		t.Fatalf("server handshake: %v", err)
-	}
 	out := <-clientDone
 	if out.err != nil {
 		t.Fatalf("client handshake: %v", out.err)
+	}
+	if err := <-serverDone; err != nil {
+		t.Fatalf("server handshake: %v", err)
 	}
 	return out.state
 }
