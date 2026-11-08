@@ -25,6 +25,10 @@ resources:
 - qbittorrent-app.yaml
 - external-secrets-app.yaml
 - cert-manager-app.yaml
+- cert-manager-csi-driver-app.yaml
+- agent-mtls-app.yaml
+- agent-validator-app.yaml
+- agent-publisher-app.yaml
 - openbooks-app.yaml
 - calibre-web-app.yaml
 - youtubedl-material-app.yaml
