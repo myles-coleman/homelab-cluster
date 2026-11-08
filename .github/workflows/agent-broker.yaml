@@ -77,7 +77,11 @@ jobs:
           # sandbox-node is amd64; the validator runs there under gVisor.
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/agent-broker-validator:sha-${{ github.sha }}
+          # `main` exists only so the first ArgoCD sync can pull before the
+          # digest repin; the deployment is pinned by digest at 1.13.
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/agent-broker-validator:sha-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/agent-broker-validator:main
 
       - name: Record image digest
         run: |

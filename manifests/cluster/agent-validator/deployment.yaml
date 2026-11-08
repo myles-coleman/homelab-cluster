@@ -55,8 +55,9 @@ spec:
           type: RuntimeDefault
       containers:
         - name: validator
-          # Digest pinning lands with the first build (sub-task 1.12/1.13).
-          image: ghcr.io/myles-coleman/agent-broker-validator:v0.1.0
+          # Transient mutable tag: the first sync must be able to pull. Sub-task
+          # 1.13 replaces this with the digest printed by agent-broker.yaml.
+          image: ghcr.io/myles-coleman/agent-broker-validator:main
           imagePullPolicy: IfNotPresent
           args:
             - --listen=:8443
