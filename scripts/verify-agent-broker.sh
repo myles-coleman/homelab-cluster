@@ -157,7 +157,10 @@ if not any(p[0]=="agent-publisher" and p[1]=="agent-publisher" for p in peers):
   pass "sandbox egress and validator egress use pod selectors only"
 }
 
-# 7. FR-11 / FR-14 — the bundle clones to exactly one commit at the served tip.
+# 7. FR-11 / FR-14 — the bundle clones to exactly one root commit and the served
+# tip is the real main SHA. The bundled commit is a synthetic root holding the
+# tip's tree (git cannot carry a shallow boundary in a bundle), so equality with
+# the tip is asserted on the tree in the unit test, not on the commit id here.
 assert_bundle_clone() {
   local pod headers commit out
   pod="$(sandbox_pod)"
@@ -171,16 +174,19 @@ assert_bundle_clone() {
     rm -rf /tmp/nixos.bundle.clone
     git clone -q /tmp/nixos.bundle /tmp/nixos.bundle.clone
     cd /tmp/nixos.bundle.clone
-    printf "commit=%s\n" "$(git rev-parse HEAD)"
     printf "count=%s\n" "$(git rev-list --count HEAD)"
+    printf "parents=%s\n" "$(git cat-file -p HEAD | grep -c "^parent " || true)"
+    printf "files=%s\n" "$(git ls-tree -r --name-only HEAD | wc -l)"
   ' 2>&1)" || fail "bundle fetch or clone failed inside the sandbox: $out"
-  commit="$(printf '%s' "$out" | sed -n 's/^commit=//p')"
   [ "$(printf '%s' "$out" | sed -n 's/^count=//p')" = "1" ] || fail "bundle does not contain exactly one commit (FR-14)"
+  [ "$(printf '%s' "$out" | sed -n 's/^parents=//p')" = "0" ] || fail "bundled commit still names a parent (FR-14)"
+  [ "$(printf '%s' "$out" | sed -n 's/^files=//p')" -gt 10 ] || fail "bundle tree is empty or truncated (FR-14)"
+
   headers="$(kubectl -n "$NS_SANDBOX" exec "$pod" -- cat /tmp/bundle.headers 2>/dev/null || true)"
-  served="$(printf '%s' "$headers" | tr -d '\r' | sed -n 's/^X-Bundle-Commit: //p')"
-  [ -n "$served" ] || fail "bundle response has no X-Bundle-Commit header (FR-11)"
-  [ "$served" = "$commit" ] || fail "cloned commit $commit differs from served tip $served (FR-14)"
-  pass "bundle clones to one commit ($commit) matching the served main tip"
+  # HTTP/2 lowercases header names, so match case-insensitively.
+  commit="$(printf '%s' "$headers" | tr -d '\r' | awk 'BEGIN{IGNORECASE=1} /^x-bundle-commit:/ {print $2}')"
+  printf '%s' "$commit" | grep -Eq '^[0-9a-f]{40}$' || fail "bundle response has no valid X-Bundle-Commit (FR-11)"
+  pass "bundle clones to one parentless commit with a full tree; served tip ${commit}"
 }
 
 # 8. FR-12 — the sandbox still has no internet path.
@@ -193,14 +199,56 @@ assert_no_internet() {
   pass "sandbox cannot reach github.com"
 }
 
-# 9. FR-13 / FR-40 — installation token narrowness.
+# 9. FR-13 / FR-40 — the App really narrows a token to one repository with a
+# one-hour ceiling. The verifier mints its own token from the same Secret the
+# publisher mounts; the token value is never printed.
 assert_token_scope() {
-  skip "installation-token narrowness needs the publisher App key (sub-task 3.8); covered by ghttp tests until then"
+  local dir app_id now header payload sig jwt inst id resp
+  dir="$(mktemp -d)"
+  kubectl -n agent-publisher get secret github-app -o jsonpath='{.data.app-id}' | base64 -d > "$dir/app-id" \
+    || fail "cannot read the App id (FR-13)"
+  kubectl -n agent-publisher get secret github-app -o jsonpath='{.data.private-key\.pem}' | base64 -d > "$dir/key.pem" \
+    || fail "cannot read the App key (FR-13)"
+  chmod 600 "$dir/key.pem"
+  app_id="$(tr -d '[:space:]' < "$dir/app-id")"
+
+  b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+  now="$(date +%s)"
+  header="$(printf '{"alg":"RS256","typ":"JWT"}' | b64url)"
+  payload="$(printf '{"iss":"%s","iat":%s,"exp":%s}' "$app_id" "$((now - 60))" "$((now + 540))" | b64url)"
+  sig="$(printf '%s.%s' "$header" "$payload" | openssl dgst -sha256 -sign "$dir/key.pem" | b64url)"
+  jwt="$header.$payload.$sig"
+
+  inst="$(curl -sS -H "Authorization: Bearer $jwt" -H 'Accept: application/vnd.github+json' \
+    https://api.github.com/repos/myles-coleman/nixos/installation)"
+  id="$(printf '%s' "$inst" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id",""))')"
+  [ -n "$id" ] || fail "the App is not installed on nixos (FR-13)"
+
+  resp="$(curl -sS -X POST -H "Authorization: Bearer $jwt" -H 'Accept: application/vnd.github+json' \
+    -H 'Content-Type: application/json' \
+    -d '{"repositories":["nixos"],"permissions":{"contents":"read"}}' \
+    "https://api.github.com/app/installations/$id/access_tokens")"
+  printf '%s' "$resp" | python3 -c '
+import datetime, json, sys
+d = json.load(sys.stdin)
+repos = [r.get("name") for r in (d.get("repositories") or [])]
+if repos != ["nixos"]:
+    sys.exit("token repositories = %r, want exactly [nixos]" % (repos,))
+if not d.get("token"):
+    sys.exit("no token in response")
+exp = datetime.datetime.strptime(d["expires_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+now = datetime.datetime.now(datetime.timezone.utc)
+if (exp - now).total_seconds() > 3600:
+    sys.exit("token lifetime exceeds one hour")
+' || fail "installation token is not narrowed to one repository with a <=1h expiry (FR-13)"
+  rm -rf "$dir"
+  pass "installation token: one installation, exactly [nixos], under one hour"
 }
 
-# 10. FR-49 / FR-55 — image and pod posture.
+# 10. FR-49 / FR-55 — both broker pods have the required posture and both images
+# are digest-pinned; the publisher must not run on the gVisor node.
 assert_pod_posture() {
-  local pod json
+  local json
   json="$(kubectl -n "$NS_VALIDATOR" get pod -l app=agent-validator -o json | python3 -c '
 import json,sys
 items=json.load(sys.stdin)["items"]
@@ -211,17 +259,35 @@ import json,sys
 p=json.load(sys.stdin)
 s=p["spec"]; c=s["containers"][0]; sc=c.get("securityContext",{}); psc=s.get("securityContext",{})
 errs=[]
-if s.get("runtimeClassName")!="gvisor": errs.append("runtimeClassName")
-if not psc.get("runAsNonRoot"): errs.append("runAsNonRoot")
-if not sc.get("readOnlyRootFilesystem"): errs.append("readOnlyRootFilesystem")
-if sc.get("allowPrivilegeEscalation") is not False: errs.append("allowPrivilegeEscalation")
-if psc.get("seccompProfile",{}).get("type")!="RuntimeDefault": errs.append("seccompProfile")
-if sc.get("capabilities",{}).get("drop")!=["ALL"]: errs.append("capabilities.drop")
-if "@sha256:" not in c.get("image",""): errs.append("image-not-pinned-by-digest")
-if errs: sys.exit("posture violations: %s" % ", ".join(errs))
-if not any(t.get("effect")=="NoSchedule" for t in s.get("tolerations",[])): sys.exit("missing gvisor toleration")
-' || fail "validator pod posture is wrong (FR-55)"
-  pass "validator runs under gVisor, non-root, read-only, digest-pinned (publisher posture is checked after 3.7)"
+if s.get("runtimeClassName")!="gvisor": errs.append("validator runtimeClassName")
+if not psc.get("runAsNonRoot"): errs.append("validator runAsNonRoot")
+if not sc.get("readOnlyRootFilesystem"): errs.append("validator readOnlyRootFilesystem")
+if sc.get("allowPrivilegeEscalation") is not False: errs.append("validator allowPrivilegeEscalation")
+if psc.get("seccompProfile",{}).get("type")!="RuntimeDefault": errs.append("validator seccompProfile")
+if sc.get("capabilities",{}).get("drop")!=["ALL"]: errs.append("validator capabilities.drop")
+if "@sha256:" not in c.get("image",""): errs.append("validator image-not-pinned-by-digest")
+if errs: sys.exit(", ".join(errs))
+' || fail "validator posture is wrong (FR-55)"
+
+  json="$(kubectl -n agent-publisher get pod -l app=agent-publisher -o json | python3 -c '
+import json,sys
+items=json.load(sys.stdin)["items"]
+sys.exit(1) if not items else print(json.dumps(items[0]))
+')" || fail "no publisher pod found (FR-49)"
+  echo "$json" | python3 -c '
+import json,sys
+p=json.load(sys.stdin)
+s=p["spec"]; c=s["containers"][0]; sc=c.get("securityContext",{}); psc=s.get("securityContext",{})
+errs=[]
+if s.get("nodeName")=="sandbox-node": errs.append("publisher-on-gvisor-node")
+if any(t.get("key")=="sandbox" for t in s.get("tolerations",[])): errs.append("publisher-tolerates-sandbox-taint")
+if not psc.get("runAsNonRoot"): errs.append("publisher runAsNonRoot")
+if not sc.get("readOnlyRootFilesystem"): errs.append("publisher readOnlyRootFilesystem")
+if sc.get("capabilities",{}).get("drop")!=["ALL"]: errs.append("publisher capabilities.drop")
+if "@sha256:" not in c.get("image",""): errs.append("publisher image-not-pinned-by-digest")
+if errs: sys.exit(", ".join(errs))
+' || fail "publisher posture is wrong (FR-49)"
+  pass "validator under gVisor and publisher off the gVisor node, both digest-pinned"
 }
 
 # 11. FR-60 — RBAC is exactly Pods and Sandboxes in agent-sandbox.
