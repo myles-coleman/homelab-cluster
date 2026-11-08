@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Rendered from helmfile.yaml + values.yaml; never hand-edited. The release
+  # targets the existing cert-manager namespace, so this directory deliberately
+  # ships no namespace.yaml: a second Application owning that Namespace object
+  # would fight the cert-manager Application in ArgoCD.
+  - helm-chart.yaml

@@ -18,6 +18,9 @@ resources:
 - qbittorrent
 - external-secrets
 - cert-manager
+# spec 30 — cert-manager csi-driver as its own release (gVisor node toleration);
+# arrives at wave 10 like every other non-mapped service, after cert-manager (wave 1).
+- cert-manager-csi-driver
 # - dapr
 - openbooks
 - calibre-web

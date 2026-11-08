@@ -1,0 +1,14 @@
+repositories:
+- name: jetstack
+  url: https://charts.jetstack.io
+
+# cert-manager's CSI driver is a separate release from cert-manager core on
+# purpose (spec 30, FR-1): its chart ships its own DaemonSet, CSIDriver object
+# and RBAC, and re-rendering the core chart must never regenerate them.
+releases:
+- name: cert-manager-csi-driver
+  namespace: cert-manager
+  chart: jetstack/cert-manager-csi-driver
+  version: v0.16.1
+  values:
+  - values.yaml
