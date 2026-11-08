@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - certificates.yaml
+  - networkpolicy.yaml
   # deployment, service, networkpolicy, rbac and policy ConfigMap are added in
   # sub-tasks 1.11 / 1.9 of the same spec.

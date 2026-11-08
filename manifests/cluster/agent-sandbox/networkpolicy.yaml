@@ -51,6 +51,20 @@ spec:
       ports:
         - protocol: TCP
           port: 4318
+    # The validator (spec 30, FR-9). The peer is the validator's POD SELECTOR in
+    # its namespace, never its Service clusterIP: kube-proxy DNATs a clusterIP to a
+    # pod before the filter runs, so an IP rule would be both wrong and empty.
+    # `validator.agent.internal` resolves to that clusterIP through hostAliases.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: agent-validator
+          podSelector:
+            matchLabels:
+              app: agent-validator
+      ports:
+        - protocol: TCP
+          port: 8443
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
