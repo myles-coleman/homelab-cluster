@@ -51,13 +51,17 @@ spec:
         runAsNonRoot: true
         runAsUser: 65532
         runAsGroup: 65532
+        # Secret volumes are root-owned by default; without a group here a
+        # non-root process gets EACCES on tls.crt even though the file exists.
+        # The kubelet applies this group to the projected files.
+        fsGroup: 65532
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: validator
-          # Transient mutable tag: the first sync must be able to pull. Sub-task
-          # 1.13 replaces this with the digest printed by agent-broker.yaml.
-          image: ghcr.io/myles-coleman/agent-broker-validator:main
+          # Pinned to the digest built from the merge commit by agent-broker.yaml
+          # (run 42533192968). Rebuild -> update this line, never track a tag.
+          image: ghcr.io/myles-coleman/agent-broker-validator@sha256:a48b1d9d2a4ccf25eb5119e72fb911b5bad49ec41e7dc604c7b7724e73ef04e2
           imagePullPolicy: IfNotPresent
           args:
             - --listen=:8443
@@ -114,8 +118,8 @@ spec:
         - name: server-tls
           secret:
             secretName: validator-server-tls
-            defaultMode: 0o400
+            defaultMode: 0o440
         - name: publisher-client
           secret:
             secretName: validator-client-tls
-            defaultMode: 0o400
+            defaultMode: 0o440

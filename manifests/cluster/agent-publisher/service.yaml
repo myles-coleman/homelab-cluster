@@ -1,0 +1,21 @@
+# Pinned so the validator can reach the publisher by a fixed name without DNS
+# (its hostAliases entry points here). The server certificate names the hostname,
+# not the address.
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-publisher
+  namespace: agent-publisher
+  labels:
+    app: agent-publisher
+    app.kubernetes.io/part-of: agent-broker
+spec:
+  type: ClusterIP
+  clusterIP: 10.43.30.11
+  selector:
+    app: agent-publisher
+  ports:
+    - name: https
+      port: 8443
+      targetPort: https
+      protocol: TCP

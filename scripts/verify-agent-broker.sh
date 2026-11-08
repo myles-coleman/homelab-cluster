@@ -77,16 +77,22 @@ assert_sandbox_identity() {
   if printf '%s' "$san" | grep -q 'DNS:'; then fail "leaf carries a DNS SAN (FR-3)"; fi
   if printf '%s' "$san" | grep -q 'IP Address:'; then fail "leaf carries an IP SAN (FR-3)"; fi
 
-  local end now remain
-  end="$(printf '%s' "$cert" | openssl x509 -noout -enddate | cut -d= -f2)"
-  now="$(date -u +%s)"
-  remain=$(( $(date -u -d "$end" +%s) - now ))
-  [ "$remain" -gt 0 ] || fail "leaf certificate is expired (FR-3)"
-  [ "$remain" -le 43200 ] || fail "leaf lifetime is ${remain}s, over the 12h ceiling (FR-3)"
+  # -checkend N exits 0 when the certificate is still valid for more than N
+  # seconds, 1 when it expires within N. Verified against openssl 3.6:
+  #   -checkend 0     -> 0 (valid now)       -> invert for the expiry check
+  #   -checkend 43200 -> 1 (expires <12h)    -> invert for the ceiling check
+  if ! printf '%s' "$cert" | openssl x509 -noout -checkend 0 >/dev/null; then
+    fail "leaf certificate is expired (FR-3)"
+  fi
+  if printf '%s' "$cert" | openssl x509 -noout -checkend 43200 >/dev/null; then
+    fail "leaf lifetime exceeds the 12h ceiling (FR-3)"
+  fi
+  local remain
+  remain="$(printf '%s' "$cert" | openssl x509 -noout -enddate | cut -d= -f2)"
 
   kubectl -n "$NS_SANDBOX" exec "$pod" -- test -s /certs/tls.key 2>/dev/null \
     || fail "leaf key is not readable in the pod (FR-3)"
-  pass "sandbox leaf has the pod URI SAN, no other SAN, ${remain}s left, key readable"
+  pass "sandbox leaf has the pod URI SAN, no other SAN, expires ${remain}, key readable"
 }
 
 # 4. FR-7 — no DNS, fixed name via hostAliases.

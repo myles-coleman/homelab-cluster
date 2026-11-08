@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -77,9 +78,63 @@ func NewAppClient(appID, installationID int64, privateKeyPEM []byte) (*AppClient
 	}, nil
 }
 
-// InstallationToken mints a token narrowed to owner/repo and permissions.
-// It performs no caching: callers mint per operation (FR-40).
+// InstallationToken mints a token for the configured installation, narrowed to
+// owner/repo and permissions. It performs no caching: callers mint per operation
+// (FR-40).
 func (c *AppClient) InstallationToken(ctx context.Context, owner, repo string, permissions map[string]string) (Token, error) {
+	return c.mintFor(ctx, c.installationID, repo, permissions)
+}
+
+// TokenForRepo resolves the installation that covers owner/repo and mints a token
+// for it. The publisher uses this so no installation id has to be configured, and
+// the token is still narrowed to one repository and one permission set (FR-13).
+func (c *AppClient) TokenForRepo(ctx context.Context, owner, repo string, permissions map[string]string) (Token, error) {
+	id, err := c.installationForRepo(ctx, owner, repo)
+	if err != nil {
+		return Token{}, err
+	}
+	return c.mintFor(ctx, id, repo, permissions)
+}
+
+// installationForRepo asks GitHub which installation covers the repository. The
+// App JWT authorises the lookup; the answer is used immediately and not stored.
+func (c *AppClient) installationForRepo(ctx context.Context, owner, repo string) (int64, error) {
+	jwt, err := c.mintJWT()
+	if err != nil {
+		return 0, err
+	}
+
+	endpoint := strings.TrimRight(c.apiBase, "/") + "/repos/" + url.PathEscape(owner) + "/" + url.PathEscape(repo) + "/installation"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return 0, fmt.Errorf("ghttp: build installation lookup: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+jwt)
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("ghttp: look up installation: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("ghttp: installation lookup returned status %d", resp.StatusCode)
+	}
+
+	var decoded struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&decoded); err != nil {
+		return 0, fmt.Errorf("ghttp: decode installation lookup: %w", err)
+	}
+	if decoded.ID <= 0 {
+		return 0, errors.New("ghttp: installation lookup returned no installation id")
+	}
+	return decoded.ID, nil
+}
+
+// mintFor performs the actual token request for one installation.
+func (c *AppClient) mintFor(ctx context.Context, installationID int64, repo string, permissions map[string]string) (Token, error) {
 	jwt, err := c.mintJWT()
 	if err != nil {
 		return Token{}, err
@@ -100,7 +155,7 @@ func (c *AppClient) InstallationToken(ctx context.Context, owner, repo string, p
 		return Token{}, fmt.Errorf("ghttp: encode token request: %w", err)
 	}
 
-	endpoint := strings.TrimRight(c.apiBase, "/") + "/app/installations/" + strconv.FormatInt(c.installationID, 10) + "/access_tokens"
+	endpoint := strings.TrimRight(c.apiBase, "/") + "/app/installations/" + strconv.FormatInt(installationID, 10) + "/access_tokens"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return Token{}, fmt.Errorf("ghttp: build token request: %w", err)
