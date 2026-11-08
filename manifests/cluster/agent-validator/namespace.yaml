@@ -8,4 +8,4 @@ metadata:
   labels:
     app.kubernetes.io/part-of: agent-broker
     pod-security.kubernetes.io/enforce: restricted
-    pod-security.kubernetes.io:warn: restricted
+    pod-security.kubernetes.io/warn: restricted

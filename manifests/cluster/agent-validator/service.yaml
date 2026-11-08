@@ -1,0 +1,22 @@
+# Pinned clusterIP: the sandbox has no DNS and maps this address with hostAliases,
+# and the server certificate's DNS SAN is the name those aliases use (FR-7, FR-8).
+# Changing this address is a coordinated change in three places: here, the
+# sandbox's hostAliases, and nothing else (the certificate names the hostname).
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-validator
+  namespace: agent-validator
+  labels:
+    app: agent-validator
+    app.kubernetes.io/part-of: agent-broker
+spec:
+  type: ClusterIP
+  clusterIP: 10.43.30.10
+  selector:
+    app: agent-validator
+  ports:
+    - name: https
+      port: 8443
+      targetPort: https
+      protocol: TCP

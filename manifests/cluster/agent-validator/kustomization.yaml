@@ -4,5 +4,7 @@ resources:
   - namespace.yaml
   - certificates.yaml
   - networkpolicy.yaml
-  # deployment, service, networkpolicy, rbac and policy ConfigMap are added in
-  # sub-tasks 1.11 / 1.9 of the same spec.
+  - rbac.yaml
+  - deployment.yaml
+  - service.yaml
+  # policy ConfigMap is added in sub-task 2.1 when the allowlist exists.

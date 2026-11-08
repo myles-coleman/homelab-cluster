@@ -1,0 +1,120 @@
+# Validator (spec 30, Unit 1).
+#
+# It parses adversarial certificates and (from Unit 2) patches, so it runs under
+# gVisor on the amd64 sandbox node with the same posture as the sandbox itself:
+# non-root, read-only root, no capabilities, RuntimeDefault seccomp.
+#
+# No GitHub credential, no internet egress: bundles arrive from the publisher
+# over mTLS. The image digest is pinned after the first agent-broker build; the
+# tag is deliberate until that digest exists.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: validator
+  namespace: agent-validator
+  labels:
+    app: agent-validator
+    app.kubernetes.io/part-of: agent-broker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-validator
+  template:
+    metadata:
+      labels:
+        app: agent-validator
+        app.kubernetes.io/part-of: agent-broker
+    spec:
+      serviceAccountName: validator
+      runtimeClassName: gvisor
+      automountServiceAccountToken: true
+      nodeSelector:
+        sandbox.node/runtime: gvisor
+      tolerations:
+        - key: sandbox
+          operator: Equal
+          value: gvisor
+          effect: NoSchedule
+      # No DNS: the publisher is reached through hostAliases like the sandbox does
+      # in the other direction. This keeps the egress policy to two peers.
+      dnsPolicy: None
+      dnsConfig:
+        nameservers:
+          - 127.0.0.1
+        searches: []
+      hostAliases:
+        - ip: "10.43.30.11"
+          hostnames:
+            - publisher.agent.internal
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: validator
+          # Digest pinning lands with the first build (sub-task 1.12/1.13).
+          image: ghcr.io/myles-coleman/agent-broker-validator:v0.1.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --listen=:8443
+            - --cert-file=/certs/tls.crt
+            - --key-file=/certs/tls.key
+            # The secret issued for this server also carries the CA that signs
+            # sandbox client certificates, so one mount serves both roles.
+            - --client-ca-file=/certs/ca.crt
+            - --namespace=agent-sandbox
+            - --publisher-url=https://publisher.agent.internal:8443
+            - --publisher-server-name=publisher.agent.internal
+            - --publisher-cert-file=/publisher-client/tls.crt
+            - --publisher-key-file=/publisher-client/tls.key
+            - --publisher-ca-file=/publisher-client/ca.crt
+            - --cache-ttl=5m
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: https
+              scheme: HTTPS
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: https
+              scheme: HTTPS
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: "50m"
+              memory: 64Mi
+            limits:
+              cpu: "500m"
+              memory: 256Mi
+          volumeMounts:
+            - name: server-tls
+              mountPath: /certs
+              readOnly: true
+            - name: publisher-client
+              mountPath: /publisher-client
+              readOnly: true
+      volumes:
+        - name: server-tls
+          secret:
+            secretName: validator-server-tls
+            defaultMode: 0o400
+        - name: publisher-client
+          secret:
+            secretName: validator-client-tls
+            defaultMode: 0o400
