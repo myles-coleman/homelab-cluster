@@ -1,0 +1,21 @@
+# Validator image (spec 30, FR-55).
+#
+# Static binary, no shell, non-root. The deployment supplies the read-only root
+# filesystem and a writable /tmp emptyDir, so nothing here needs a package
+# manager or a writable layer at runtime.
+FROM golang:1.26-bookworm AS build
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+# CGO off: the runtime image has no libc and the k8s clients do not need one.
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" \
+    -o /out/validator ./cmd/validator
+
+FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY --from=build /out/validator /validator
+USER 65532:65532
+EXPOSE 8443
+ENTRYPOINT ["/validator"]

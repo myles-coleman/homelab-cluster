@@ -1,0 +1,96 @@
+name: agent-broker
+
+# Spec 30 FR-48: every pull_request job here is secret-free and reads contents
+# only. The only job that touches a registry runs on pushes to main.
+on:
+  pull_request:
+    paths:
+      - 'services/agent-broker/**'
+      - '.github/workflows/agent-broker.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/agent-broker/**'
+      - '.github/workflows/agent-broker.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-broker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: services/agent-broker
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: services/agent-broker/go.mod
+          cache-dependency-path: services/agent-broker/go.sum
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+  build-validator:
+    name: build-validator
+    # Image pushes only happen from main; a pull_request run never gets a
+    # registry credential.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push validator (amd64)
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: services/agent-broker
+          file: services/agent-broker/Dockerfile.validator
+          # sandbox-node is amd64; the validator runs there under gVisor.
+          platforms: linux/amd64
+          push: true
+          # `main` exists only so the first ArgoCD sync can pull before the
+          # digest repin; the deployment is pinned by digest at 1.13.
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/agent-broker-validator:sha-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/agent-broker-validator:main
+
+      - name: Record image digest
+        run: |
+          {
+            echo "### agent-broker-validator"
+            echo ""
+            echo '```'
+            echo "ghcr.io/${{ github.repository_owner }}/agent-broker-validator@${{ steps.build.outputs.digest }}"
+            echo '```'
+            echo ""
+            echo "Pin this digest in manifests/cluster/agent-validator/deployment.yaml."
+          } >> "$GITHUB_STEP_SUMMARY"

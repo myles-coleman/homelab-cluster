@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - certificates.yaml
+  - networkpolicy.yaml
+  - rbac.yaml
+  - deployment.yaml
+  - service.yaml
+  # policy ConfigMap is added in sub-task 2.1 when the allowlist exists.

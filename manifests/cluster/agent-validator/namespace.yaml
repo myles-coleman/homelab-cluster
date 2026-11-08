@@ -1,0 +1,11 @@
+# Created here rather than in 1.11 because the validator's leaf Secrets must live
+# in the same namespace as the pods that mount them, and a Certificate cannot be
+# created in a namespace that does not exist yet (spec 30, sub-task 1.4 ordering).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-validator
+  labels:
+    app.kubernetes.io/part-of: agent-broker
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted

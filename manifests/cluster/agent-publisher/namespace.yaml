@@ -1,0 +1,10 @@
+# Created here rather than in 3.7 for the same reason as agent-validator: the
+# publisher's server leaf Secret must live beside the pod that mounts it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-publisher
+  labels:
+    app.kubernetes.io/part-of: agent-broker
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted

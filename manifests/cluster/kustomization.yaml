@@ -18,6 +18,16 @@ resources:
 - qbittorrent
 - external-secrets
 - cert-manager
+# spec 30 — cert-manager csi-driver as its own release (gVisor node toleration);
+# arrives at wave 10 like every other non-mapped service, after cert-manager (wave 1).
+- cert-manager-csi-driver
+# spec 30 — private CA for sandbox identity; the CA Secret lives in cert-manager
+# (see the FR-2 amendment), this Application owns the agent-mtls namespace.
+- agent-mtls
+# spec 30 — broker workloads. Registered from sub-task 1.4 because their leaf
+# Secrets must live in these namespaces before the deployments exist.
+- agent-validator
+- agent-publisher
 # - dapr
 - openbooks
 - calibre-web

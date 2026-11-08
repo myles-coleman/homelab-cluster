@@ -1,0 +1,66 @@
+# Leaf identities for the validator (spec 30, FR-8).
+#
+# Two certificates, two jobs:
+#   validator-server — what the sandbox connects to. `validator.agent.internal`
+#     is the fixed name the sandbox maps with hostAliases (no DNS in that pod,
+#     FR-7), so the SAN must be that exact string.
+#   validator-client — what the validator presents to the publisher. The
+#     publisher authorises on the URI SAN, not on the common name (FR-33).
+#
+# Both are signed by the agent-mtls CA. Duration is 30 days with a 7-day renewal
+# window; the Go servers reload the secret on each handshake, so a renewal lands
+# without a restart (client reload is required by the spec; server reload is the
+# same mechanism).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: validator-server
+  namespace: agent-validator
+  labels:
+    app.kubernetes.io/part-of: agent-broker
+spec:
+  secretName: validator-server-tls
+  commonName: validator.agent.internal
+  dnsNames:
+    - validator.agent.internal
+    - agent-validator.agent-validator.svc
+    - agent-validator.agent-validator.svc.cluster.local
+  duration: 720h
+  renewBefore: 168h
+  usages:
+    - server auth
+    - digital signature
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef:
+    name: agent-mtls-ca
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: validator-client
+  namespace: agent-validator
+  labels:
+    app.kubernetes.io/part-of: agent-broker
+spec:
+  secretName: validator-client-tls
+  commonName: agent-validator
+  uris:
+    - spiffe://cowlab.org/ns/agent-validator/service/validator
+  duration: 720h
+  renewBefore: 168h
+  usages:
+    - client auth
+    - digital signature
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef:
+    name: agent-mtls-ca
+    kind: ClusterIssuer
+    group: cert-manager.io

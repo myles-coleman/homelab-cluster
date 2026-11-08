@@ -1,0 +1,80 @@
+# Validator network posture (spec 30, FR-10). The validator parses hostile input,
+# so both directions are closed by default and opened only to the two peers it
+# legitimately has: the sandbox on ingress, the publisher on egress.
+#
+# No DNS rule: the validator runs with `dnsPolicy: None` and reaches the publisher
+# through a hostAliases entry, exactly like the sandbox does on the other side.
+# Adding a resolver would create a data channel this component does not need.
+#
+# OTLP egress is deliberately absent here; sub-task 5.2 adds it together with the
+# audit shipper so the two cannot drift apart.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: validator-default-deny
+  namespace: agent-validator
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: validator-ingress
+  namespace: agent-validator
+spec:
+  podSelector:
+    matchLabels:
+      app: agent-validator
+  policyTypes:
+    - Ingress
+  ingress:
+    # Only sandbox pods, only the TLS port (FR-9 peer, FR-10 rule).
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: agent-sandbox
+          podSelector:
+            matchLabels:
+              app: opencode-sandbox
+      ports:
+        - protocol: TCP
+          port: 8443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: validator-egress
+  namespace: agent-validator
+spec:
+  podSelector:
+    matchLabels:
+      app: agent-validator
+  policyTypes:
+    - Egress
+  egress:
+    # Kubernetes API for identity resolution (FR-4): the validator must Get Pods
+    # and Sandboxes to turn a certificate into a Sandbox UID. kube-proxy DNATs the
+    # `kubernetes` Service ClusterIP to a control-plane node before the policy is
+    # evaluated, so the selectable peer is the node network on 6443, not the
+    # Service IP. 10.0.0.128/25 covers node0-node4 (10.0.0.140-144) and the
+    # kube-vip API VIP (10.0.0.200).
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.128/25
+      ports:
+        - protocol: TCP
+          port: 6443
+    # Publisher only. No github.com, no internet, no cluster DNS (FR-12).
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: agent-publisher
+          podSelector:
+            matchLabels:
+              app: agent-publisher
+      ports:
+        - protocol: TCP
+          port: 8443

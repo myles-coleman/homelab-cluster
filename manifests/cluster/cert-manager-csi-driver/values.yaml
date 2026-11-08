@@ -1,0 +1,21 @@
+# Pins the node component to the only node that consumes certificate volumes.
+#
+# The `sandbox-node` taint trap (spec 30 task Notes): the node carries
+# `sandbox=gvisor:NoSchedule`, so a DaemonSet without the toleration below
+# schedules zero pods and every inline `csi.cert-manager.io` volume fails with
+# "driver not found" against that node. Both the nodeSelector and the toleration
+# were proved together on the live cluster in sub-task 1.1 (vault:
+# nixos/docs/specs/30-spec-trusted-agent-pr-loop/30-proofs/1-csi-gvisor-spike.md),
+# which showed the DaemonSet needs nothing beyond them.
+#
+# Scope note: the driver is pinned to sandbox-node rather than run on every node
+# because only the sandbox consumes CSI certificates today; widening this is a
+# deliberate change, not a default.
+nodeSelector:
+  sandbox.node/runtime: gvisor
+
+tolerations:
+  - key: sandbox
+    operator: Equal
+    value: gvisor
+    effect: NoSchedule

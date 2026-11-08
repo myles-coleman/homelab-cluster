@@ -1,0 +1,43 @@
+# Minimal API access for identity resolution (spec 30, FR-4, FR-60).
+#
+# The validator reads Pods and Sandboxes in agent-sandbox and nothing else. It
+# never writes, never lists Secrets, and has no cluster-scoped role. The grant is
+# namespace-scoped so a validator compromise cannot enumerate the cluster.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: validator
+  namespace: agent-validator
+  labels:
+    app.kubernetes.io/part-of: agent-broker
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: validator-identity-reader
+  namespace: agent-sandbox
+  labels:
+    app.kubernetes.io/part-of: agent-broker
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["agents.x-k8s.io"]
+    resources: ["sandboxes"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: validator-identity-reader
+  namespace: agent-sandbox
+  labels:
+    app.kubernetes.io/part-of: agent-broker
+subjects:
+  - kind: ServiceAccount
+    name: validator
+    namespace: agent-validator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: validator-identity-reader

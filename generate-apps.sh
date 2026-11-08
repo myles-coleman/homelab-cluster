@@ -13,6 +13,10 @@ resources=$(grep "^- " "$CLUSTER_KUSTOMIZATION" | sed 's/^- //')
 declare -A namespace_map
 namespace_map["metallb"]="metallb-system"
 namespace_map["generic-device-plugin"]="device-system"
+# spec 30: the csi-driver release lives in the existing cert-manager namespace so
+# the driver shares cert-manager's ServiceAccount/RBAC surface instead of owning a
+# second namespace for one DaemonSet.
+namespace_map["cert-manager-csi-driver"]="cert-manager"
 
 # Sync wave mapping for deployment order (lower numbers deploy first)
 declare -A sync_wave_map
