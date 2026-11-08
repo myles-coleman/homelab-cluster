@@ -44,6 +44,14 @@ spec:
           operator: Equal
           value: gvisor
           effect: NoSchedule
+      # No DNS in this pod, so the broker is reached by a fixed name resolved from
+      # this static mapping. The Service's clusterIP is pinned to match (see
+      # agent-validator/service.yaml) and the validator's server certificate
+      # carries exactly this DNS SAN (spec 30, FR-7/FR-8).
+      hostAliases:
+        - ip: "10.43.30.10"
+          hostnames:
+            - validator.agent.internal
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -115,7 +123,7 @@ spec:
             #   kubectl get svc -n signoz-k8s-infra k8s-infra-otel-agent
             # and update this value and NO_PROXY if the Service is recreated.
             - name: NO_PROXY
-              value: 10.43.0.250,100.127.170.8,10.43.78.178,localhost,127.0.0.1
+              value: 10.43.0.250,100.127.170.8,10.43.78.178,validator.agent.internal,10.43.30.10,localhost,127.0.0.1
             # Observability (spec 02, Unit 1). Only OTEL_EXPORTER_OTLP_ENDPOINT is
             # read: it gates BOTH the trace and the log exporter, while per-signal
             # endpoint vars, protocol vars and OTEL_TRACES_EXPORTER are ignored.
@@ -142,6 +150,15 @@ spec:
               value: OpenCode Sandbox Agent
             - name: GIT_COMMITTER_EMAIL
               value: agent@sandbox.invalid
+            # mTLS identity from the cert-manager CSI volume below (spec 30, FR-3).
+            # The key never lands in a Secret: the driver holds it in memory for the
+            # Pod's lifetime and deletes it when the Pod goes away.
+            - name: GIT_SSL_CAINFO
+              value: /certs/ca.crt
+            - name: GIT_SSL_CERT
+              value: /certs/tls.crt
+            - name: GIT_SSL_KEY
+              value: /certs/tls.key
           volumeMounts:
             - name: workspace
               mountPath: /home/agent
@@ -152,6 +169,13 @@ spec:
             # scratch path uses this bounded emptyDir.
             - name: tmp
               mountPath: /tmp
+            # Read-only identity mount. cert-manager's CSI driver issues a ≤12h
+            # leaf whose only SAN is the Pod's URI (spec 30, FR-3). The Pod name is
+            # stable ("opencode"), so the SAN can be literal: CSI volume attributes
+            # cannot interpolate anything at mount time.
+            - name: identity
+              mountPath: /certs
+              readOnly: true
           resources:
             requests:
               cpu: "500m"
@@ -170,3 +194,19 @@ spec:
           emptyDir:
             # Bounded so a runaway agent cannot fill the node's disk.
             sizeLimit: 1Gi
+        # Inline CSI volume: no Certificate resource and no Secret exist for this
+        # identity. `common-name` is deliberately omitted so the leaf carries no
+        # subject identity other than the URI SAN (FR-3); the validator resolves
+        # the URI back to a Pod and then to that Pod's Sandbox owner (FR-4).
+        - name: identity
+          csi:
+            driver: csi.cert-manager.io
+            readOnly: true
+            volumeAttributes:
+              csi.cert-manager.io/issuer-name: agent-mtls-ca
+              csi.cert-manager.io/issuer-kind: ClusterIssuer
+              csi.cert-manager.io/issuer-group: cert-manager.io
+              csi.cert-manager.io/uri-sans: spiffe://cowlab.org/ns/agent-sandbox/pod/opencode
+              csi.cert-manager.io/duration: 12h
+              csi.cert-manager.io/key-usages: client auth
+              csi.cert-manager.io/fs-group: "1000"
