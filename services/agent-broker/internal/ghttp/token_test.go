@@ -301,3 +301,69 @@ type recordedRequest struct {
 	auth   string
 	body   []byte
 }
+
+// TestTokenForRepoResolvesInstallation pins the publisher's credential path: the
+// App JWT looks up which installation covers the repository, and the minted token
+// is still narrowed to that single repository (FR-13).
+func TestTokenForRepoResolvesInstallation(t *testing.T) {
+	key, keyPEM := newAppKey(t)
+	now := time.Now().UTC().Truncate(time.Second)
+
+	var mu sync.Mutex
+	var calls []string
+	var mintedBody []byte
+	var lookupAuth, mintAuth string
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		calls = append(calls, r.Method+" "+r.URL.Path)
+		mu.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/repos/myles-coleman/nixos/installation":
+			lookupAuth = r.Header.Get("Authorization")
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": 4242})
+		case "/app/installations/4242/access_tokens":
+			mintAuth = r.Header.Get("Authorization")
+			mintedBody, _ = io.ReadAll(r.Body)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"token":      "ghs_resolved",
+				"expires_at": now.Add(30 * time.Minute).UTC().Format(time.RFC3339),
+			})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client := newTestAppClient(keyPEM, server.URL, server.Client(), now)
+	tok, err := client.TokenForRepo(context.Background(), "myles-coleman", "nixos", map[string]string{"contents": "read"})
+	if err != nil {
+		t.Fatalf("TokenForRepo: %v", err)
+	}
+	if tok.Value != "ghs_resolved" {
+		t.Errorf("token = %q, want ghs_resolved", tok.Value)
+	}
+
+	mu.Lock()
+	got := append([]string(nil), calls...)
+	mu.Unlock()
+	want := []string{"GET /repos/myles-coleman/nixos/installation", "POST /app/installations/4242/access_tokens"}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("calls = %v, want %v", got, want)
+	}
+	assertRS256JWT(t, key, lookupAuth)
+	assertRS256JWT(t, key, mintAuth)
+
+	var body struct {
+		Repositories []string          `json:"repositories"`
+		Permissions  map[string]string `json:"permissions"`
+	}
+	if err := json.Unmarshal(mintedBody, &body); err != nil {
+		t.Fatalf("decode minted body: %v", err)
+	}
+	if len(body.Repositories) != 1 || body.Repositories[0] != "nixos" {
+		t.Errorf("repositories = %v, want exactly [nixos]", body.Repositories)
+	}
+}

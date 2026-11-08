@@ -1,0 +1,76 @@
+# Publisher network posture (spec 30, FR-10, FR-12).
+#
+# One ingress peer (the validator) and two egress needs: cluster DNS for
+# github.com, and the public internet on 443. Everything else, including the
+# cluster and the LAN, is excluded so a compromised publisher cannot reach
+# in-cluster services with its credential.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: publisher-default-deny
+  namespace: agent-publisher
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: publisher-ingress
+  namespace: agent-publisher
+spec:
+  podSelector:
+    matchLabels:
+      app: agent-publisher
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: agent-validator
+          podSelector:
+            matchLabels:
+              app: agent-validator
+      ports:
+        - protocol: TCP
+          port: 8443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: publisher-egress
+  namespace: agent-publisher
+spec:
+  podSelector:
+    matchLabels:
+      app: agent-publisher
+  policyTypes:
+    - Egress
+  egress:
+    # Cluster DNS only (the publisher resolves github.com; it has no in-cluster
+    # peers).
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # GitHub over HTTPS. The exceptions keep the credential away from the cluster,
+    # the LAN and the tailnet even if the process is compromised.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.42.0.0/16
+              - 10.43.0.0/16
+              - 10.0.0.0/8
+              - 100.64.0.0/10
+      ports:
+        - protocol: TCP
+          port: 443

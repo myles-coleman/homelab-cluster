@@ -3,4 +3,8 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - certificates.yaml
-  # deployment, service, networkpolicy and ExternalSecret are added in sub-task 3.7.
+  - networkpolicy.yaml
+  - external-secret.yaml
+  - deployment.yaml
+  - service.yaml
+  # The publish endpoint, quotas and cleanup arrive in Unit 3.

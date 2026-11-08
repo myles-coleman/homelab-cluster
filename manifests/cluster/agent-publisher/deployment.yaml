@@ -1,0 +1,106 @@
+# Publisher (spec 30, Unit 1 read path; the publish endpoint arrives in Unit 3).
+#
+# The only component holding a GitHub write credential. It therefore never runs on
+# the gVisor node: arm64 only, and no toleration for the sandbox taint, so
+# scheduling cannot place it there even by accident (FR-49).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: publisher
+  namespace: agent-publisher
+  labels:
+    app: agent-publisher
+    app.kubernetes.io/part-of: agent-broker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-publisher
+  template:
+    metadata:
+      labels:
+        app: agent-publisher
+        app.kubernetes.io/part-of: agent-broker
+    spec:
+      # No Kubernetes API access is needed: this process only talks to GitHub.
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      # Deliberately NO sandbox=gvisor toleration and no node4 GPU toleration:
+      # the key must never live beside the workload it publishes for.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: publisher
+          # Transient tag; sub-task 1.13 pins the digest built from the merge.
+          image: ghcr.io/myles-coleman/agent-broker-publisher:main
+          imagePullPolicy: IfNotPresent
+          args:
+            - --listen=:8443
+            - --cert-file=/certs/tls.crt
+            - --key-file=/certs/tls.key
+            # The server secret also carries the CA that signs the validator's
+            # client certificate, so this endpoint admits exactly one identity.
+            - --client-ca-file=/certs/ca.crt
+            - --owner=myles-coleman
+            - --app-id-file=/app-secret/app-id
+            - --app-key-file=/app-secret/private-key.pem
+            - --work-dir=/tmp
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: https
+              scheme: HTTPS
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: https
+              scheme: HTTPS
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: "50m"
+              memory: 128Mi
+            limits:
+              cpu: "500m"
+              memory: 512Mi
+          volumeMounts:
+            - name: server-tls
+              mountPath: /certs
+              readOnly: true
+            - name: app-secret
+              mountPath: /app-secret
+              readOnly: true
+            - name: scratch
+              mountPath: /tmp
+      volumes:
+        - name: server-tls
+          secret:
+            secretName: publisher-server-tls
+            defaultMode: 0o440
+        - name: app-secret
+          secret:
+            secretName: github-app
+            defaultMode: 0o440
+        # git needs a writable HOME and clone directory; the root filesystem stays
+        # read-only and this is bounded.
+        - name: scratch
+          emptyDir:
+            sizeLimit: 1Gi
