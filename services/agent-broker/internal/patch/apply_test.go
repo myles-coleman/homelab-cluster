@@ -425,3 +425,44 @@ func TestApplyIsClockIndependent(t *testing.T) {
 		t.Errorf("commit sha depends on wall clock: %s vs %s", first.CommitSHA, second.CommitSHA)
 	}
 }
+
+// TestApplyRejectsGitlink pins the gitlink half of FR-22. A submodule entry is
+// not a file the agent may introduce: it points at content the validator cannot
+// see or scan.
+func TestApplyRejectsGitlink(t *testing.T) {
+	f := newFixture(t)
+	sub := strings.Repeat("1", 40)
+	patchText := "diff --git a/docs/sub b/docs/sub\n" +
+		"new file mode 160000\n" +
+		"index 0000000.." + sub + "\n" +
+		"--- /dev/null\n" +
+		"+++ b/docs/sub\n" +
+		"@@ -0,0 +1 @@\n" +
+		"+Subproject commit " + sub + "\n"
+
+	_, err := newApplier(t, f).Apply(context.Background(), request(f, patchText))
+	wantRule(t, err, rules.ForbiddenTreeShape)
+}
+
+// TestApplyRejectsPathEscape pins the traversal half of FR-22. Git itself refuses
+// the patch, so either rejection is acceptable; what must not happen is a write
+// outside the worktree.
+func TestApplyRejectsPathEscape(t *testing.T) {
+	f := newFixture(t)
+	patchText := "diff --git a/../../etc/passwd b/../../etc/passwd\n" +
+		"new file mode 100644\n" +
+		"index 0000000..1111111\n" +
+		"--- /dev/null\n" +
+		"+++ b/../../etc/passwd\n" +
+		"@@ -0,0 +1 @@\n" +
+		"+root\n"
+
+	_, err := newApplier(t, f).Apply(context.Background(), request(f, patchText))
+	rej, ok := rules.From(err)
+	if !ok {
+		t.Fatalf("error = %v, want a rejection", err)
+	}
+	if rej.RuleID != rules.ForbiddenTreeShape && rej.RuleID != rules.PatchApplyFailed {
+		t.Fatalf("rule = %q, want forbidden-tree-shape or patch-apply-failed", rej.RuleID)
+	}
+}
