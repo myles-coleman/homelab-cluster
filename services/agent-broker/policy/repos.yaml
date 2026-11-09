@@ -1,0 +1,62 @@
+# Canonical allowlist for agent submissions (spec 30, FR-20, FR-21).
+#
+# This file is the single source of truth. It is embedded into the validator image
+# and served to the manual collector at GET /v1/policy, so the collector cannot be
+# wider than the automated path (FR-32).
+#
+# Semantics
+# ---------
+# Default deny. A changed path is permitted only when it matches one `allow` glob
+# AND matches no `deny` glob. Deny always wins, including when an allow glob would
+# also match. Unknown repositories are rejected outright.
+#
+# A path is "changed" when the applied tree creates, modifies, deletes or renames
+# it (FR-20). Matching is on the repository-relative path with `/` separators.
+#
+# Rules that are enforced regardless of this file: lock-file changes (FR-24),
+# .gitattributes and tree-shape rules (FR-22), `imports` injection (FR-23).
+version: 1
+default: deny
+
+repos:
+  nixos:
+    allow:
+      # Agent-editable surface: documentation and the module tree. Everything
+      # dangerous inside these globs is denied explicitly below.
+      - "README.md"
+      - "docs/**"
+      - "modules/**"
+      - "hosts/**"
+    deny:
+      # FR-21 mandatory denials, verbatim.
+      - "flake.nix"
+      - "flake.lock"
+      - "rebuild.sh"
+      - ".github/**"
+      - ".sops.yaml"
+      - "secrets/**"
+      - "scripts/**"
+      - "images/**"
+      - "modules/sops.nix"
+      - "modules/aspects/k3s-*.nix"
+      - "modules/aspects/tailscale.nix"
+      - "hosts/homelab/default.nix"
+      - "hosts/homelab/modules/**"
+      - "**/hardware-configuration.nix"
+
+  homelab-cluster:
+    allow:
+      - "docs/**"
+      - "manifests/cluster/**"
+    deny:
+      # FR-21 mandatory denials, verbatim.
+      - "manifests/cluster/kustomization.yaml"
+      - "manifests/bootstrap/**"
+      - "generate-apps.sh"
+      - "manifests/cluster/cert-manager/**"
+      - "manifests/cluster/external-secrets/**"
+      - "manifests/cluster/traefik/**"
+      - "manifests/cluster/argocd-secret/**"
+      - "manifests/cluster/squid/**"
+      - "manifests/cluster/sandbox-telemetry/**"
+      - "manifests/cluster/agent-sandbox/**"

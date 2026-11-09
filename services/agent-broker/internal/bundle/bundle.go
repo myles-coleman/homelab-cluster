@@ -169,8 +169,9 @@ func cacheKey(repo, commit string) string {
 
 // HTTPFetcher fetches bundles from the publisher over mTLS.
 type HTTPFetcher struct {
-	baseURL string
-	client  *http.Client
+	baseURL    string
+	pathPrefix string
+	client     *http.Client
 }
 
 // NewHTTPFetcher builds a fetcher for baseURL using the supplied client TLS
@@ -188,6 +189,11 @@ func NewHTTPFetcher(baseURL string, cfg *tls.Config) *HTTPFetcher {
 
 // Fetch implements Fetcher.
 func (f *HTTPFetcher) Fetch(ctx context.Context, repo string) (Bundle, error) {
+	return f.fetchFrom(ctx, f.pathPrefix, repo)
+}
+
+// fetchFrom performs one GET against a publisher route prefix.
+func (f *HTTPFetcher) fetchFrom(ctx context.Context, prefix, repo string) (Bundle, error) {
 	endpoint := strings.TrimRight(f.baseURL, "/") + "/internal/bundle/" + url.PathEscape(repo)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -244,4 +250,27 @@ func validCommitSHA(s string) bool {
 		}
 	}
 	return true
+}
+
+// HistoryFetcher obtains the full-history bundle used by the validator to apply
+// patches (FR-19). It is a separate interface so a caller cannot accidentally
+// use the agent-facing bundle for validation.
+type HistoryFetcher interface {
+	FetchHistory(ctx context.Context, repo string) (commit string, content []byte, err error)
+}
+
+// NewHTTPHistoryFetcher points an HTTPFetcher at the publisher's history route.
+func NewHTTPHistoryFetcher(baseURL string, cfg *tls.Config) *HTTPFetcher {
+	f := NewHTTPFetcher(baseURL, cfg)
+	f.pathPrefix = "/internal/history/"
+	return f
+}
+
+// FetchHistory implements HistoryFetcher over the same wire protocol as Fetch.
+func (f *HTTPFetcher) FetchHistory(ctx context.Context, repo string) (string, []byte, error) {
+	b, err := f.fetchFrom(ctx, f.pathPrefix, repo)
+	if err != nil {
+		return "", nil, err
+	}
+	return b.Commit, b.Content, nil
 }

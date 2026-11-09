@@ -19,3 +19,10 @@ func (g GitFetcher) Fetch(ctx context.Context, repo, token string) (string, []by
 	opts.Token = token
 	return gitbundle.Fetch(ctx, opts, g.Owner, repo)
 }
+
+// FetchHistory implements HistoryFetcher with the same credential.
+func (g GitFetcher) FetchHistory(ctx context.Context, repo, token string) (string, []byte, error) {
+	opts := g.Opts
+	opts.Token = token
+	return gitbundle.FetchHistory(ctx, opts, g.Owner, repo)
+}

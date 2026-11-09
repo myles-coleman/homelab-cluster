@@ -11,16 +11,26 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/audit"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/bundle"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/identity"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/patch"
 )
 
-// Server wires the bundle cache and identity resolver into an HTTP handler.
+// Server wires the bundle cache, identity resolver, policy and patch pipeline
+// into an HTTP handler.
 type Server struct {
 	Cache    *bundle.Cache
 	Resolver *identity.Resolver
-	Log      *slog.Logger
+	// PolicyYAML is the canonical allowlist served at GET /v1/policy (FR-32).
+	PolicyYAML []byte
+	Applier    *patch.Applier
+	Audit      *audit.Logger
+	Log        *slog.Logger
+	// Now is injectable for tests; nil means time.Now.
+	Now func() time.Time
 }
 
 // Handler returns the validator's routes.
@@ -30,6 +40,8 @@ func (s *Server) Handler() http.Handler {
 		w.WriteHeader(http.StatusOK)
 	})
 	mux.HandleFunc("GET /v1/repos/{repo}/bundle", s.handleBundle)
+	mux.HandleFunc("GET /v1/policy", s.handlePolicy)
+	mux.HandleFunc("POST /v1/patches", s.handlePatches)
 	return mux
 }
 
@@ -93,6 +105,44 @@ func (s *Server) logRequest(r *http.Request, repo, sandboxUID, commit, decision,
 		"decision", decision,
 		"rule_id", rule,
 	)
+}
+
+// handlePolicy serves the same allowlist the validator enforces, so the manual
+// collector cannot be wider than the automated path (FR-32).
+func (s *Server) handlePolicy(w http.ResponseWriter, r *http.Request) {
+	if _, err := s.authenticate(r); err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthenticated", "client certificate is not a valid sandbox identity")
+		return
+	}
+	if len(s.PolicyYAML) == 0 {
+		writeError(w, http.StatusServiceUnavailable, "policy-unavailable", "policy is not configured")
+		return
+	}
+	w.Header().Set("Content-Type", "application/yaml")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(s.PolicyYAML)
+}
+
+// patchRequest is the POST /v1/patches body (FR-16).
+type patchRequest struct {
+	Repo          string `json:"repo"`
+	BaseCommit    string `json:"base_commit"`
+	CommitMessage string `json:"commit_message"`
+	Title         string `json:"title"`
+	Body          string `json:"body"`
+	Patch         string `json:"patch"`
+	// Slug optionally names the branch component. When empty it is derived from
+	// the title, because FR-16's body has no ref and FR-30 still requires a
+	// validated agent/<uid>/<slug> shape.
+	Slug string `json:"slug,omitempty"`
+}
+
+// patchResponse is the 202 body. It has exactly these four keys (FR-16).
+type patchResponse struct {
+	BundleSHA256  string `json:"bundle_sha256"`
+	CanonicalHash string `json:"canonical_hash"`
+	CommitSHA     string `json:"commit_sha"`
+	TreeSHA       string `json:"tree_sha"`
 }
 
 func writeError(w http.ResponseWriter, status int, ruleID, reason string) {

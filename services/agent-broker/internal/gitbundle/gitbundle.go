@@ -22,8 +22,11 @@ import (
 const (
 	// defaultBaseURL stands in for github.com when the caller does not override it.
 	defaultBaseURL = "https://github.com"
-	// maxBundleSize caps the bundle read into memory.
+	// maxBundleSize caps the agent-facing bundle read into memory.
 	maxBundleSize = 64 << 20 // 64 MiB
+	// maxHistorySize caps the full-history bundle; both repositories are single
+	// digit megabytes today, so this is generous headroom, not a target.
+	maxHistorySize = 512 << 20 // 512 MiB
 )
 
 // Options controls one fetch. Zero values take safe defaults.
@@ -203,4 +206,72 @@ func validPathComponent(s string) bool {
 
 func isHTTPS(baseURL string) bool {
 	return strings.HasPrefix(strings.ToLower(baseURL), "https://")
+}
+
+// FetchHistory returns a bundle of the main tip together with its full history.
+//
+// The validator uses this for two things the agent-facing bundle cannot support:
+// checking that base_commit is an ancestor of the tip, and checking out an older
+// base to apply a patch. It is never served to the sandbox (FR-12, FR-19).
+func FetchHistory(ctx context.Context, opts Options, owner, repo string) (commit string, content []byte, err error) {
+	gitBin := opts.GitBin
+	if gitBin == "" {
+		gitBin = "git"
+	}
+	baseURL := strings.TrimSpace(opts.BaseURL)
+	if baseURL == "" {
+		baseURL = defaultBaseURL
+	}
+	baseURL = strings.TrimRight(baseURL, "/")
+	if isHTTPS(baseURL) && opts.Token == "" {
+		return "", nil, errors.New("gitbundle: an installation token is required for an https base URL")
+	}
+
+	scratchRoot, cleanupRoot, err := ensureScratch(opts.WorkDir)
+	if err != nil {
+		return "", nil, err
+	}
+	defer cleanupRoot()
+
+	scratch, err := os.MkdirTemp(scratchRoot, "history-*")
+	if err != nil {
+		return "", nil, fmt.Errorf("gitbundle: create scratch directory under %q: %w", scratchRoot, err)
+	}
+	defer os.RemoveAll(scratch)
+
+	cloneDir := filepath.Join(scratch, "repo")
+	bundleFile := filepath.Join(scratch, "history.bundle")
+	env := gitEnv(opts.Token)
+	repoURL := baseURL + "/" + owner + "/" + repo + ".git"
+
+	// No --depth: the validator needs the commit graph, not just the tree.
+	if _, err := runGitCommand(ctx, gitBin, scratch, env, opts.Token,
+		"clone", "--single-branch", "--branch", "main", repoURL, cloneDir); err != nil {
+		return "", nil, err
+	}
+	out, err := runGitCommand(ctx, gitBin, cloneDir, env, opts.Token, "rev-parse", "HEAD")
+	if err != nil {
+		return "", nil, err
+	}
+	commit = strings.TrimSpace(string(out))
+	if commit == "" {
+		return "", nil, errors.New("gitbundle: git rev-parse returned an empty commit")
+	}
+	if _, err := runGitCommand(ctx, gitBin, cloneDir, env, opts.Token,
+		"bundle", "create", bundleFile, "HEAD"); err != nil {
+		return "", nil, err
+	}
+
+	info, err := os.Stat(bundleFile)
+	if err != nil {
+		return "", nil, fmt.Errorf("gitbundle: stat history bundle: %w", err)
+	}
+	if info.Size() > maxHistorySize {
+		return "", nil, fmt.Errorf("gitbundle: history bundle is %d bytes, over the %d-byte limit", info.Size(), maxHistorySize)
+	}
+	content, err = os.ReadFile(bundleFile)
+	if err != nil {
+		return "", nil, fmt.Errorf("gitbundle: read history bundle: %w", err)
+	}
+	return commit, content, nil
 }
