@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/quotas"
@@ -99,12 +100,26 @@ type Service struct {
 	GitHub   GitHub
 	Pusher   Pusher
 	Log      *slog.Logger
-	Now      func() time.Time
+
+	// mu serializes publishes. The publisher runs as a single replica, so this
+	// is the only coordination point available: it makes the quota check ->
+	// record window and the open-PR count atomic, so two concurrent requests
+	// for one sandbox cannot both pass Check before either Record.
+	mu sync.Mutex
 }
 
 // Publish verifies, admits, finds an existing PR, pushes, creates the draft PR,
 // and finally consumes quota (FR-35, FR-37, FR-50).
 func (s *Service) Publish(ctx context.Context, req PublishRequest) (Result, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// The per-request byte ceiling is decided from the request alone, so reject
+	// it before spending any verification work or GitHub API call.
+	if s.Quotas != nil && len(req.Bundle) > s.Quotas.Limits.MaxBundleBytes {
+		return Result{}, rules.New(rules.QuotaExceeded, "bundle exceeds the per-request byte limit")
+	}
+
 	verified, err := s.Verifier.Verify(ctx, req)
 	if err != nil {
 		return Result{}, err
@@ -136,6 +151,15 @@ func (s *Service) Publish(ctx context.Context, req PublishRequest) (Result, erro
 		Body:  RenderBody(verified),
 	})
 	if err != nil {
+		// The branch was already pushed; without a PR it would dangle and block
+		// every retry with branch-exists, so roll it back best-effort.
+		if delErr := s.GitHub.DeleteBranch(ctx, verified.Repo, ref); delErr != nil && s.Log != nil {
+			s.Log.Warn("could not roll back agent branch after create failure",
+				"repo", verified.Repo,
+				"ref", ref,
+				"err", delErr,
+			)
+		}
 		return Result{}, fmt.Errorf("publish: create draft pull request: %w", err)
 	}
 

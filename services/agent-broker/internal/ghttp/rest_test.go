@@ -154,9 +154,13 @@ func (h *restHarness) listPulls(w http.ResponseWriter, r *http.Request) {
 }
 
 func restPR(number int, head, author string, createdAt time.Time, draft bool) map[string]any {
+	// GitHub's pull-request objects report head.ref as the bare branch name
+	// (agent/<uid>/<slug>), never as refs/heads/agent/... . Mirroring that on
+	// the wire is the point of this fixture: the REST client must normalize the
+	// bare head back to a full ref before returning a publish.PullRequest.
 	return map[string]any{
 		"number":     number,
-		"head":       map[string]string{"ref": head},
+		"head":       map[string]string{"ref": strings.TrimPrefix(head, "refs/heads/")},
 		"user":       map[string]string{"login": author},
 		"created_at": createdAt.UTC().Format(time.RFC3339),
 		"draft":      draft,

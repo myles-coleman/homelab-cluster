@@ -8,8 +8,25 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 )
+
+// gitAuthorizationHeader matches "Authorization: Basic <value>" and
+// "Authorization: Bearer <value>", which a debug environment can copy into git
+// stderr via GIT_TRACE_CURL or GIT_CURL_VERBOSE.
+var gitAuthorizationHeader = regexp.MustCompile(`(?i)(Authorization:\s*(?:Basic|Bearer)\s+)\S+`)
+
+// gitAccessToken matches the raw "x-access-token:<value>" credential form.
+var gitAccessToken = regexp.MustCompile(`(?i)(x-access-token:)\S*`)
+
+// redactGitStderr removes credentials from git stderr while preserving the rest
+// of the diagnostic, so the publisher can log a failure without leaking the
+// installation token (FR-40).
+func redactGitStderr(s string) string {
+	s = gitAuthorizationHeader.ReplaceAllString(s, "${1}[REDACTED]")
+	return gitAccessToken.ReplaceAllString(s, "${1}[REDACTED]")
+}
 
 // runGit runs git and returns stdout. A non-zero exit is an error; stderr is
 // included for diagnosis but a successful command may still write progress there
@@ -22,7 +39,7 @@ func runGit(ctx context.Context, gitBin, dir string, env []string, args ...strin
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("publish: git %s: %w (%s)", args[0], err, strings.TrimSpace(stderr.String()))
+		return "", fmt.Errorf("publish: git %s: %w (%s)", args[0], err, redactGitStderr(strings.TrimSpace(stderr.String())))
 	}
 	return stdout.String(), nil
 }

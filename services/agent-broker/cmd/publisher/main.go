@@ -119,7 +119,6 @@ func main() {
 			Tokens: tokens,
 		},
 		Log: logger,
-		Now: time.Now,
 	}
 
 	handler := (&publish.BundleServer{

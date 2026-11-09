@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -270,4 +271,189 @@ func TestPublishRecordsOnlyAfterSuccess(t *testing.T) {
 			t.Fatalf("Publish after a rejected attempt: %v (the rejection consumed quota)", err)
 		}
 	})
+}
+
+// TestPublishDeletesBranchWhenCreateFails covers FR-35/FR-38: if the draft PR
+// cannot be created after the branch was pushed, the publisher rolls the branch
+// back before returning. The full refs/heads/... form is what DeleteBranch
+// receives; a dangling bare branch would block every retry with branch-exists.
+func TestPublishDeletesBranchWhenCreateFails(t *testing.T) {
+	events := &eventLog{}
+	verified := sampleVerified("nixos")
+	gh := &fakeGitHub{
+		events:    events,
+		createErr: rules.New(rules.PublishUnavailable, "github create failed"),
+	}
+	pusher := &fakePusher{events: events}
+	svc := newTestService(&fakeVerifier{events: events, result: verified}, gh, pusher, allowAllQuotas(events))
+
+	_, err := svc.Publish(context.Background(), PublishRequest{Repo: "nixos", Bundle: []byte("bundle")})
+	if err == nil {
+		t.Fatal("Publish returned nil, want the create-draft-PR error")
+	}
+
+	wantRef := "refs/heads/" + verified.Ref
+	if len(gh.deleted) != 1 || gh.deleted[0] != wantRef {
+		t.Fatalf("deleted refs = %v, want exactly [%s] (the just-pushed branch must be rolled back)", gh.deleted, wantRef)
+	}
+
+	wantOrder := []string{"verify", "quota", "find", "push", "create", "delete"}
+	if got := events.snapshot(); strings.Join(got, ",") != strings.Join(wantOrder, ",") {
+		t.Fatalf("order = %v, want %v (rollback must happen after create and before returning)", got, wantOrder)
+	}
+}
+
+// TestPublishRejectsOversizeBundleBeforeVerify covers FR-37: the per-request
+// byte ceiling is decided from the request alone, before any verification work
+// or GitHub call. A huge bundle must be the cheapest possible rejection.
+func TestPublishRejectsOversizeBundleBeforeVerify(t *testing.T) {
+	events := &eventLog{}
+	verified := sampleVerified("nixos")
+	verifier := &fakeVerifier{events: events, result: verified}
+	gh := &fakeGitHub{events: events}
+	pusher := &fakePusher{events: events}
+	lim := quotas.New(quotas.Limits{
+		MaxOpenPRsPerRepo:      100,
+		MaxPublishesPerSandbox: 100,
+		PublishWindow:          time.Hour,
+		MaxBundleBytes:         8,
+		MaxTotalBundleBytes:    1 << 20,
+	})
+	lim.OpenPRs = func(context.Context, string) (int, error) { return 0, nil }
+	svc := newTestService(verifier, gh, pusher, lim)
+
+	_, err := svc.Publish(context.Background(), PublishRequest{Repo: "nixos", Bundle: []byte("0123456789")})
+	wantRejection(t, err, rules.QuotaExceeded)
+
+	if verifier.calls != 0 {
+		t.Errorf("verifier calls = %d, want 0 (the size ceiling must be decided before verification)", verifier.calls)
+	}
+	if gh.calls != 0 {
+		t.Errorf("GitHub calls = %d, want 0", gh.calls)
+	}
+	if pusher.calls != 0 {
+		t.Errorf("Push calls = %d, want 0", pusher.calls)
+	}
+}
+
+// slowVerifier makes the check/record window observable: without service-level
+// serialization two concurrent publishes both verify, both see an empty quota
+// window, and both succeed.
+type slowVerifier struct {
+	delay  time.Duration
+	result Verified
+
+	mu    sync.Mutex
+	calls int
+}
+
+func (v *slowVerifier) Verify(ctx context.Context, _ PublishRequest) (Verified, error) {
+	v.mu.Lock()
+	v.calls++
+	v.mu.Unlock()
+
+	select {
+	case <-time.After(v.delay):
+		return v.result, nil
+	case <-ctx.Done():
+		return Verified{}, ctx.Err()
+	}
+}
+
+var _ Verifier = (*slowVerifier)(nil)
+
+// statelessGitHub avoids shared writes in the concurrency test so a missing
+// service lock shows up as two successes, not as a data race in test plumbing.
+type statelessGitHub struct{}
+
+func (statelessGitHub) ListOpenAgentPRs(context.Context, string) ([]PullRequest, error) {
+	return nil, nil
+}
+
+func (statelessGitHub) FindOpenPRByHead(context.Context, string, string) (*PullRequest, error) {
+	return nil, nil
+}
+
+func (statelessGitHub) CreateDraftPR(_ context.Context, _ string, in DraftPR) (PullRequest, error) {
+	return PullRequest{Number: 1, Head: in.Head, Author: "agent-broker[bot]", Draft: true}, nil
+}
+
+func (statelessGitHub) ClosePR(context.Context, string, int) error { return nil }
+
+func (statelessGitHub) DeleteBranch(context.Context, string, string) error { return nil }
+
+func (statelessGitHub) Login(context.Context) (string, error) { return "agent-broker[bot]", nil }
+
+var _ GitHub = statelessGitHub{}
+
+type statelessPusher struct {
+	delay time.Duration
+}
+
+func (p statelessPusher) Push(ctx context.Context, _ string, _ string, _ string, _ []byte) error {
+	if p.delay > 0 {
+		select {
+		case <-time.After(p.delay):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
+}
+
+var _ Pusher = statelessPusher{}
+
+// TestPublishSerializesConcurrentPublishes covers FR-37 against one replica:
+// two publishes for the same sandbox start together, and the service must
+// serialize the quota check and record so exactly one succeeds. The slow
+// verifier widens the check/record window that a naive implementation leaves
+// open. Run this under -race in the gate.
+func TestPublishSerializesConcurrentPublishes(t *testing.T) {
+	verified := sampleVerified("nixos")
+	verifier := &slowVerifier{delay: 20 * time.Millisecond, result: verified}
+	lim := quotas.New(quotas.Limits{
+		MaxPublishesPerSandbox: 1,
+		MaxBundleBytes:         1 << 20,
+		MaxTotalBundleBytes:    1 << 20,
+	})
+	// A slow verifier makes the two verifications overlap; a slow push then
+	// holds both publishers inside the check->record window long enough that a
+	// missing service lock shows up as two successes deterministically.
+	svc := newTestService(verifier, statelessGitHub{}, statelessPusher{delay: 50 * time.Millisecond}, lim)
+	req := PublishRequest{Repo: "nixos", Bundle: []byte("bundle")}
+
+	start := make(chan struct{})
+	results := make(chan error, 2)
+	var wg sync.WaitGroup
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			_, err := svc.Publish(context.Background(), req)
+			results <- err
+		}()
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	successes, quotaRejections := 0, 0
+	for err := range results {
+		if err == nil {
+			successes++
+			continue
+		}
+		rej, ok := rules.From(err)
+		if !ok {
+			t.Fatalf("error = %v, want a *rules.Rejection", err)
+		}
+		if rej.RuleID != rules.QuotaExceeded {
+			t.Fatalf("rule id = %q (%s), want %q", rej.RuleID, rej.Reason, rules.QuotaExceeded)
+		}
+		quotaRejections++
+	}
+	if successes != 1 || quotaRejections != 1 {
+		t.Fatalf("successes = %d, quota rejections = %d, want exactly one of each (publishes must be serialized)", successes, quotaRejections)
+	}
 }

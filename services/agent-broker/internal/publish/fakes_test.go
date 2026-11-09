@@ -185,7 +185,6 @@ func newTestService(v Verifier, gh GitHub, p Pusher, lim *quotas.Limiter) *Servi
 		GitHub:   gh,
 		Pusher:   p,
 		Log:      slog.New(slog.NewTextHandler(io.Discard, nil)),
-		Now:      func() time.Time { return time.Date(2026, 11, 9, 1, 2, 3, 0, time.UTC) },
 	}
 }
 

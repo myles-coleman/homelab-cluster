@@ -48,9 +48,11 @@ type ghPR struct {
 }
 
 func (p ghPR) pullRequest() publish.PullRequest {
+	// GitHub reports head.ref as the bare branch name (agent/<uid>/<slug>), not
+	// the full ref. Normalize once here so every caller sees refs/heads/....
 	return publish.PullRequest{
 		Number:    p.Number,
-		Head:      p.Head.Ref,
+		Head:      "refs/heads/" + strings.TrimPrefix(p.Head.Ref, "refs/heads/"),
 		Author:    p.User.Login,
 		CreatedAt: p.CreatedAt,
 		Draft:     p.Draft,
@@ -86,8 +88,9 @@ func (r *REST) ListOpenAgentPRs(ctx context.Context, repo string) ([]publish.Pul
 			return nil, fmt.Errorf("ghttp: decode pull requests: %w", decodeErr)
 		}
 		for _, pr := range page {
-			if strings.HasPrefix(pr.Head.Ref, "refs/heads/agent/") {
-				out = append(out, pr.pullRequest())
+			pull := pr.pullRequest()
+			if strings.HasPrefix(pull.Head, "refs/heads/agent/") {
+				out = append(out, pull)
 			}
 		}
 		endpoint = next
