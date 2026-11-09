@@ -35,11 +35,18 @@ type BundleFetcher interface {
 	Fetch(ctx context.Context, repo, token string) (commit string, content []byte, err error)
 }
 
+// HistoryFetcher produces the full-history bundle the validator uses for patch
+// application. It is never served to the sandbox.
+type HistoryFetcher interface {
+	FetchHistory(ctx context.Context, repo, token string) (commit string, content []byte, err error)
+}
+
 // BundleServer is the publisher's read-only bundle endpoint.
 type BundleServer struct {
 	Owner     string
 	Tokens    TokenSource
 	Fetcher   BundleFetcher
+	History   HistoryFetcher
 	Log       *slog.Logger
 	AdmitSANs []string
 }
@@ -51,6 +58,7 @@ func (s *BundleServer) Handler() http.Handler {
 		w.WriteHeader(http.StatusOK)
 	})
 	mux.HandleFunc("GET /internal/bundle/{repo}", s.handleBundle)
+	mux.HandleFunc("GET /internal/history/{repo}", s.handleHistory)
 	return mux
 }
 
@@ -75,6 +83,41 @@ func (s *BundleServer) handleBundle(w http.ResponseWriter, r *http.Request) {
 	commit, content, err := s.Fetcher.Fetch(r.Context(), repo, tok.Value)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "bundle-unavailable", "bundle could not be produced")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/x-git-bundle")
+	w.Header().Set("X-Bundle-Commit", commit)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(content)
+}
+
+// handleHistory serves the full-history bundle to the validator only (FR-12,
+// FR-19). Same identity check and same per-fetch token as the agent bundle.
+func (s *BundleServer) handleHistory(w http.ResponseWriter, r *http.Request) {
+	repo := r.PathValue("repo")
+	if !s.admit(r) {
+		writeError(w, http.StatusUnauthorized, "unauthenticated", "client identity is not the validator")
+		return
+	}
+	if !ValidRepo(repo) {
+		writeError(w, http.StatusNotFound, "unknown-repo", "repository is not served")
+		return
+	}
+	if s.History == nil {
+		writeError(w, http.StatusNotImplemented, "history-unavailable", "history endpoint is not configured")
+		return
+	}
+
+	tok, err := s.Tokens.InstallationToken(r.Context(), s.Owner, repo, map[string]string{"contents": "read"})
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "token-unavailable", "installation token could not be minted")
+		return
+	}
+
+	commit, content, err := s.History.FetchHistory(r.Context(), repo, tok.Value)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "history-unavailable", "history bundle could not be produced")
 		return
 	}
 

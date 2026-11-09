@@ -70,10 +70,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	gitFetcher := publish.GitFetcher{Owner: *owner, Opts: gitbundle.Options{GitBin: *gitBin, WorkDir: *workDir}}
 	handler := (&publish.BundleServer{
 		Owner:   *owner,
 		Tokens:  appTokens{client: app},
-		Fetcher: publish.GitFetcher{Owner: *owner, Opts: gitbundle.Options{GitBin: *gitBin, WorkDir: *workDir}},
+		Fetcher: gitFetcher,
+		History: gitFetcher,
 		Log:     logger,
 	}).Handler()
 

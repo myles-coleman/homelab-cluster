@@ -22,9 +22,14 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/api"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/audit"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/bundle"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/identity"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/patch"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/policy"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/scan"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/tlsconf"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/policy"
 )
 
 func main() {
@@ -41,6 +46,8 @@ func main() {
 		cacheTTL           = flag.Duration("cache-ttl", 5*time.Minute, "bundle cache TTL")
 		shutdownTimeout    = flag.Duration("shutdown-timeout", 15*time.Second, "graceful shutdown budget")
 		publisherServerNam = flag.String("publisher-server-name", "publisher.agent.internal", "SNI/verification name for the publisher")
+		workDir            = flag.String("work-dir", "/tmp", "writable scratch directory for patch application")
+		gitBin             = flag.String("git-bin", "git", "git executable")
 	)
 	flag.Parse()
 
@@ -60,6 +67,8 @@ func main() {
 		publisherServerNam: *publisherServerNam,
 		cacheTTL:           *cacheTTL,
 		shutdownTimeout:    *shutdownTimeout,
+		workDir:            *workDir,
+		gitBin:             *gitBin,
 		logger:             logger,
 	}); err != nil {
 		logger.Error("validator exited", "err", err)
@@ -80,6 +89,8 @@ type runConfig struct {
 	publisherServerNam string
 	cacheTTL           time.Duration
 	shutdownTimeout    time.Duration
+	workDir            string
+	gitBin             string
 	logger             *slog.Logger
 }
 
@@ -107,10 +118,23 @@ func run(cfg runConfig) error {
 	}
 
 	cache := bundle.NewCache(bundle.NewHTTPFetcher(cfg.publisherURL, clientTLS), cfg.cacheTTL)
+	pol, err := policy.Embedded()
+	if err != nil {
+		return err
+	}
 	apiServer := &api.Server{
-		Cache:    cache,
-		Resolver: identity.NewResolver(kube, dyn, cfg.namespace),
-		Log:      cfg.logger,
+		Cache:      cache,
+		Resolver:   identity.NewResolver(kube, dyn, cfg.namespace),
+		PolicyYAML: policyfs.YAML,
+		Applier: &patch.Applier{
+			GitBin:  cfg.gitBin,
+			WorkDir: cfg.workDir,
+			History: bundle.NewHTTPHistoryFetcher(cfg.publisherURL, clientTLS),
+			Policy:  pol,
+			Scanner: scan.New(),
+		},
+		Audit: audit.New(os.Stdout),
+		Log:   cfg.logger,
 	}
 
 	httpServer := &http.Server{
