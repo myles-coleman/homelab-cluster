@@ -1,7 +1,10 @@
 package publish
 
 import (
+	"context"
 	"encoding/base64"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -41,5 +44,38 @@ func TestRedactGitStderrNoop(t *testing.T) {
 	input := "fatal: repository not found\n"
 	if got := redactGitStderr(input); got != input {
 		t.Errorf("redactGitStderr changed secret-free input: %q -> %q", input, got)
+	}
+}
+
+// TestRunGitRedactsStderrOnFailure proves the redactor is wired into the error
+// path, not merely available. A fake git copies an Authorization header to
+// stderr and exits non-zero; the error the publisher logs must not carry the
+// credential. Without the call-site redaction this test fails.
+func TestRunGitRedactsStderrOnFailure(t *testing.T) {
+	const token = "ghs_supersecret_token_value"
+	encoded := base64.StdEncoding.EncodeToString([]byte("x-access-token:" + token))
+
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "git")
+	script := "#!/bin/sh\nprintf 'Authorization: Basic %s\\n' \"$CRED\" >&2\nprintf 'x-access-token:%s\\n' \"$TOK\" >&2\nexit 1\n"
+	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake git: %v", err)
+	}
+	t.Setenv("CRED", encoded)
+	t.Setenv("TOK", token)
+
+	_, err := runGit(context.Background(), bin, dir, nil, "push")
+	if err == nil {
+		t.Fatal("runGit returned nil despite a non-zero git exit")
+	}
+	msg := err.Error()
+	if strings.Contains(msg, token) {
+		t.Errorf("runGit error contains the raw token: %s", msg)
+	}
+	if strings.Contains(msg, encoded) {
+		t.Errorf("runGit error contains the encoded credential: %s", msg)
+	}
+	if !strings.Contains(msg, "[REDACTED]") {
+		t.Errorf("runGit error contains no redaction marker: %s", msg)
 	}
 }
