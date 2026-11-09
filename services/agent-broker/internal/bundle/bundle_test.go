@@ -298,3 +298,38 @@ func (f *countingFetcher) callCount() int {
 	defer f.mu.Unlock()
 	return f.calls
 }
+
+// TestHTTPFetcherRoutePrefixes pins the two distinct publisher routes: the agent
+// bundle and the validator's history bundle must never be confused. A shared
+// prefix here silently served the synthetic agent bundle as history, which made
+// every patch submission fail the tip check.
+func TestHTTPFetcherRoutePrefixes(t *testing.T) {
+	var mu sync.Mutex
+	seen := map[string]string{}
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		seen[r.URL.Path] = r.URL.Path
+		mu.Unlock()
+		w.Header().Set("X-Bundle-Commit", "0123456789abcdef0123456789abcdef01234567")
+		_, _ = w.Write([]byte("bytes"))
+	}))
+	defer server.Close()
+
+	tlsCfg := &tls.Config{InsecureSkipVerify: true}
+	fetcher := NewHTTPFetcher(server.URL, tlsCfg)
+	if _, err := fetcher.Fetch(context.Background(), RepoNixos); err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	history := NewHTTPHistoryFetcher(server.URL, tlsCfg)
+	if _, _, err := history.FetchHistory(context.Background(), RepoNixos); err != nil {
+		t.Fatalf("FetchHistory: %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	for _, want := range []string{"/internal/bundle/nixos", "/internal/history/nixos"} {
+		if _, ok := seen[want]; !ok {
+			t.Errorf("route %q was not requested; saw %v", want, seen)
+		}
+	}
+}

@@ -179,7 +179,8 @@ type HTTPFetcher struct {
 // commit in the X-Bundle-Commit header.
 func NewHTTPFetcher(baseURL string, cfg *tls.Config) *HTTPFetcher {
 	return &HTTPFetcher{
-		baseURL: baseURL,
+		baseURL:    baseURL,
+		pathPrefix: "/internal/bundle/",
 		client: &http.Client{
 			Timeout:   fetchTimeout,
 			Transport: &http.Transport{TLSClientConfig: cfg},
@@ -194,7 +195,7 @@ func (f *HTTPFetcher) Fetch(ctx context.Context, repo string) (Bundle, error) {
 
 // fetchFrom performs one GET against a publisher route prefix.
 func (f *HTTPFetcher) fetchFrom(ctx context.Context, prefix, repo string) (Bundle, error) {
-	endpoint := strings.TrimRight(f.baseURL, "/") + "/internal/bundle/" + url.PathEscape(repo)
+	endpoint := strings.TrimRight(f.baseURL, "/") + prefix + url.PathEscape(repo)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return Bundle{}, fmt.Errorf("bundle: build request for %q: %w", repo, err)
