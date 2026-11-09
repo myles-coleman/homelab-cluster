@@ -1,9 +1,10 @@
-// Command publisher serves the internal bundle endpoint and is the only broker
-// component that talks to GitHub (spec 30, FR-12, FR-13).
+// Command publisher serves the internal bundle/history endpoints and the
+// validator's publish endpoint. It is the only broker component that talks to
+// GitHub (spec 30, FR-12, FR-13, FR-33..FR-40).
 //
-// Unit 1 needs only the read path: mint a read-only installation token for one
-// repository, clone the main tip shallowly, and return a bundle. The publish
-// endpoint arrives in Unit 3 on the same identity.
+// The read path mints a read-only installation token per fetch. The publish path
+// verifies the validator's thin bundle locally, applies quotas, pushes one agent
+// branch with one contents:write token, and opens a draft pull request.
 package main
 
 import (
@@ -22,8 +23,12 @@ import (
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/ghttp"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/gitbundle"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/publish"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/quotas"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/tlsconf"
 )
+
+// servedRepos is the same allowlist the validator enforces (FR-11).
+var servedRepos = []string{"nixos", "homelab-cluster"}
 
 func main() {
 	var (
@@ -36,6 +41,9 @@ func main() {
 		appKeyFile      = flag.String("app-key-file", "/app-secret/private-key.pem", "GitHub App private key")
 		workDir         = flag.String("work-dir", "/tmp", "writable scratch directory")
 		gitBin          = flag.String("git-bin", "git", "git executable")
+		cleanup         = flag.Bool("cleanup", false, "run one cleanup pass for both repositories and exit")
+		cleanupForce    = flag.Bool("cleanup-force", false, "cleanup fresh app-authored branches too")
+		maxBranchAge    = flag.Duration("max-branch-age", 72*time.Hour, "maximum age of an agent branch before cleanup")
 		shutdownTimeout = flag.Duration("shutdown-timeout", 15*time.Second, "graceful shutdown budget")
 	)
 	flag.Parse()
@@ -64,18 +72,62 @@ func main() {
 		logger.Error("build github app client", "err", err)
 		os.Exit(1)
 	}
+
+	rest := &ghttp.REST{
+		Owner:     *owner,
+		LoginRepo: servedRepos[0],
+		Tokens:    app,
+		Log:       logger,
+	}
+
+	if *cleanup {
+		runCleanup(logger, rest, *maxBranchAge, *cleanupForce)
+		return
+	}
+
 	serverTLS, err := tlsconf.ServerConfig(*certFile, *keyFile, *clientCAFile)
 	if err != nil {
 		logger.Error("build server TLS", "err", err)
 		os.Exit(1)
 	}
 
-	gitFetcher := publish.GitFetcher{Owner: *owner, Opts: gitbundle.Options{GitBin: *gitBin, WorkDir: *workDir}}
+	gitOpts := gitbundle.Options{GitBin: *gitBin, WorkDir: *workDir}
+	gitFetcher := publish.GitFetcher{Owner: *owner, Opts: gitOpts}
+	tokens := appTokens{client: app}
+
+	limiter := quotas.New(quotas.Limits{})
+	limiter.OpenPRs = func(ctx context.Context, repo string) (int, error) {
+		prs, err := rest.ListOpenAgentPRs(ctx, repo)
+		if err != nil {
+			return 0, err
+		}
+		return len(prs), nil
+	}
+
+	service := &publish.Service{
+		Owner: *owner,
+		Verifier: &publish.GitVerifier{
+			GitBin:  *gitBin,
+			WorkDir: *workDir,
+			History: historySource{owner: *owner, opts: gitOpts, tokens: tokens},
+		},
+		Quotas: limiter,
+		GitHub: rest,
+		Pusher: &publish.GitPusher{
+			Owner:  *owner,
+			Opts:   gitOpts,
+			Tokens: tokens,
+		},
+		Log: logger,
+		Now: time.Now,
+	}
+
 	handler := (&publish.BundleServer{
 		Owner:   *owner,
-		Tokens:  appTokens{client: app},
+		Tokens:  tokens,
 		Fetcher: gitFetcher,
 		History: gitFetcher,
+		Publish: service,
 		Log:     logger,
 	}).Handler()
 
@@ -116,6 +168,43 @@ func main() {
 		logger.Error("shutdown", "err", err)
 		os.Exit(1)
 	}
+}
+
+// runCleanup is the one-shot operator command (FR-38). It never runs as part of
+// the server path.
+func runCleanup(logger *slog.Logger, gh publish.GitHub, maxAge time.Duration, force bool) {
+	cleaner := &publish.Cleanup{GitHub: gh, MaxAge: maxAge, Force: force, Now: time.Now}
+	ctx := context.Background()
+	for _, repo := range servedRepos {
+		res, err := cleaner.Run(ctx, repo)
+		if err != nil {
+			logger.Error("cleanup failed", "repo", repo, "err", err)
+			os.Exit(1)
+		}
+		logger.Info("cleanup complete",
+			"repo", repo,
+			"closed_prs", len(res.ClosedPRs),
+			"deleted_refs", len(res.DeletedRefs),
+		)
+	}
+}
+
+// historySource mints a contents:read token per fetch and materialises history
+// for the verifier. The token is never cached.
+type historySource struct {
+	owner  string
+	opts   gitbundle.Options
+	tokens publish.TokenSource
+}
+
+func (h historySource) FetchHistory(ctx context.Context, repo string) (string, []byte, error) {
+	tok, err := h.tokens.InstallationToken(ctx, h.owner, repo, map[string]string{"contents": "read"})
+	if err != nil {
+		return "", nil, err
+	}
+	opts := h.opts
+	opts.Token = tok.Value
+	return gitbundle.FetchHistory(ctx, opts, h.owner, repo)
 }
 
 // appTokens adapts the App client to the publisher's TokenSource. It resolves the

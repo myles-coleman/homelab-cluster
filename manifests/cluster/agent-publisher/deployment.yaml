@@ -1,8 +1,13 @@
-# Publisher (spec 30, Unit 1 read path; the publish endpoint arrives in Unit 3).
+# Publisher (spec 30, Units 1 and 3): the read-only bundle/history endpoints and
+# the validator-only POST /v1/publish path.
 #
 # The only component holding a GitHub write credential. It therefore never runs on
 # the gVisor node: arm64 only, and no toleration for the sandbox taint, so
 # scheduling cannot place it there even by accident (FR-49).
+#
+# Cleanup is an operator command, not a server route. Run it against the pod:
+#   kubectl -n agent-publisher exec deploy/publisher -- /publisher -cleanup
+# Add -cleanup-force to remove fresh app-authored branches as well.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

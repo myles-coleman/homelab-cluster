@@ -27,6 +27,7 @@ import (
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/identity"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/patch"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/policy"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/publish"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/scan"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/tlsconf"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/policy"
@@ -133,8 +134,9 @@ func run(cfg runConfig) error {
 			Policy:  pol,
 			Scanner: scan.New(),
 		},
-		Audit: audit.New(os.Stdout),
-		Log:   cfg.logger,
+		Audit:     audit.New(os.Stdout),
+		Log:       cfg.logger,
+		Publisher: publish.NewClient(cfg.publisherURL, clientTLS),
 	}
 
 	httpServer := &http.Server{

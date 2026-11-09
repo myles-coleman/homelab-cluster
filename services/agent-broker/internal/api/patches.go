@@ -12,6 +12,7 @@ import (
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/audit"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/canon"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/patch"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/publish"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/refname"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/rules"
 )
@@ -129,6 +130,30 @@ func (s *Server) handlePatches(w http.ResponseWriter, r *http.Request) {
 	rec.TreeSHA = res.TreeSHA
 	rec.CanonicalHash = canonicalHash
 	rec.BundleSHA256 = canon.BundleSHA256(res.Bundle)
+
+	// FR-33: the publisher is the only writer. It must have accepted the exact
+	// bundle before the sandbox sees a 202; a rejection is forwarded unchanged.
+	if s.Publisher != nil {
+		if err := s.Publisher.Publish(r.Context(), publish.PublishRequest{
+			Repo:          req.Repo,
+			Bundle:        res.Bundle,
+			BundleSHA256:  rec.BundleSHA256,
+			CanonicalHash: canonicalHash,
+		}); err != nil {
+			if rej, ok := rules.From(err); ok {
+				rec.RuleID = rej.RuleID
+				writeError(w, statusFor(rej.RuleID), rej.RuleID, rej.Reason)
+				return
+			}
+			if s.Log != nil {
+				s.Log.Error("publish failed", "request_id", rec.RequestID, "err", err)
+			}
+			rec.RuleID = rules.PublishUnavailable
+			writeError(w, http.StatusBadGateway, rules.PublishUnavailable, "publisher is unavailable")
+			return
+		}
+	}
+
 	rec.Decision = audit.Accept
 	rec.RuleID = ""
 
@@ -158,6 +183,16 @@ func statusFor(ruleID string) int {
 		return http.StatusNotFound
 	case rules.StaleBase:
 		return http.StatusConflict
+	case rules.HashMismatch, rules.BranchExists:
+		return http.StatusConflict
+	case rules.InvalidRef:
+		return http.StatusUnprocessableEntity
+	case rules.QuotaExceeded:
+		return http.StatusTooManyRequests
+	case rules.Unauthenticated:
+		return http.StatusUnauthorized
+	case rules.PublishUnavailable, rules.PublishFailed:
+		return http.StatusBadGateway
 	default:
 		return http.StatusUnprocessableEntity
 	}

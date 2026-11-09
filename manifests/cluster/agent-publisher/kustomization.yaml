@@ -7,4 +7,5 @@ resources:
   - external-secret.yaml
   - deployment.yaml
   - service.yaml
-  # The publish endpoint, quotas and cleanup arrive in Unit 3.
+  # The publish endpoint, quotas and cleanup ship in the publisher binary; no
+  # extra manifest is required for them.
