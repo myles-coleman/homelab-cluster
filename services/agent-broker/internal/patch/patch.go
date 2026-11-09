@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -120,11 +121,6 @@ func (a *Applier) Apply(ctx context.Context, req Request) (Result, error) {
 	if workDir == "" {
 		workDir = os.TempDir()
 	}
-	now := a.Now
-	if now == nil {
-		now = time.Now
-	}
-
 	if !bundle.ValidRepo(req.Repo) {
 		return Result{}, rules.New(rules.UnknownRepo, "repository is not served")
 	}
@@ -236,17 +232,31 @@ func (a *Applier) Apply(ctx context.Context, req Request) (Result, error) {
 	}
 
 	// FR-27: exactly one commit, no signature, committer derived from the UID.
+	//
+	// The timestamp comes from base_commit, not the wall clock. commit_sha is part
+	// of canonical_hash, and FR-29 requires identical inputs to produce an
+	// identical hash: a wall-clock timestamp would make every resubmission hash
+	// differently even though nothing about the change changed.
 	identity := strings.ToLower(req.SandboxUID)
 	if identity == "" {
 		return Result{}, rules.New(rules.BadRequest, "sandbox identity is missing")
 	}
+	dateOut, err := runGit(ctx, gitBin, repoDir, nil, "show", "-s", "--format=%ct", req.BaseCommit)
+	if err != nil {
+		return Result{}, err
+	}
+	baseSeconds, err := strconv.ParseInt(strings.TrimSpace(dateOut), 10, 64)
+	if err != nil {
+		return Result{}, fmt.Errorf("patch: base commit has an unusable timestamp: %w", err)
+	}
+	commitDate := time.Unix(baseSeconds, 0).UTC().Format(time.RFC3339)
 	env := []string{
 		"GIT_AUTHOR_NAME=agent-sandbox",
 		"GIT_AUTHOR_EMAIL=" + identity + "@sandbox.invalid",
 		"GIT_COMMITTER_NAME=agent-sandbox",
 		"GIT_COMMITTER_EMAIL=" + identity + "@sandbox.invalid",
-		"GIT_AUTHOR_DATE=" + now().UTC().Format(time.RFC3339),
-		"GIT_COMMITTER_DATE=" + now().UTC().Format(time.RFC3339),
+		"GIT_AUTHOR_DATE=" + commitDate,
+		"GIT_COMMITTER_DATE=" + commitDate,
 	}
 	if _, err := runGitEnv(ctx, gitBin, repoDir, env,
 		"-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null",

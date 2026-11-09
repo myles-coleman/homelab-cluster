@@ -397,3 +397,31 @@ func TestApplyBundleHashIsDeterministic(t *testing.T) {
 		t.Errorf("canonical hashes differ: %s vs %s", h1, h2)
 	}
 }
+
+// TestApplyIsClockIndependent pins FR-29's determinism requirement: the commit
+// timestamp comes from base_commit, so two validators with different clocks
+// produce the same commit and therefore the same canonical hash.
+func TestApplyIsClockIndependent(t *testing.T) {
+	f := newFixture(t)
+	patchText := makePatch(t, f, func(repo string) {
+		writeFile(t, filepath.Join(repo, "docs/a.txt"), "clock free\n")
+	})
+	req := request(f, patchText)
+
+	early := newApplier(t, f)
+	early.Now = func() time.Time { return time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC) }
+	late := newApplier(t, f)
+	late.Now = func() time.Time { return time.Date(2030, 6, 6, 6, 6, 6, 0, time.UTC) }
+
+	first, err := early.Apply(context.Background(), req)
+	if err != nil {
+		t.Fatalf("early: %v", err)
+	}
+	second, err := late.Apply(context.Background(), req)
+	if err != nil {
+		t.Fatalf("late: %v", err)
+	}
+	if first.CommitSHA != second.CommitSHA {
+		t.Errorf("commit sha depends on wall clock: %s vs %s", first.CommitSHA, second.CommitSHA)
+	}
+}
