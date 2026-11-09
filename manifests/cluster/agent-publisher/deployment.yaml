@@ -37,10 +37,9 @@ spec:
           type: RuntimeDefault
       containers:
         - name: publisher
-          # Transient during Unit 2: the history endpoint is new. Pinned back to
-          # a digest in the Unit 2 proof.
-          image: ghcr.io/myles-coleman/agent-broker-publisher:main
-          imagePullPolicy: Always
+          # Pinned to the digest built from merge 7f88bdf9 by agent-broker.yaml.
+          image: ghcr.io/myles-coleman/agent-broker-publisher@sha256:f1bc18b203dbdf135e1618131197e0b6fd283cc380b6ce9e36f1586ea007cd41
+          imagePullPolicy: IfNotPresent
           args:
             - --listen=:8443
             - --cert-file=/certs/tls.crt
