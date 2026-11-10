@@ -59,8 +59,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: validator
-          # Pinned to the digest built from merge 7f88bdf9 by agent-broker.yaml.
-          image: ghcr.io/myles-coleman/agent-broker-validator@sha256:693b0761a1e2500ded32ba325f68630cc2b7b34684d57682039b224a850b3e23
+          # Pinned to the digest built from merge e244aa6 (spec 30 unit 3) by agent-broker.yaml.
+          image: ghcr.io/myles-coleman/agent-broker-validator@sha256:fb04cc178cf610c6b9a2d408dedf817ba909ad5f7fcd64bc29db7b427eecd64c
           imagePullPolicy: IfNotPresent
           args:
             - --listen=:8443

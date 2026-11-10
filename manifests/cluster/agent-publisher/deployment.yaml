@@ -42,8 +42,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: publisher
-          # Pinned to the digest built from merge 7f88bdf9 by agent-broker.yaml.
-          image: ghcr.io/myles-coleman/agent-broker-publisher@sha256:f1bc18b203dbdf135e1618131197e0b6fd283cc380b6ce9e36f1586ea007cd41
+          # Pinned to the digest built from merge e244aa6 (spec 30 unit 3) by agent-broker.yaml.
+          image: ghcr.io/myles-coleman/agent-broker-publisher@sha256:f5498d549f23d51e29bf45577ecb95190b862027c6544dce1f20e6f26a8b713f
           imagePullPolicy: IfNotPresent
           args:
             - --listen=:8443
