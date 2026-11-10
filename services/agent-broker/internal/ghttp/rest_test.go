@@ -67,12 +67,11 @@ func newRESTHarness(t *testing.T) *restHarness {
 
 	app := newTestAppClient(keyPEM, h.server.URL, h.server.Client(), now)
 	h.rest = &REST{
-		Owner:     restOwner,
-		LoginRepo: restRepo,
-		Tokens:    app,
-		BaseURL:   h.server.URL,
-		HTTP:      h.server.Client(),
-		Log:       slog.New(slog.NewTextHandler(h.logBuf, nil)),
+		Owner:   restOwner,
+		Tokens:  app,
+		BaseURL: h.server.URL,
+		HTTP:    h.server.Client(),
+		Log:     slog.New(slog.NewTextHandler(h.logBuf, nil)),
 	}
 	t.Cleanup(func() {
 		if strings.Contains(h.logBuf.String(), h.token) {
@@ -117,8 +116,8 @@ func (h *restHarness) handle(w http.ResponseWriter, r *http.Request) {
 	h.mu.Unlock()
 
 	switch {
-	case r.Method == http.MethodGet && r.URL.Path == "/user":
-		writeRESTJSON(w, http.StatusOK, map[string]any{"login": "agent-broker[bot]"})
+	case r.Method == http.MethodGet && r.URL.Path == "/app":
+		writeRESTJSON(w, http.StatusOK, map[string]any{"slug": "agent-broker-publisher"})
 
 	case r.Method == http.MethodGet && r.URL.Path == "/repos/"+restOwner+"/"+restRepo+"/pulls":
 		h.listPulls(w, r)
@@ -401,8 +400,9 @@ func TestRESTDeleteBranchEscapesPathSegments(t *testing.T) {
 	findRequest(t, h, http.MethodDelete, escaped)
 }
 
-// TestRESTLogin covers FR-39's login operation: pull_requests:read narrowed to
-// the configured login repo, and GET /user.
+// TestRESTLogin covers FR-39's login operation. GET /user rejects installation
+// tokens (403), so login must come from the App slug via GET /app, which names
+// the bot <slug>[bot] — and must not mint an installation token at all.
 func TestRESTLogin(t *testing.T) {
 	h := newRESTHarness(t)
 
@@ -410,10 +410,10 @@ func TestRESTLogin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Login: %v", err)
 	}
-	if login != "agent-broker[bot]" {
-		t.Errorf("Login = %q, want agent-broker[bot]", login)
+	if login != "agent-broker-publisher[bot]" {
+		t.Errorf("Login = %q, want agent-broker-publisher[bot]", login)
 	}
 
-	assertSingleToken(t, h, restRepo, "pull_requests", "read")
-	findRequest(t, h, http.MethodGet, "/user")
+	assertTokenCount(t, h, 0)
+	findRequest(t, h, http.MethodGet, "/app")
 }

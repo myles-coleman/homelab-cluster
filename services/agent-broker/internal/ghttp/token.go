@@ -133,6 +133,44 @@ func (c *AppClient) installationForRepo(ctx context.Context, owner, repo string)
 	return decoded.ID, nil
 }
 
+// AppSlug returns the App's slug, which is how GitHub derives the bot login
+// (<slug>[bot]). It asks GET /app with the App JWT because installation tokens
+// are not authorised on GET /user (GitHub answers 403). The JWT is never logged.
+func (c *AppClient) AppSlug(ctx context.Context) (string, error) {
+	jwt, err := c.mintJWT()
+	if err != nil {
+		return "", err
+	}
+
+	endpoint := strings.TrimRight(c.apiBase, "/") + "/app"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return "", fmt.Errorf("ghttp: build app lookup: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+jwt)
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("ghttp: look up app: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("ghttp: app lookup returned status %d", resp.StatusCode)
+	}
+
+	var decoded struct {
+		Slug string `json:"slug"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&decoded); err != nil {
+		return "", fmt.Errorf("ghttp: decode app lookup: %w", err)
+	}
+	if decoded.Slug == "" {
+		return "", errors.New("ghttp: app lookup returned no slug")
+	}
+	return decoded.Slug, nil
+}
+
 // mintFor performs the actual token request for one installation.
 func (c *AppClient) mintFor(ctx context.Context, installationID int64, repo string, permissions map[string]string) (Token, error) {
 	jwt, err := c.mintJWT()
