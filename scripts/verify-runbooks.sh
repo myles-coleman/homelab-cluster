@@ -67,7 +67,7 @@ ENCRYPTION="$RUNBOOKS/agent-secret-encryption.md"
 PAGES="$RUNBOOKS/.pages"
 
 PASS=0
-TOTAL=21
+TOTAL=23
 
 pass() { PASS=$((PASS + 1)); printf 'PASS %2d/%d  %s\n' "$PASS" "$TOTAL" "$*"; }
 fail() { printf 'FAIL %2d/%d  %s\n' "$((PASS + 1))" "$TOTAL" "$*" >&2; exit 1; }
@@ -113,9 +113,20 @@ require_heading "$ENCRYPTION" "at-rest record" "## Observed result"
 require_heading "$ENCRYPTION" "at-rest record" "## Command"
 require_heading "$ENCRYPTION" "at-rest record" "## Accepted risk"
 
-grep -qi 'enabled' "$ENCRYPTION" \
-  || fail "at-rest record: no 'enabled' / 'not enabled' answer"
-pass "at-rest record: records the enabled/not-enabled answer"
+# The live answer is recorded as not enabled. Assert the exact claim, not the
+# substring "enabled": the two answers differ by three characters and a
+# flipped result must fail this check.
+grep -qF 'k3s secret encryption at rest is **not enabled**' "$ENCRYPTION" \
+  || fail "at-rest record: the observed answer is not the recorded 'not enabled'"
+pass "at-rest record: records the exact answer (not enabled)"
+
+grep -qF 'encryption-config.json' "$ENCRYPTION" \
+  || fail "at-rest record: command does not inspect encryption-config.json"
+pass "at-rest record: command inspects encryption-config.json"
+
+grep -qF -- '--secrets-encryption' "$ENCRYPTION" \
+  || fail "at-rest record: command does not check the --secrets-encryption flag"
+pass "at-rest record: command checks the --secrets-encryption flag"
 
 require_heading "$ENCRYPTION" "at-rest record" "## Rotation cadence"
 

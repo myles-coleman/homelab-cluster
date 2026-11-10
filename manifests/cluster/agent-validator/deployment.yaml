@@ -90,7 +90,7 @@ spec:
             # appended here on the PVC below so it outlives the pod; the same
             # records also go to stdout for `kubectl logs` and the filelog path.
             - --audit-log-file=/var/log/agent-broker/audit.ndjson
-            - --audit-retention=72h
+            - --audit-retention=96h
             # OTLP export to the k8s-infra agent (spec 30, FR-52). The hostname
             # resolves through the hostAliases entry above; the service name is
             # the discriminator in SigNoz.

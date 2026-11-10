@@ -272,3 +272,61 @@ func TestPublishAuditWritesOneRejection(t *testing.T) {
 		t.Errorf("audit record has no timestamp: %s", lines[0])
 	}
 }
+
+// TestPublishAuditAcceptedCarriesFR51Fields covers the publisher half of FR-51
+// on the success path: every field the requirement names is populated, not only
+// the id and decision. The values are re-derived from the verified bundle, so a
+// regression that drops one is visible rather than silently empty.
+func TestPublishAuditAcceptedCarriesFR51Fields(t *testing.T) {
+	verified := sampleVerified("nixos")
+	gh := &fakeGitHub{
+		createPR: PullRequest{Number: 12, Head: "refs/heads/" + verified.Ref, Author: "agent-broker[bot]", Draft: true},
+	}
+	var buf bytes.Buffer
+	s := &BundleServer{
+		Owner:   "myles-coleman",
+		Tokens:  &stubTokens{},
+		Fetcher: &stubBundle{},
+		Publish: newTestService(&fakeVerifier{result: verified}, gh, &fakePusher{}, allowAllQuotas(nil)),
+		Audit:   audit.New(&buf),
+	}
+
+	raw := mustJSON(t, PublishRequest{
+		Repo:          "nixos",
+		Bundle:        []byte("bundle"),
+		BundleSHA256:  verified.BundleSHA256,
+		CanonicalHash: verified.CanonicalHash,
+	})
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, publishHTTPRequest(t, raw, ValidatorSAN))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201 (body %s)", rec.Code, rec.Body.String())
+	}
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 1 {
+		t.Fatalf("audit lines = %d, want 1: %q", len(lines), buf.String())
+	}
+	var got map[string]any
+	if err := json.Unmarshal([]byte(lines[0]), &got); err != nil {
+		t.Fatalf("decode audit record: %v", err)
+	}
+	want := map[string]string{
+		"sandbox_uid":    testAgentUID,
+		"base_commit":    verified.BaseCommit,
+		"tree_sha":       verified.TreeSHA,
+		"bundle_sha256":  verified.BundleSHA256,
+		"canonical_hash": verified.CanonicalHash,
+	}
+	for key, value := range want {
+		if value == "" {
+			t.Fatalf("test fixture has an empty %s", key)
+		}
+		if got[key] != value {
+			t.Errorf("%s = %v, want %q", key, got[key], value)
+		}
+	}
+	if got["decision"] != "accept" || got["commit_sha"] != verified.CommitSHA {
+		t.Errorf("decision/commit = %v/%v", got["decision"], got["commit_sha"])
+	}
+}
