@@ -57,3 +57,6 @@ resources:
 - agent-sandbox
 # issue #74 — pull-based sandbox + Strata telemetry, pinned to the sandbox node
 - sandbox-telemetry
+
+# Temporary service for the spec 30 task 4.11 deploy-key bootstrap proof.
+- verify-bootstrap
