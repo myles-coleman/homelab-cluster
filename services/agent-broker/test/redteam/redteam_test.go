@@ -14,9 +14,12 @@ package redteam
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -24,7 +27,17 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/kubernetes/fake"
+
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/api"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/identity"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/patch"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/policy"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/rules"
@@ -440,4 +453,152 @@ func writeFile(t *testing.T, name, content string) {
 	if err := os.WriteFile(name, []byte(content), 0o644); err != nil {
 		t.Fatalf("write %s: %v", name, err)
 	}
+}
+
+// TestRedTeamHTTP drives the same corpus through the validator's HTTP entrypoint
+// (api.Server.Handler), not only through patch.Applier. This is what proves the
+// wire contract: the 4xx body's rule_id and the 202 acceptance shape are the
+// values the agent actually sees (FR-54).
+func TestRedTeamHTTP(t *testing.T) {
+	fixtures := loadFixtures(t)
+	h := newHistory(t)
+	handler := newHTTPValidator(t, h)
+
+	for _, fx := range fixtures {
+		fx := fx
+		t.Run(fx.Name, func(t *testing.T) {
+			if fx.Transport != "" {
+				if fx.Transport != "unauthenticated" {
+					t.Fatalf("unknown transport %q", fx.Transport)
+				}
+				driveUnauthenticated(t, fx)
+				return
+			}
+
+			base := h.base
+			if fx.BaseCommit != "" {
+				base = fx.BaseCommit
+			}
+			body := map[string]any{
+				"repo":           fx.Repo,
+				"base_commit":    base,
+				"commit_message": fx.CommitMessage,
+				"title":          fx.Title,
+				"body":           fx.Body,
+				"patch":          string(buildPatch(t, h, fx)),
+				"slug":           slugFromRef(fx.Ref),
+			}
+			if fx.EmptyPatch {
+				body["patch"] = ""
+			}
+
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, httpRequestWithIdentity(t, body))
+
+			if fx.ExpectedRuleID == "" {
+				if rec.Code != http.StatusAccepted {
+					t.Fatalf("positive control status = %d (body %s)", rec.Code, rec.Body.String())
+				}
+				var got struct {
+					CommitSHA string `json:"commit_sha"`
+				}
+				if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+					t.Fatalf("decode 202 body: %v", err)
+				}
+				if got.CommitSHA == "" {
+					t.Fatal("positive control returned no commit_sha")
+				}
+				return
+			}
+
+			if rec.Code < 400 || rec.Code >= 500 {
+				t.Fatalf("status = %d, want 4xx (body %s)", rec.Code, rec.Body.String())
+			}
+			var got struct {
+				RuleID string `json:"rule_id"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+				t.Fatalf("decode error body: %v", err)
+			}
+			if got.RuleID != fx.ExpectedRuleID {
+				t.Fatalf("rule_id = %q, want %q (body %s)", got.RuleID, fx.ExpectedRuleID, rec.Body.String())
+			}
+		})
+	}
+}
+
+// newHTTPValidator builds the real handler with a fake identity resolver and the
+// real patch pipeline. The pod/Sandbox pair is the same shape the API tests use,
+// so identity resolution is exercised rather than stubbed.
+func newHTTPValidator(t *testing.T, h history) http.Handler {
+	t.Helper()
+	const ns = "agent-sandbox"
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "opencode",
+			Namespace: ns,
+			UID:       "pod-uid",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: identity.SandboxAPIVersion,
+				Kind:       identity.SandboxKind,
+				Name:       "opencode",
+				UID:        types.UID(sandboxUID),
+			}},
+		},
+	}
+	sandbox := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": identity.SandboxAPIVersion,
+		"kind":       identity.SandboxKind,
+		"metadata": map[string]any{
+			"name":      "opencode",
+			"namespace": ns,
+			"uid":       sandboxUID,
+		},
+	}}
+	dyn := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
+	gvr := schema.GroupVersionResource{Group: "agents.x-k8s.io", Version: "v1beta1", Resource: "sandboxes"}
+	if _, err := dyn.Resource(gvr).Namespace(ns).Create(context.Background(), sandbox, metav1.CreateOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	pol, err := policy.Embedded()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return (&api.Server{
+		Resolver: identity.NewResolver(fake.NewSimpleClientset(pod), dyn, ns),
+		Applier: &patch.Applier{
+			GitBin:  "git",
+			WorkDir: t.TempDir(),
+			History: historyStub{tip: h.tip, data: h.bundle},
+			Policy:  pol,
+			Scanner: scan.New(),
+		},
+	}).Handler()
+}
+
+func httpRequestWithIdentity(t *testing.T, body any) *http.Request {
+	t.Helper()
+	raw, err := json.Marshal(body)
+	if err != nil {
+		t.Fatalf("marshal body: %v", err)
+	}
+	r := httptest.NewRequest(http.MethodPost, "/v1/patches", bytes.NewReader(raw))
+	u, err := url.Parse("spiffe://cowlab.org/ns/agent-sandbox/pod/opencode")
+	if err != nil {
+		t.Fatalf("parse SAN: %v", err)
+	}
+	r.TLS = &tls.ConnectionState{PeerCertificates: []*x509.Certificate{{URIs: []*url.URL{u}}}}
+	return r
+}
+
+// slugFromRef keeps the agent ref's slug component, including any separators, so
+// the branch-slug fixture still reaches refname.Validate through the handler.
+func slugFromRef(ref string) string {
+	parts := strings.SplitN(ref, "/", 3)
+	if len(parts) == 3 {
+		return parts[2]
+	}
+	return ref
 }

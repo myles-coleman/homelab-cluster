@@ -52,7 +52,7 @@ func main() {
 		otlpEndpoint       = flag.String("otlp-endpoint", "http://signoz-k8s-infra:4318", "OTLP/HTTP collector endpoint; empty disables export")
 		otlpService        = flag.String("otlp-service", "agent-validator", "service.name resource attribute for OTLP")
 		auditLogFile       = flag.String("audit-log-file", "/var/log/agent-broker/audit.ndjson", "local NDJSON audit store")
-		auditRetention     = flag.Duration("audit-retention", 72*time.Hour, "how long the local audit store keeps a record")
+		auditRetention     = flag.Duration("audit-retention", 96*time.Hour, "how long the local audit store keeps a record")
 	)
 	flag.Parse()
 

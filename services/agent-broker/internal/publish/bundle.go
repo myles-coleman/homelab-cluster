@@ -211,8 +211,13 @@ func (s *BundleServer) handlePublish(w http.ResponseWriter, r *http.Request) {
 	rec.RuleID = ""
 	rec.Reason = ""
 	rec.RuleOutcomes = []string{audit.Accept}
-	rec.CommitSHA = res.CommitSHA
 	rec.Ref = res.Ref
+	rec.SandboxUID = res.SandboxUID
+	rec.BaseCommit = res.BaseCommit
+	rec.CommitSHA = res.CommitSHA
+	rec.TreeSHA = res.TreeSHA
+	rec.BundleSHA256 = res.BundleSHA256
+	rec.CanonicalHash = res.CanonicalHash
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

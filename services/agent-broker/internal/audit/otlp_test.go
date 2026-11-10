@@ -318,8 +318,8 @@ func TestOTLPRedactsAttributeValues(t *testing.T) {
 	if got := otlpString(t, attrs, "repo"); got != "[REDACTED]" {
 		t.Errorf("repo attribute = %q, want [REDACTED]", got)
 	}
-	if value, ok := attrs["reason"]; ok && value.StringValue != "" && value.StringValue != "[REDACTED]" {
-		t.Errorf("reason attribute = %q, want [REDACTED]", value.StringValue)
+	if got := otlpString(t, attrs, "reason"); got != "[REDACTED]" {
+		t.Errorf("reason attribute = %q, want [REDACTED]", got)
 	}
 }
 

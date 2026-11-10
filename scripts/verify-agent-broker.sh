@@ -283,7 +283,7 @@ else:
     vols={v.get("name"): v for v in s.get("volumes",[])}
     if "persistentVolumeClaim" not in (vols.get(audit.get("name")) or {}):
         errs.append("validator audit volume is not a PVC")
-for flag in ("--audit-log-file=/var/log/agent-broker/audit.ndjson", "--audit-retention=72h"):
+for flag in ("--audit-log-file=/var/log/agent-broker/audit.ndjson", "--audit-retention=96h"):
     if flag not in c.get("args", []):
         errs.append("validator missing " + flag)
 if errs: sys.exit(", ".join(errs))

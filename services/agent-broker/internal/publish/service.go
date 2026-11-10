@@ -47,12 +47,19 @@ type Verified struct {
 	CanonicalHash string
 }
 
-// Result is one successfully published draft PR.
+// Result is one successfully published draft PR. The verified fields are
+// carried through so the handler's audit record can satisfy FR-51 without
+// re-deriving anything or holding the bundle.
 type Result struct {
-	Number    int
-	Ref       string // full refs/heads/agent/<uid>/<slug>
-	URL       string
-	CommitSHA string
+	Number        int
+	Ref           string // full refs/heads/agent/<uid>/<slug>
+	URL           string
+	CommitSHA     string
+	SandboxUID    string
+	BaseCommit    string
+	TreeSHA       string
+	BundleSHA256  string
+	CanonicalHash string
 }
 
 // Verifier re-derives the canonical hash from the bundle (FR-34).
@@ -177,10 +184,15 @@ func (s *Service) Publish(ctx context.Context, req PublishRequest) (Result, erro
 	}
 
 	return Result{
-		Number:    created.Number,
-		Ref:       ref,
-		URL:       fmt.Sprintf("https://github.com/%s/%s/pull/%d", s.Owner, verified.Repo, created.Number),
-		CommitSHA: verified.CommitSHA,
+		Number:        created.Number,
+		Ref:           ref,
+		URL:           fmt.Sprintf("https://github.com/%s/%s/pull/%d", s.Owner, verified.Repo, created.Number),
+		CommitSHA:     verified.CommitSHA,
+		SandboxUID:    sandboxUID(verified.Ref),
+		BaseCommit:    verified.BaseCommit,
+		TreeSHA:       verified.TreeSHA,
+		BundleSHA256:  verified.BundleSHA256,
+		CanonicalHash: verified.CanonicalHash,
 	}, nil
 }
 
