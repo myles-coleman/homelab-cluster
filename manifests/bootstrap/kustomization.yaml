@@ -50,3 +50,4 @@ resources:
 - squid-app.yaml
 - agent-sandbox-app.yaml
 - sandbox-telemetry-app.yaml
+- verify-bootstrap-app.yaml
