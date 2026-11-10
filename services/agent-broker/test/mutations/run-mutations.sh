@@ -12,7 +12,8 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../../../.." && pwd)"
-GO_BIN="$(nix shell nixpkgs#go --command command -v go)"
+GO_ROOT="$(nix build --no-link --print-out-paths nixpkgs#go)"
+GO_BIN="$GO_ROOT/bin/go"
 export PATH="$(dirname "$GO_BIN"):$PATH"
 export CGO_ENABLED=0
 
