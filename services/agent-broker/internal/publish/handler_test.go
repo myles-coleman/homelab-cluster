@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/audit"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/quotas"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/rules"
 )
@@ -228,5 +229,46 @@ func TestPublishHandlerMalformedBody(t *testing.T) {
 				t.Errorf("malformed body reached the service: github=%d push=%d", gh.calls, pusher.calls)
 			}
 		})
+	}
+}
+
+// TestPublishAuditWritesOneRejection covers FR-51's publisher half: a rejected
+// publish still produces exactly one structured record, carrying the reason and
+// the terminal rule id. A missing or duplicated record is a failure.
+func TestPublishAuditWritesOneRejection(t *testing.T) {
+	var buf bytes.Buffer
+	s := &BundleServer{
+		Owner:   "myles-coleman",
+		Tokens:  &stubTokens{},
+		Fetcher: &stubBundle{},
+		// Publish is deliberately nil: this is an early rejection, which is the
+		// path most likely to skip the audit record.
+		Audit: audit.New(&buf),
+	}
+
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, publishHTTPRequest(t, []byte(`{}`), ValidatorSAN))
+	if rec.Code != http.StatusBadGateway {
+		t.Fatalf("status = %d, want 502 (body %s)", rec.Code, rec.Body.String())
+	}
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 1 {
+		t.Fatalf("audit lines = %d, want 1: %q", len(lines), buf.String())
+	}
+	var got struct {
+		Decision string `json:"decision"`
+		RuleID   string `json:"rule_id"`
+		Reason   string `json:"reason"`
+		Time     string `json:"time"`
+	}
+	if err := json.Unmarshal([]byte(lines[0]), &got); err != nil {
+		t.Fatalf("decode audit record: %v", err)
+	}
+	if got.Decision != "reject" || got.RuleID != rules.PublishFailed || got.Reason == "" {
+		t.Errorf("audit record = %s", lines[0])
+	}
+	if got.Time == "" {
+		t.Errorf("audit record has no timestamp: %s", lines[0])
 	}
 }
