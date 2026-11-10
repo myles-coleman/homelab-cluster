@@ -47,6 +47,15 @@ spec:
         - ip: "10.43.30.11"
           hostnames:
             - publisher.agent.internal
+        # The k8s-infra OTLP agent's Service ClusterIP (spec 30, FR-52). The pod
+        # has no resolver, so the collector name in --otlp-endpoint is resolved
+        # from this alias. The ClusterIP is cluster-assigned and survives agent
+        # pod rollouts, but changes if the Service is deleted and recreated:
+        #   kubectl get svc -n signoz-k8s-infra k8s-infra-otel-agent -o jsonpath='{.spec.clusterIP}'
+        # Re-read it and update this alias in the same commit as the endpoint.
+        - ip: "10.43.78.178"
+          hostnames:
+            - signoz-k8s-infra
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
@@ -77,6 +86,16 @@ spec:
             - --publisher-ca-file=/publisher-client/ca.crt
             - --cache-ttl=5m
             - --work-dir=/tmp
+            # Audit trail (spec 30, FR-51). One NDJSON record per request is
+            # appended here on the PVC below so it outlives the pod; the same
+            # records also go to stdout for `kubectl logs` and the filelog path.
+            - --audit-log-file=/var/log/agent-broker/audit.ndjson
+            - --audit-retention=72h
+            # OTLP export to the k8s-infra agent (spec 30, FR-52). The hostname
+            # resolves through the hostAliases entry above; the service name is
+            # the discriminator in SigNoz.
+            - --otlp-endpoint=http://signoz-k8s-infra:4318
+            - --otlp-service=agent-validator
           ports:
             - name: https
               containerPort: 8443
@@ -118,6 +137,10 @@ spec:
             # stays read-only.
             - name: scratch
               mountPath: /tmp
+            # Writable: audit records are appended, so this mount must not be
+            # readOnly. Nothing else in the root filesystem is writable.
+            - name: audit-log
+              mountPath: /var/log/agent-broker
       volumes:
         - name: server-tls
           secret:
@@ -130,3 +153,8 @@ spec:
         - name: scratch
           emptyDir:
             sizeLimit: 1Gi
+        # Persistent so the audit trail outlives the pod and cannot be pruned with
+        # it. The PVC carries Prune=false; see audit-pvc.yaml.
+        - name: audit-log
+          persistentVolumeClaim:
+            claimName: validator-audit-log

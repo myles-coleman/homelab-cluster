@@ -107,6 +107,16 @@ func decodeAll(data []byte) [][]byte {
 	if b, ok := decodeBase64(s); ok {
 		out = append(out, b)
 	}
+	// Line-wrapped base64 (with or without a MIME envelope) only decodes after
+	// its whitespace is stripped (FR-26).
+	if b, ok := decodeBase64Loose(s); ok {
+		out = append(out, b)
+	}
+	for _, body := range mimeBodies(s) {
+		if b, ok := decodeBase64Loose(body); ok {
+			out = append(out, b)
+		}
+	}
 	if b, ok := decodeHex(s); ok {
 		out = append(out, b)
 	}
@@ -138,6 +148,47 @@ func decodeBase64(s string) ([]byte, bool) {
 		}
 	}
 	return nil, false
+}
+
+// decodeBase64Loose decodes base64 after removing all whitespace, which is how
+// line-wrapped payloads are transmitted. If the input has no whitespace the
+// exact form was already attempted by decodeBase64, so it returns false to
+// avoid duplicate work.
+func decodeBase64Loose(s string) ([]byte, bool) {
+	compact := strings.Map(func(r rune) rune {
+		switch r {
+		case ' ', '\t', '\r', '\n':
+			return -1
+		}
+		return r
+	}, s)
+	if compact == s {
+		return nil, false
+	}
+	return decodeBase64(compact)
+}
+
+// mimeBodies returns the payload candidate after the first and after the last
+// blank line of a MIME-style header/body envelope (LF or CRLF). Trying both
+// handles envelopes with an extra blank line in the header block.
+func mimeBodies(s string) []string {
+	normalized := strings.ReplaceAll(s, "\r\n", "\n")
+	seen := make(map[string]bool)
+	var out []string
+	add := func(body string) {
+		if body == "" || seen[body] {
+			return
+		}
+		seen[body] = true
+		out = append(out, body)
+	}
+	if i := strings.Index(normalized, "\n\n"); i >= 0 {
+		add(normalized[i+2:])
+	}
+	if i := strings.LastIndex(normalized, "\n\n"); i >= 0 {
+		add(normalized[i+2:])
+	}
+	return out
 }
 
 // decodeHex decodes a whole input that is an even-length hex string. Requiring a

@@ -1,0 +1,16 @@
+{
+  "name": "branch-slug-traversal",
+  "class": "branch-slug",
+  "expected_rule_id": "invalid-ref",
+  "repo": "nixos",
+  "title": "docs: add a note",
+  "body": "",
+  "commit_message": "docs: add a note",
+  "ref": "agent/4a22ef3b-312b-4624-8e64-9a3060579091/feat/escape",
+  "changes": [
+    {
+      "path": "docs/notes.txt",
+      "content": "A clean note.\n"
+    }
+  ]
+}

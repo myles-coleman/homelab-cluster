@@ -122,7 +122,8 @@ assert_server_sans() {
   pass "validator and publisher server SANs match the client-used names"
 }
 
-# 6. FR-9 / FR-10 — peer is a pod selector, never a CIDR-to-anywhere.
+# 6. FR-9 / FR-10 / FR-52 — peers are pod selectors, never a CIDR-to-anywhere,
+# and the OTLP collector is the only added egress peer.
 assert_network_peers() {
   local sandbox_np validator_np
   sandbox_np="$(kubectl -n "$NS_SANDBOX" get networkpolicy opencode-sandbox-egress -o json)"
@@ -146,15 +147,22 @@ np=json.load(sys.stdin)
 peers=[]
 for rule in np["spec"].get("egress", []):
     for peer in rule.get("to", []):
-        peers.append((peer.get("namespaceSelector",{}).get("matchLabels",{}).get("kubernetes.io/metadata.name"),
-                      peer.get("podSelector",{}).get("matchLabels",{}).get("app"),
-                      peer.get("ipBlock",{}).get("cidr")))
-bad=[p for p in peers if p[2] in ("0.0.0.0/0","::/0")]
+        peers.append({
+            "ns": peer.get("namespaceSelector",{}).get("matchLabels",{}).get("kubernetes.io/metadata.name"),
+            "pod": peer.get("podSelector",{}).get("matchLabels",{}),
+            "cidr": peer.get("ipBlock",{}).get("cidr"),
+            "ports": [p.get("port") for p in rule.get("ports",[])],
+        })
+bad=[p for p in peers if p["cidr"] in ("0.0.0.0/0","::/0")]
 if bad: sys.exit("validator egress allows the internet: %r" % (bad,))
-if not any(p[0]=="agent-publisher" and p[1]=="agent-publisher" for p in peers):
+if not any(p["ns"]=="agent-publisher" and p["pod"].get("app")=="agent-publisher" for p in peers):
     sys.exit("validator egress does not target the publisher pod selector")
-' || fail "validator egress is not publisher-only (FR-10, FR-12)"
-  pass "sandbox egress and validator egress use pod selectors only"
+if not any(p["ns"]=="signoz-k8s-infra"
+           and p["pod"].get("app.kubernetes.io/component")=="otel-agent"
+           and 4318 in p["ports"] for p in peers):
+    sys.exit("validator egress has no OTLP peer (signoz-k8s-infra otel-agent:4318)")
+' || fail "validator egress is not publisher + OTLP only (FR-10, FR-12, FR-52)"
+  pass "sandbox egress and validator egress use pod selectors only; OTLP peer present"
 }
 
 # 7. FR-11 / FR-14 — the bundle clones to exactly one root commit and the served
@@ -246,7 +254,8 @@ if (exp - now).total_seconds() > 3600:
 }
 
 # 10. FR-49 / FR-55 — both broker pods have the required posture and both images
-# are digest-pinned; the publisher must not run on the gVisor node.
+# are digest-pinned; the publisher must not run on the gVisor node. The validator
+# must also mount a writable audit volume and run with the audit flags.
 assert_pod_posture() {
   local json
   json="$(kubectl -n "$NS_VALIDATOR" get pod -l app=agent-validator -o json | python3 -c '
@@ -266,6 +275,17 @@ if sc.get("allowPrivilegeEscalation") is not False: errs.append("validator allow
 if psc.get("seccompProfile",{}).get("type")!="RuntimeDefault": errs.append("validator seccompProfile")
 if sc.get("capabilities",{}).get("drop")!=["ALL"]: errs.append("validator capabilities.drop")
 if "@sha256:" not in c.get("image",""): errs.append("validator image-not-pinned-by-digest")
+mounts={m.get("mountPath"): m for m in c.get("volumeMounts",[])}
+audit=mounts.get("/var/log/agent-broker")
+if not audit or audit.get("readOnly"):
+    errs.append("validator audit mount not writable at /var/log/agent-broker")
+else:
+    vols={v.get("name"): v for v in s.get("volumes",[])}
+    if "persistentVolumeClaim" not in (vols.get(audit.get("name")) or {}):
+        errs.append("validator audit volume is not a PVC")
+for flag in ("--audit-log-file=/var/log/agent-broker/audit.ndjson", "--audit-retention=72h"):
+    if flag not in c.get("args", []):
+        errs.append("validator missing " + flag)
 if errs: sys.exit(", ".join(errs))
 ' || fail "validator posture is wrong (FR-55)"
 

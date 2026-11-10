@@ -56,6 +56,11 @@ spec:
             - --app-id-file=/app-secret/app-id
             - --app-key-file=/app-secret/private-key.pem
             - --work-dir=/tmp
+            # Audit trail (spec 30, FR-51). The publisher's root filesystem is
+            # read-only, so the records go on the emptyDir below; stdout NDJSON is
+            # still the primary path and ships through filelog.
+            - --audit-log-file=/var/log/agent-broker/audit.ndjson
+            - --audit-retention=72h
           ports:
             - name: https
               containerPort: 8443
@@ -95,6 +100,10 @@ spec:
               readOnly: true
             - name: scratch
               mountPath: /tmp
+            # Writable, but bounded and pod-scoped: the publisher keeps no
+            # persistent state. The durable copy of each record is in stdout.
+            - name: audit-log
+              mountPath: /var/log/agent-broker
       volumes:
         - name: server-tls
           secret:
@@ -109,3 +118,9 @@ spec:
         - name: scratch
           emptyDir:
             sizeLimit: 1Gi
+        # The root filesystem is read-only, so the audit log needs a writable
+        # mount. Deliberately emptyDir, not a PVC: stdout NDJSON is the shipped
+        # copy and the filelog path does not depend on this volume surviving.
+        - name: audit-log
+          emptyDir:
+            sizeLimit: 100Mi

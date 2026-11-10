@@ -3,11 +3,14 @@
 # legitimately has: the sandbox on ingress, the publisher on egress.
 #
 # No DNS rule: the validator runs with `dnsPolicy: None` and reaches the publisher
-# through a hostAliases entry, exactly like the sandbox does on the other side.
-# Adding a resolver would create a data channel this component does not need.
+# and the OTLP collector through hostAliases entries, exactly like the sandbox does
+# on the other side. Adding a resolver would create a data channel this component
+# does not need.
 #
-# OTLP egress is deliberately absent here; sub-task 5.2 adds it together with the
-# audit shipper so the two cannot drift apart.
+# OTLP egress is the single addition made with the audit shipper (spec 30, Unit 5):
+# audit records and spans go to the k8s-infra agent through its Service ClusterIP
+# on 4318. The peer is the collector's namespace and pod labels, never an ipBlock:
+# kube-proxy DNATs the ClusterIP before the filter runs.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -78,3 +81,18 @@ spec:
       ports:
         - protocol: TCP
           port: 8443
+    # Audit records and spans to the k8s-infra OTLP agent (spec 30, FR-52). The
+    # pod labels pin the collector so a different pod in the namespace is not a
+    # peer. One destination, one port: no DNS, no node CIDR, no second port.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: signoz-k8s-infra
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: k8s-infra
+              app.kubernetes.io/instance: k8s-infra
+              app.kubernetes.io/component: otel-agent
+      ports:
+        - protocol: TCP
+          port: 4318

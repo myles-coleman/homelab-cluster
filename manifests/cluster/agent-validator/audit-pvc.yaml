@@ -1,0 +1,26 @@
+# Audit trail storage for the validator (spec 30, FR-51).
+#
+# The validator appends one NDJSON record per request to
+# /var/log/agent-broker/audit.ndjson. That trail must outlive the pod and must not
+# disappear on an ArgoCD prune, so it is a PVC on the same retain-policy
+# StorageClass as the sandbox workspace, annotated Prune=false.
+#
+# 1Gi at 72h retention is well above the expected record volume (one small object
+# per request). Nothing in the mount is executable and no other workload reads it.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: validator-audit-log
+  namespace: agent-validator
+  labels:
+    app: agent-validator
+    app.kubernetes.io/part-of: agent-broker
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path-retain
+  resources:
+    requests:
+      storage: 1Gi

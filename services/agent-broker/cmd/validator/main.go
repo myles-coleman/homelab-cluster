@@ -49,6 +49,10 @@ func main() {
 		publisherServerNam = flag.String("publisher-server-name", "publisher.agent.internal", "SNI/verification name for the publisher")
 		workDir            = flag.String("work-dir", "/tmp", "writable scratch directory for patch application")
 		gitBin             = flag.String("git-bin", "git", "git executable")
+		otlpEndpoint       = flag.String("otlp-endpoint", "http://signoz-k8s-infra:4318", "OTLP/HTTP collector endpoint; empty disables export")
+		otlpService        = flag.String("otlp-service", "agent-validator", "service.name resource attribute for OTLP")
+		auditLogFile       = flag.String("audit-log-file", "/var/log/agent-broker/audit.ndjson", "local NDJSON audit store")
+		auditRetention     = flag.Duration("audit-retention", 72*time.Hour, "how long the local audit store keeps a record")
 	)
 	flag.Parse()
 
@@ -70,6 +74,10 @@ func main() {
 		shutdownTimeout:    *shutdownTimeout,
 		workDir:            *workDir,
 		gitBin:             *gitBin,
+		otlpEndpoint:       *otlpEndpoint,
+		otlpService:        *otlpService,
+		auditLogFile:       *auditLogFile,
+		auditRetention:     *auditRetention,
 		logger:             logger,
 	}); err != nil {
 		logger.Error("validator exited", "err", err)
@@ -92,6 +100,10 @@ type runConfig struct {
 	shutdownTimeout    time.Duration
 	workDir            string
 	gitBin             string
+	otlpEndpoint       string
+	otlpService        string
+	auditLogFile       string
+	auditRetention     time.Duration
 	logger             *slog.Logger
 }
 
@@ -123,6 +135,18 @@ func run(cfg runConfig) error {
 	if err != nil {
 		return err
 	}
+
+	auditLogger := audit.New(os.Stdout)
+	auditStore, err := audit.OpenStore(cfg.auditLogFile, cfg.auditRetention)
+	if err != nil {
+		return err
+	}
+	defer auditStore.Close()
+	auditLogger.Store = auditStore
+	if exporter := audit.NewOTLPExporter(cfg.otlpEndpoint, cfg.otlpService); exporter != nil {
+		auditLogger.Exporter = exporter
+	}
+
 	apiServer := &api.Server{
 		Cache:      cache,
 		Resolver:   identity.NewResolver(kube, dyn, cfg.namespace),
@@ -134,7 +158,7 @@ func run(cfg runConfig) error {
 			Policy:  pol,
 			Scanner: scan.New(),
 		},
-		Audit:     audit.New(os.Stdout),
+		Audit:     auditLogger,
 		Log:       cfg.logger,
 		Publisher: publish.NewClient(cfg.publisherURL, clientTLS),
 	}

@@ -9,11 +9,15 @@ package publish
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/audit"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/rules"
 )
 
@@ -51,6 +55,7 @@ type BundleServer struct {
 	Fetcher   BundleFetcher
 	History   HistoryFetcher
 	Publish   *Service
+	Audit     *audit.Logger
 	Log       *slog.Logger
 	AdmitSANs []string
 }
@@ -145,13 +150,33 @@ type publishResponse struct {
 
 // handlePublish accepts exactly one verified validator publish (FR-33). The
 // validator identity is the same one used for the bundle and history routes.
+// Exactly one audit record is written per request, including early rejections.
 func (s *BundleServer) handlePublish(w http.ResponseWriter, r *http.Request) {
+	started := time.Now()
+	rec := audit.Record{
+		RequestID: publishRequestID(r),
+		Decision:  audit.Reject,
+	}
+	defer func() {
+		rec.DurationMS = time.Since(started).Milliseconds()
+		if s.Audit != nil {
+			_ = s.Audit.Write(rec)
+		}
+	}()
+
+	reject := func(status int, ruleID, reason string) {
+		rec.RuleID = ruleID
+		rec.Reason = reason
+		rec.RuleOutcomes = []string{ruleID}
+		writeError(w, status, ruleID, reason)
+	}
+
 	if !s.admit(r) {
-		writeError(w, http.StatusUnauthorized, rules.Unauthenticated, "client identity is not the validator")
+		reject(http.StatusUnauthorized, rules.Unauthenticated, "client identity is not the validator")
 		return
 	}
 	if s.Publish == nil {
-		writeError(w, http.StatusBadGateway, rules.PublishFailed, "publish is not configured")
+		reject(http.StatusBadGateway, rules.PublishFailed, "publish is not configured")
 		return
 	}
 
@@ -160,26 +185,34 @@ func (s *BundleServer) handlePublish(w http.ResponseWriter, r *http.Request) {
 	dec.DisallowUnknownFields()
 	var req PublishRequest
 	if err := dec.Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, rules.BadRequest, "request body is not a valid publish request")
+		reject(http.StatusBadRequest, rules.BadRequest, "request body is not a valid publish request")
 		return
 	}
 	if dec.More() {
-		writeError(w, http.StatusBadRequest, rules.BadRequest, "request body has trailing data")
+		reject(http.StatusBadRequest, rules.BadRequest, "request body has trailing data")
 		return
 	}
+	rec.Repo = req.Repo
 
 	res, err := s.Publish.Publish(r.Context(), req)
 	if err != nil {
 		if rej, ok := rules.From(err); ok {
-			writeError(w, publishStatus(rej.RuleID), rej.RuleID, rej.Reason)
+			reject(publishStatus(rej.RuleID), rej.RuleID, rej.Reason)
 			return
 		}
 		if s.Log != nil {
 			s.Log.Error("publish failed", "err", err)
 		}
-		writeError(w, http.StatusBadGateway, rules.PublishFailed, "publish failed")
+		reject(http.StatusBadGateway, rules.PublishFailed, "publish failed")
 		return
 	}
+
+	rec.Decision = audit.Accept
+	rec.RuleID = ""
+	rec.Reason = ""
+	rec.RuleOutcomes = []string{audit.Accept}
+	rec.CommitSHA = res.CommitSHA
+	rec.Ref = res.Ref
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -189,6 +222,19 @@ func (s *BundleServer) handlePublish(w http.ResponseWriter, r *http.Request) {
 		URL:       res.URL,
 		CommitSHA: res.CommitSHA,
 	})
+}
+
+// publishRequestID prefers the caller's correlation id and falls back to a
+// random one so every audit record is still addressable.
+func publishRequestID(r *http.Request) string {
+	if id := strings.TrimSpace(r.Header.Get("X-Request-Id")); id != "" {
+		return id
+	}
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "unknown"
+	}
+	return hex.EncodeToString(b[:])
 }
 
 // publishStatus maps a publish rule id to the HTTP status FR-33 pins.
