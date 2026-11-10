@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: verify-bootstrap
-  labels:
-    app.kubernetes.io/part-of: verify-bootstrap
-
-# trigger the fixed generate-apps workflow
