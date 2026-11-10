@@ -3,6 +3,8 @@ name: agent-broker
 # Spec 30 FR-48: every pull_request job here is secret-free and reads contents
 # only. The only job that touches a registry runs on pushes to main.
 on:
+  schedule:
+    - cron: '0 6 * * *'
   pull_request:
     paths:
       - 'services/agent-broker/**'
@@ -25,6 +27,10 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-24.04
+    # Spec 30 FR-48: the PR job reads contents only. Declared per job as well as
+    # at workflow level so the audit can check every pull_request job directly.
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: services/agent-broker
@@ -43,6 +49,24 @@ jobs:
 
       - name: Test
         run: go test ./...
+
+  github-settings:
+    name: github-settings
+    # Spec 30 FR-39..FR-48: the repeatable settings gate. The PR test job stays
+    # secret-free; this job runs only on main or the daily schedule and uses the
+    # automatic read-only token.
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: test
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Verify GitHub settings
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/verify-github-settings.sh --ci
 
   build-validator:
     name: build-validator
