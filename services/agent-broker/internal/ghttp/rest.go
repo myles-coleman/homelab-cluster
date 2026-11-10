@@ -24,12 +24,11 @@ import (
 
 // REST implements publish.GitHub against the GitHub REST API.
 type REST struct {
-	Owner     string
-	LoginRepo string
-	Tokens    *AppClient
-	BaseURL   string
-	HTTP      *http.Client
-	Log       *slog.Logger
+	Owner   string
+	Tokens  *AppClient
+	BaseURL string
+	HTTP    *http.Client
+	Log     *slog.Logger
 }
 
 var _ publish.GitHub = (*REST)(nil)
@@ -199,34 +198,18 @@ func (r *REST) DeleteBranch(ctx context.Context, repo, ref string) error {
 	return nil
 }
 
-// Login returns the App installation's login (GET /user).
+// Login returns the App bot's login. Installation tokens are not authorised on
+// GET /user, so the login is derived from the App slug: GitHub names App bots
+// <slug>[bot].
 func (r *REST) Login(ctx context.Context) (string, error) {
-	repo := r.LoginRepo
-	if repo == "" {
-		return "", fmt.Errorf("ghttp: login repository is not configured")
+	if r.Tokens == nil {
+		return "", fmt.Errorf("ghttp: app client is not configured")
 	}
-	token, err := r.token(ctx, repo, map[string]string{"pull_requests": "read"})
+	slug, err := r.Tokens.AppSlug(ctx)
 	if err != nil {
 		return "", err
 	}
-	resp, err := r.do(ctx, http.MethodGet, r.apiBase()+"/user", token, nil)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("ghttp: login returned status %d", resp.StatusCode)
-	}
-	var user struct {
-		Login string `json:"login"`
-	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&user); err != nil {
-		return "", fmt.Errorf("ghttp: decode login: %w", err)
-	}
-	if user.Login == "" {
-		return "", fmt.Errorf("ghttp: login response has no login")
-	}
-	return user.Login, nil
+	return slug + "[bot]", nil
 }
 
 func (r *REST) token(ctx context.Context, repo string, permissions map[string]string) (string, error) {

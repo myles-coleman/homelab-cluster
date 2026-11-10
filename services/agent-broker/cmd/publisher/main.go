@@ -74,10 +74,9 @@ func main() {
 	}
 
 	rest := &ghttp.REST{
-		Owner:     *owner,
-		LoginRepo: servedRepos[0],
-		Tokens:    app,
-		Log:       logger,
+		Owner:  *owner,
+		Tokens: app,
+		Log:    logger,
 	}
 
 	if *cleanup {
