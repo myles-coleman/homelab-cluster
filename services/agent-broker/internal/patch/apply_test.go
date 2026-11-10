@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/canon"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/commitmeta"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/policy"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/rules"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/scan"
@@ -464,5 +465,87 @@ func TestApplyRejectsPathEscape(t *testing.T) {
 	}
 	if rej.RuleID != rules.ForbiddenTreeShape && rej.RuleID != rules.PatchApplyFailed {
 		t.Fatalf("rule = %q, want forbidden-tree-shape or patch-apply-failed", rej.RuleID)
+	}
+}
+
+// TestApplyBundleCarriesMetadataAndAgentRef covers FR-29/FR-34: the validator
+// appends the Agent-PR-Metadata trailer, bundles the new commit under both HEAD
+// and refs/heads/agent/<uid>/<slug>, and the canonical hash can be recomputed
+// from the parsed metadata alone.
+func TestApplyBundleCarriesMetadataAndAgentRef(t *testing.T) {
+	f := newFixture(t)
+	patchText := makePatch(t, f, func(repo string) {
+		writeFile(t, filepath.Join(repo, "docs/a.txt"), "metadata\n")
+	})
+	req := request(f, patchText)
+
+	res, err := newApplier(t, f).Apply(context.Background(), req)
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	dir := t.TempDir()
+	outFile := filepath.Join(dir, "out.bundle")
+	if err := os.WriteFile(outFile, res.Bundle, 0o600); err != nil {
+		t.Fatalf("write out bundle: %v", err)
+	}
+
+	// The bundle must expose the new commit under the agent ref and HEAD, so
+	// both the publisher and the existing HEAD-based tooling can find it.
+	headsOut := git(t, dir, "bundle", "list-heads", outFile)
+	heads := map[string]string{}
+	for _, line := range strings.Split(strings.TrimSpace(headsOut), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) != 2 {
+			t.Fatalf("unexpected bundle list-heads line %q", line)
+		}
+		heads[fields[1]] = fields[0]
+	}
+	wantRef := "refs/heads/" + req.Ref
+	if got := heads[wantRef]; got != res.CommitSHA {
+		t.Errorf("bundle ref %s = %q, want %s", wantRef, got, res.CommitSHA)
+	}
+	if got := heads["HEAD"]; got != res.CommitSHA {
+		t.Errorf("bundle HEAD = %q, want %s", got, res.CommitSHA)
+	}
+	if len(heads) != 2 {
+		t.Errorf("bundle heads = %v, want exactly HEAD and %s", heads, wantRef)
+	}
+
+	// Materialise the bundle on top of history and inspect the real commit.
+	verify := filepath.Join(dir, "verify")
+	git(t, dir, "init", "-q", verify)
+	histFile := filepath.Join(dir, "history.bundle")
+	if err := os.WriteFile(histFile, f.bundle, 0o600); err != nil {
+		t.Fatalf("write history: %v", err)
+	}
+	git(t, verify, "-c", "protocol.file.allow=always", "fetch", "-q", histFile, "HEAD")
+	git(t, verify, "bundle", "verify", outFile)
+	git(t, verify, "-c", "protocol.file.allow=always", "fetch", "-q", outFile, "HEAD")
+
+	message := git(t, verify, "log", "-1", "--format=%B", "FETCH_HEAD")
+	lines := strings.Split(strings.TrimRight(message, "\n"), "\n")
+	if len(lines) == 0 || !strings.HasPrefix(lines[len(lines)-1], commitmeta.Prefix) {
+		t.Fatalf("commit message does not end with the metadata trailer:\n%s", message)
+	}
+
+	meta, ok := commitmeta.Parse(message)
+	if !ok {
+		t.Fatalf("commit message has no parseable metadata trailer:\n%s", message)
+	}
+	if meta.Repo != req.Repo || meta.Ref != req.Ref || meta.Title != req.Title || meta.Body != req.Body {
+		t.Errorf("metadata = %+v, want repo/ref/title/body from the request", meta)
+	}
+
+	recomputed, err := canon.Hash(meta.Repo, meta.Ref, res.CommitSHA, res.TreeSHA, meta.Title, meta.Body)
+	if err != nil {
+		t.Fatalf("recompute canonical hash: %v", err)
+	}
+	want, err := canon.Hash(req.Repo, req.Ref, res.CommitSHA, res.TreeSHA, req.Title, req.Body)
+	if err != nil {
+		t.Fatalf("expected canonical hash: %v", err)
+	}
+	if recomputed != want {
+		t.Errorf("canonical hash from parsed metadata = %s, want %s", recomputed, want)
 	}
 }

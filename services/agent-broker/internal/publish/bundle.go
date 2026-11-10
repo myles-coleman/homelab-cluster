@@ -13,6 +13,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/rules"
 )
 
 // ValidatorSAN is the only client identity allowed to call this endpoint
@@ -41,12 +43,14 @@ type HistoryFetcher interface {
 	FetchHistory(ctx context.Context, repo, token string) (commit string, content []byte, err error)
 }
 
-// BundleServer is the publisher's read-only bundle endpoint.
+// BundleServer is the publisher's read-only bundle endpoint plus the publish
+// endpoint on the same validator identity.
 type BundleServer struct {
 	Owner     string
 	Tokens    TokenSource
 	Fetcher   BundleFetcher
 	History   HistoryFetcher
+	Publish   *Service
 	Log       *slog.Logger
 	AdmitSANs []string
 }
@@ -59,6 +63,7 @@ func (s *BundleServer) Handler() http.Handler {
 	})
 	mux.HandleFunc("GET /internal/bundle/{repo}", s.handleBundle)
 	mux.HandleFunc("GET /internal/history/{repo}", s.handleHistory)
+	mux.HandleFunc("POST /v1/publish", s.handlePublish)
 	return mux
 }
 
@@ -125,6 +130,85 @@ func (s *BundleServer) handleHistory(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Bundle-Commit", commit)
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(content)
+}
+
+// maxPublishBodyBytes bounds the publish request, including JSON/base64 overhead.
+const maxPublishBodyBytes = 48 << 20
+
+// publishResponse is the 201 body: exactly the four contract keys.
+type publishResponse struct {
+	Number    int    `json:"number"`
+	Ref       string `json:"ref"`
+	URL       string `json:"url"`
+	CommitSHA string `json:"commit_sha"`
+}
+
+// handlePublish accepts exactly one verified validator publish (FR-33). The
+// validator identity is the same one used for the bundle and history routes.
+func (s *BundleServer) handlePublish(w http.ResponseWriter, r *http.Request) {
+	if !s.admit(r) {
+		writeError(w, http.StatusUnauthorized, rules.Unauthenticated, "client identity is not the validator")
+		return
+	}
+	if s.Publish == nil {
+		writeError(w, http.StatusBadGateway, rules.PublishFailed, "publish is not configured")
+		return
+	}
+
+	body := http.MaxBytesReader(w, r.Body, maxPublishBodyBytes)
+	dec := json.NewDecoder(body)
+	dec.DisallowUnknownFields()
+	var req PublishRequest
+	if err := dec.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, rules.BadRequest, "request body is not a valid publish request")
+		return
+	}
+	if dec.More() {
+		writeError(w, http.StatusBadRequest, rules.BadRequest, "request body has trailing data")
+		return
+	}
+
+	res, err := s.Publish.Publish(r.Context(), req)
+	if err != nil {
+		if rej, ok := rules.From(err); ok {
+			writeError(w, publishStatus(rej.RuleID), rej.RuleID, rej.Reason)
+			return
+		}
+		if s.Log != nil {
+			s.Log.Error("publish failed", "err", err)
+		}
+		writeError(w, http.StatusBadGateway, rules.PublishFailed, "publish failed")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(publishResponse{
+		Number:    res.Number,
+		Ref:       res.Ref,
+		URL:       res.URL,
+		CommitSHA: res.CommitSHA,
+	})
+}
+
+// publishStatus maps a publish rule id to the HTTP status FR-33 pins.
+func publishStatus(ruleID string) int {
+	switch ruleID {
+	case rules.BadRequest:
+		return http.StatusBadRequest
+	case rules.UnknownRepo:
+		return http.StatusNotFound
+	case rules.InvalidRef:
+		return http.StatusUnprocessableEntity
+	case rules.HashMismatch, rules.BranchExists:
+		return http.StatusConflict
+	case rules.QuotaExceeded:
+		return http.StatusTooManyRequests
+	case rules.Unauthenticated:
+		return http.StatusUnauthorized
+	default:
+		return http.StatusBadGateway
+	}
 }
 
 func (s *BundleServer) admit(r *http.Request) bool {

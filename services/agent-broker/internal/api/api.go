@@ -7,6 +7,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -17,7 +18,14 @@ import (
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/bundle"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/identity"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/patch"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/publish"
 )
+
+// Publisher forwards a verified patch to the publisher (FR-33). It is nil when
+// publish is not configured, preserving the Unit 2 behaviour.
+type Publisher interface {
+	Publish(ctx context.Context, req publish.PublishRequest) error
+}
 
 // Server wires the bundle cache, identity resolver, policy and patch pipeline
 // into an HTTP handler.
@@ -27,6 +35,7 @@ type Server struct {
 	// PolicyYAML is the canonical allowlist served at GET /v1/policy (FR-32).
 	PolicyYAML []byte
 	Applier    *patch.Applier
+	Publisher  Publisher
 	Audit      *audit.Logger
 	Log        *slog.Logger
 	// Now is injectable for tests; nil means time.Now.

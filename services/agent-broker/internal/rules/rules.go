@@ -21,6 +21,14 @@ const (
 	InvalidRef         = "invalid-ref"
 	PatchApplyFailed   = "patch-apply-failed"
 	Unauthenticated    = "unauthenticated"
+
+	// Publish pipeline ids (spec 30, Unit 3). They are API surface too: the
+	// validator forwards the publisher's rule id to the sandbox unchanged.
+	HashMismatch       = "hash-mismatch"
+	QuotaExceeded      = "quota-exceeded"
+	BranchExists       = "branch-exists"
+	PublishUnavailable = "publish-unavailable"
+	PublishFailed      = "publish-failed"
 )
 
 // Rejection is the only error type the HTTP layer maps to a 4xx body.

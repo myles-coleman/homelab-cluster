@@ -33,6 +33,7 @@ import (
 	"time"
 
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/bundle"
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/commitmeta"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/policy"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/refname"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/rules"
@@ -258,9 +259,23 @@ func (a *Applier) Apply(ctx context.Context, req Request) (Result, error) {
 		"GIT_AUTHOR_DATE=" + commitDate,
 		"GIT_COMMITTER_DATE=" + commitDate,
 	}
+	// FR-34: the publisher only receives hashes, so the commit message carries the
+	// metadata the canonical hash needs (repo, ref, title, body). It is appended
+	// last so Parse's last-line rule makes it authoritative.
+	trailer, err := commitmeta.Encode(commitmeta.Metadata{
+		Repo:  req.Repo,
+		Ref:   req.Ref,
+		Title: req.Title,
+		Body:  req.Body,
+	})
+	if err != nil {
+		return Result{}, fmt.Errorf("patch: encode commit metadata: %w", err)
+	}
+	message := strings.TrimRight(req.CommitMessage, "\n") + "\n\n" + trailer
+
 	if _, err := runGitEnv(ctx, gitBin, repoDir, env,
 		"-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null",
-		"commit", "--quiet", "-m", req.CommitMessage); err != nil {
+		"commit", "--quiet", "-m", message); err != nil {
 		return Result{}, err
 	}
 
@@ -288,10 +303,16 @@ func (a *Applier) Apply(ctx context.Context, req Request) (Result, error) {
 		return Result{}, err
 	}
 
-	// FR-28: a thin bundle of exactly the new commit, with base as prerequisite.
+	// FR-28/FR-34: a thin bundle of exactly the new commit, with base as
+	// prerequisite, exposed under the agent ref the publisher will read and
+	// HEAD for the existing bundle/tooling contract.
+	agentRef := "refs/heads/" + req.Ref
+	if _, err := runGit(ctx, gitBin, repoDir, nil, "update-ref", agentRef, "HEAD"); err != nil {
+		return Result{}, err
+	}
 	bundleFile := filepath.Join(scratch, "out.bundle")
 	if _, err := runGit(ctx, gitBin, repoDir, nil,
-		"bundle", "create", bundleFile, "HEAD", "^"+req.BaseCommit); err != nil {
+		"bundle", "create", bundleFile, agentRef, "HEAD", "^"+req.BaseCommit); err != nil {
 		return Result{}, err
 	}
 	content, err := os.ReadFile(bundleFile)
