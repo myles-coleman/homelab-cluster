@@ -47,7 +47,7 @@ func main() {
 		maxBranchAge    = flag.Duration("max-branch-age", 72*time.Hour, "maximum age of an agent branch before cleanup")
 		shutdownTimeout = flag.Duration("shutdown-timeout", 15*time.Second, "graceful shutdown budget")
 		auditLogFile    = flag.String("audit-log-file", "", "local NDJSON audit store; empty disables the file (stdout still ships via filelog)")
-		auditRetention  = flag.Duration("audit-retention", 72*time.Hour, "how long the local audit store keeps a record")
+		auditRetention  = flag.Duration("audit-retention", 72*time.Hour, "how long the local audit store keeps a record (the deployment passes 96h)")
 	)
 	flag.Parse()
 
