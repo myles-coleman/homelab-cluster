@@ -60,7 +60,7 @@ spec:
             # read-only, so the records go on the emptyDir below; stdout NDJSON is
             # still the primary path and ships through filelog.
             - --audit-log-file=/var/log/agent-broker/audit.ndjson
-            - --audit-retention=72h
+            - --audit-retention=96h
           ports:
             - name: https
               containerPort: 8443

@@ -108,7 +108,7 @@ require_heading "$ROTATION" "rotation runbook" "## Threat model"
   || fail "at-rest record missing: docs/operator-guide/runbooks/agent-secret-encryption.md"
 pass "at-rest encryption record exists"
 
-# 9-13. FR-59 — required at-rest headings and the recorded answer.
+# 9-15. FR-59 — required at-rest headings, the exact answer, and the flags.
 require_heading "$ENCRYPTION" "at-rest record" "## Observed result"
 require_heading "$ENCRYPTION" "at-rest record" "## Command"
 require_heading "$ENCRYPTION" "at-rest record" "## Accepted risk"
@@ -130,7 +130,7 @@ pass "at-rest record: command checks the --secrets-encryption flag"
 
 require_heading "$ENCRYPTION" "at-rest record" "## Rotation cadence"
 
-# 14-15. Both runbooks are listed in the runbooks .pages file.
+# 16-17. Both runbooks are listed in the runbooks .pages file.
 [ -f "$PAGES" ] \
   || fail "runbooks .pages missing: docs/operator-guide/runbooks/.pages"
 
@@ -142,7 +142,7 @@ grep -qF 'agent-secret-encryption.md' "$PAGES" \
   || fail ".pages does not list agent-secret-encryption.md"
 pass ".pages lists agent-secret-encryption.md"
 
-# 16. Awesome-pages reachability. mkdocs.yaml nav is not required because the
+# 18. Awesome-pages reachability. mkdocs.yaml nav is not required because the
 #     site uses the awesome-pages plugin; prove the path instead.
 pages_has "$PAGES" 'agent-mtls-rotation.md' \
   && pages_has "$ROOT/docs/operator-guide/.pages" 'runbooks' \
@@ -150,29 +150,29 @@ pages_has "$PAGES" 'agent-mtls-rotation.md' \
   || fail "agent-mtls-rotation.md is not reachable through the .pages tree (awesome-pages)"
 pass "rotation runbook is reachable from the .pages tree (awesome-pages; mkdocs nav not required)"
 
-# 17. The repository AGENTS.md links the runbook.
+# 19. The repository AGENTS.md links the runbook.
 grep -qF 'agent-mtls-rotation.md' "$ROOT/AGENTS.md" \
   || fail "AGENTS.md does not link agent-mtls-rotation.md"
 pass "AGENTS.md links agent-mtls-rotation.md"
 
-# 18. FR-58 — the rotation runbook covers the GitHub App private key rotation.
+# 20. FR-58 — the rotation runbook covers the GitHub App private key rotation.
 grep -qi 'github app' "$ROTATION" \
   && grep -qiE 'key rotation|private key' "$ROTATION" \
   || fail "rotation runbook does not describe GitHub App key rotation"
 pass "rotation runbook mentions GitHub App key rotation"
 
-# 19. FR-58 — the rotation runbook covers the CA key.
+# 21. FR-58 — the rotation runbook covers the CA key.
 grep -qi 'CA key' "$ROTATION" \
   || fail "rotation runbook does not mention the CA key"
 pass "rotation runbook mentions the CA key"
 
-# 20. FR-58 — the rotation runbook covers leaf expiry.
+# 22. FR-58 — the rotation runbook covers leaf expiry.
 grep -qi 'leaf' "$ROTATION" \
   && grep -qi 'expir' "$ROTATION" \
   || fail "rotation runbook does not mention leaf expiry"
 pass "rotation runbook mentions leaf expiry"
 
-# 21. FR-58 — the runbook documents a SigNoz query with a filter.
+# 23. FR-58 — the runbook documents a SigNoz query with a filter.
 awk 'tolower($0) ~ /signoz/ && (tolower($0) ~ /filter/ || index($0, "|") > 0) { found = 1 }
      END { exit(found ? 0 : 1) }' "$ROTATION" \
   || fail "rotation runbook has no line containing a SigNoz query with a filter"
