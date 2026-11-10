@@ -297,3 +297,7 @@ These values must NEVER appear in any committed file:
 - **CI/CD secrets**: Stored in GitHub Actions secrets (`Settings → Secrets and variables → Actions`). Referenced in workflow files as `${{ secrets.NAME }}`.
 - **Cluster workload secrets**: Flow through External Secrets Operator: Vaultwarden (source) → bitwarden-cli (webhook) → ESO → Kubernetes Secret.
 - **Terragrunt secrets**: Passed via environment variables in CI or from GitHub Actions secrets. The `.gitignore` excludes `manifests/cluster/external-secrets/secret.yaml`.
+
+### Agent broker key rotation
+
+The agent broker's long-lived credentials — the `agent-mtls` CA key and the GitHub App private key — are rotated every 90 days, or immediately on suspected exposure. The procedure (CA rotation, leaf reissue order, trust redistribution, App key swap, and expiry monitoring) is in [`docs/operator-guide/runbooks/agent-mtls-rotation.md`](docs/operator-guide/runbooks/agent-mtls-rotation.md). The recorded reason the cadence matters — k3s secret encryption at rest is not enabled — is in [`docs/operator-guide/runbooks/agent-secret-encryption.md`](docs/operator-guide/runbooks/agent-secret-encryption.md).
