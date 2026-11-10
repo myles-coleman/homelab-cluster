@@ -64,7 +64,7 @@ spec:
       containers:
         - name: opencode
           # Digest-pinned; built by the nixos `build-images.yaml` workflow.
-          image: ghcr.io/myles-coleman/opencode-sandbox@sha256:557db5201c0c389fbe34a57d571cdc8d50c389d7b8fe208d9c2c1f0a8c53df1a
+          image: ghcr.io/myles-coleman/opencode-sandbox@sha256:f3c1b296968ac1f0123624f574eff3cf3d1b83f876a6bd514b861066969d8893
           imagePullPolicy: IfNotPresent
           # Enforced (verified in-pod, not merely declared): no privilege gain, no
           # capabilities, and an immutable root filesystem. Writable state lives on
