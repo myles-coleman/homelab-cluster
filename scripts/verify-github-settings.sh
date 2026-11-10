@@ -135,17 +135,22 @@ for repo in ("nixos", "homelab-cluster"):
     else:
         check("test" in contexts, "FR-41 homelab-cluster: required check test")
     bypass = rs.get("bypass_actors", [])
-    check(any(b.get("actor_type") == "User" and b.get("bypass_mode") == "always" for b in bypass),
-          f"FR-42 {repo}: operator is a bypass actor")
-    check(all(b.get("actor_type") != "Integration" for b in bypass),
-          f"FR-42 {repo}: publisher App is not a bypass actor")
-    if repo == "nixos":
-        check(all(b.get("actor_type") != "DeployKey" for b in bypass),
-              "FR-42 nixos: no deploy-key bypass")
+    if CI and not bypass:
+        # The automatic GITHUB_TOKEN cannot read the admin-only bypass list. The
+        # full local run (operator token) is the authority for FR-42.
+        skip(f"FR-42 {repo}: bypass actors", "token cannot read admin-only bypass data")
     else:
-        check(any(b.get("actor_type") == "DeployKey" and b.get("actor_id") is None and
-                  b.get("bypass_mode") == "always" for b in bypass),
-              "FR-42 homelab-cluster: deploy-key bypass with actor_id null")
+        check(any(b.get("actor_type") == "User" and b.get("bypass_mode") == "always" for b in bypass),
+              f"FR-42 {repo}: operator is a bypass actor")
+        check(all(b.get("actor_type") != "Integration" for b in bypass),
+              f"FR-42 {repo}: publisher App is not a bypass actor")
+        if repo == "nixos":
+            check(all(b.get("actor_type") != "DeployKey" for b in bypass),
+                  "FR-42 nixos: no deploy-key bypass")
+        else:
+            check(any(b.get("actor_type") == "DeployKey" and b.get("actor_id") is None and
+                      b.get("bypass_mode") == "always" for b in bypass),
+                  "FR-42 homelab-cluster: deploy-key bypass with actor_id null")
 
 # FR-44: Actions cannot create/approve PRs
 for repo in ("nixos", "homelab-cluster"):
