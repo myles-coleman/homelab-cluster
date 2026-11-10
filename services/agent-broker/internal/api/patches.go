@@ -40,10 +40,18 @@ func (s *Server) handlePatches(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	// reject records the terminal rule, its reason and the outcome list before
+	// writing the HTTP error, so the audit record and the wire body agree.
+	reject := func(status int, ruleID, reason string) {
+		rec.RuleID = ruleID
+		rec.Reason = reason
+		rec.RuleOutcomes = []string{ruleID}
+		writeError(w, status, ruleID, reason)
+	}
+
 	id, err := s.authenticate(r)
 	if err != nil {
-		rec.RuleID = rules.Unauthenticated
-		writeError(w, http.StatusUnauthorized, rules.Unauthenticated, "client certificate is not a valid sandbox identity")
+		reject(http.StatusUnauthorized, rules.Unauthenticated, "client certificate is not a valid sandbox identity")
 		return
 	}
 	rec.SandboxUID = string(id.SandboxUID)
@@ -53,26 +61,22 @@ func (s *Server) handlePatches(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
-		rec.RuleID = rules.BadRequest
-		writeError(w, http.StatusBadRequest, rules.BadRequest, "request body is not a valid patch submission")
+		reject(http.StatusBadRequest, rules.BadRequest, "request body is not a valid patch submission")
 		return
 	}
 	if dec.More() {
-		rec.RuleID = rules.BadRequest
-		writeError(w, http.StatusBadRequest, rules.BadRequest, "request body has trailing data")
+		reject(http.StatusBadRequest, rules.BadRequest, "request body has trailing data")
 		return
 	}
 
 	rec.Repo = req.Repo
 	rec.BaseCommit = req.BaseCommit
 	if len(req.Title) > maxTitleBytes || len(req.Body) > maxBodyBytes || len(req.CommitMessage) > maxMessageBytes {
-		rec.RuleID = rules.BadRequest
-		writeError(w, http.StatusBadRequest, rules.BadRequest, "a metadata field is over its size limit")
+		reject(http.StatusBadRequest, rules.BadRequest, "a metadata field is over its size limit")
 		return
 	}
 	if req.Patch == "" {
-		rec.RuleID = rules.BadRequest
-		writeError(w, http.StatusBadRequest, rules.BadRequest, "patch is required")
+		reject(http.StatusBadRequest, rules.BadRequest, "patch is required")
 		return
 	}
 
@@ -82,15 +86,13 @@ func (s *Server) handlePatches(w http.ResponseWriter, r *http.Request) {
 	}
 	ref, err := refname.Build(string(id.SandboxUID), slug)
 	if err != nil {
-		rec.RuleID = rules.InvalidRef
-		writeError(w, http.StatusUnprocessableEntity, rules.InvalidRef, "ref must be agent/<sandbox-uid>/<slug>")
+		reject(http.StatusUnprocessableEntity, rules.InvalidRef, "ref must be agent/<sandbox-uid>/<slug>")
 		return
 	}
 	rec.Ref = ref
 
 	if s.Applier == nil {
-		rec.RuleID = "internal-error"
-		writeError(w, http.StatusInternalServerError, "internal-error", "verification is not configured")
+		reject(http.StatusInternalServerError, "internal-error", "verification is not configured")
 		return
 	}
 
@@ -106,23 +108,20 @@ func (s *Server) handlePatches(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if rej, ok := rules.From(err); ok {
-			rec.RuleID = rej.RuleID
-			writeError(w, statusFor(rej.RuleID), rej.RuleID, rej.Reason)
+			reject(statusFor(rej.RuleID), rej.RuleID, rej.Reason)
 			return
 		}
 		// Unexpected failure: log it, tell the caller nothing about internals.
 		if s.Log != nil {
 			s.Log.Error("patch pipeline failed", "request_id", rec.RequestID, "err", err)
 		}
-		rec.RuleID = "internal-error"
-		writeError(w, http.StatusInternalServerError, "internal-error", "verification failed")
+		reject(http.StatusInternalServerError, "internal-error", "verification failed")
 		return
 	}
 
 	canonicalHash, err := canon.Hash(req.Repo, ref, res.CommitSHA, res.TreeSHA, req.Title, req.Body)
 	if err != nil {
-		rec.RuleID = "internal-error"
-		writeError(w, http.StatusInternalServerError, "internal-error", "hash computation failed")
+		reject(http.StatusInternalServerError, "internal-error", "hash computation failed")
 		return
 	}
 
@@ -141,21 +140,21 @@ func (s *Server) handlePatches(w http.ResponseWriter, r *http.Request) {
 			CanonicalHash: canonicalHash,
 		}); err != nil {
 			if rej, ok := rules.From(err); ok {
-				rec.RuleID = rej.RuleID
-				writeError(w, statusFor(rej.RuleID), rej.RuleID, rej.Reason)
+				reject(statusFor(rej.RuleID), rej.RuleID, rej.Reason)
 				return
 			}
 			if s.Log != nil {
 				s.Log.Error("publish failed", "request_id", rec.RequestID, "err", err)
 			}
-			rec.RuleID = rules.PublishUnavailable
-			writeError(w, http.StatusBadGateway, rules.PublishUnavailable, "publisher is unavailable")
+			reject(http.StatusBadGateway, rules.PublishUnavailable, "publisher is unavailable")
 			return
 		}
 	}
 
 	rec.Decision = audit.Accept
 	rec.RuleID = ""
+	rec.Reason = ""
+	rec.RuleOutcomes = []string{audit.Accept}
 
 	writeJSON(w, http.StatusAccepted, patchResponse{
 		BundleSHA256:  rec.BundleSHA256,

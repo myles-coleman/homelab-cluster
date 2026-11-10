@@ -1,0 +1,16 @@
+{
+  "name": "unknown-repo",
+  "class": "unknown-repo",
+  "expected_rule_id": "unknown-repo",
+  "repo": "other",
+  "title": "docs: add a note",
+  "body": "",
+  "commit_message": "docs: add a note",
+  "ref": "agent/4a22ef3b-312b-4624-8e64-9a3060579091/redteam",
+  "changes": [
+    {
+      "path": "docs/notes.txt",
+      "content": "clean\n"
+    }
+  ]
+}

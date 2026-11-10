@@ -315,8 +315,32 @@ func TestPatchesAuditOneRecordPerRequest(t *testing.T) {
 	if len(lines) != 1 {
 		t.Fatalf("audit lines = %d, want 1", len(lines))
 	}
-	if !strings.Contains(lines[0], `"decision":"reject"`) || !strings.Contains(lines[0], `"rule_id":"stale-base"`) {
+	var gotAudit struct {
+		Decision     string   `json:"decision"`
+		RuleID       string   `json:"rule_id"`
+		Reason       string   `json:"reason"`
+		RuleOutcomes []string `json:"rule_outcomes"`
+	}
+	if err := json.Unmarshal([]byte(lines[0]), &gotAudit); err != nil {
+		t.Fatalf("decode audit record: %v", err)
+	}
+	if gotAudit.Decision != "reject" || gotAudit.RuleID != "stale-base" {
 		t.Errorf("audit record = %s", lines[0])
+	}
+	// FR-51: the record carries the reason and the rule outcome, not only the
+	// terminal id. The wire body and the audit line must agree.
+	if gotAudit.Reason == "" {
+		t.Errorf("audit reason is empty: %s", lines[0])
+	}
+	var body map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response body: %v", err)
+	}
+	if gotAudit.Reason != body["reason"] {
+		t.Errorf("audit reason = %q, wire reason = %q", gotAudit.Reason, body["reason"])
+	}
+	if len(gotAudit.RuleOutcomes) != 1 || gotAudit.RuleOutcomes[0] != "stale-base" {
+		t.Errorf("rule_outcomes = %v, want [stale-base]", gotAudit.RuleOutcomes)
 	}
 }
 

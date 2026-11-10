@@ -20,6 +20,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/audit"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/ghttp"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/gitbundle"
 	"github.com/myles-coleman/homelab-cluster/services/agent-broker/internal/publish"
@@ -45,6 +46,8 @@ func main() {
 		cleanupForce    = flag.Bool("cleanup-force", false, "cleanup fresh app-authored branches too")
 		maxBranchAge    = flag.Duration("max-branch-age", 72*time.Hour, "maximum age of an agent branch before cleanup")
 		shutdownTimeout = flag.Duration("shutdown-timeout", 15*time.Second, "graceful shutdown budget")
+		auditLogFile    = flag.String("audit-log-file", "", "local NDJSON audit store; empty disables the file (stdout still ships via filelog)")
+		auditRetention  = flag.Duration("audit-retention", 72*time.Hour, "how long the local audit store keeps a record")
 	)
 	flag.Parse()
 
@@ -82,6 +85,20 @@ func main() {
 	if *cleanup {
 		runCleanup(logger, rest, *maxBranchAge, *cleanupForce)
 		return
+	}
+
+	// The publisher is deliberately isolated from in-cluster OTLP egress: it
+	// writes stdout NDJSON, which the existing filelog collector ships, and
+	// optionally mirrors to a local file.
+	auditLogger := audit.New(os.Stdout)
+	if *auditLogFile != "" {
+		auditStore, err := audit.OpenStore(*auditLogFile, *auditRetention)
+		if err != nil {
+			logger.Error("open audit store", "err", err)
+			os.Exit(1)
+		}
+		defer auditStore.Close()
+		auditLogger.Store = auditStore
 	}
 
 	serverTLS, err := tlsconf.ServerConfig(*certFile, *keyFile, *clientCAFile)
@@ -126,6 +143,7 @@ func main() {
 		Fetcher: gitFetcher,
 		History: gitFetcher,
 		Publish: service,
+		Audit:   auditLogger,
 		Log:     logger,
 	}).Handler()
 

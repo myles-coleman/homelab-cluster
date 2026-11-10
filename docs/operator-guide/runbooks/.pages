@@ -4,3 +4,5 @@ nav:
 - sandbox-agent-observability.md
 - sandbox-telemetry.md
 - signoz-dashboard-api-key.md
+- agent-mtls-rotation.md
+- agent-secret-encryption.md

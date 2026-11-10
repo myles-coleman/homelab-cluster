@@ -5,6 +5,7 @@ resources:
   - certificates.yaml
   - networkpolicy.yaml
   - rbac.yaml
+  - audit-pvc.yaml
   - deployment.yaml
   - service.yaml
   # policy ConfigMap is added in sub-task 2.1 when the allowlist exists.

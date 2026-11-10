@@ -4,6 +4,11 @@
 # github.com, and the public internet on 443. Everything else, including the
 # cluster and the LAN, is excluded so a compromised publisher cannot reach
 # in-cluster services with its credential.
+#
+# There is deliberately no OTLP peer here (spec 30, Unit 5): the publisher's
+# audit records go to stdout NDJSON and ship through the existing filelog path.
+# Exporting them from inside the pod would add an in-cluster destination to a
+# component whose credential boundary excludes one.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

@@ -51,6 +51,12 @@ jobs:
       - name: Test
         run: go test ./...
 
+      - name: Red-team corpus
+        run: go test ./test/redteam -run 'TestRedTeam|TestCorpusCompleteness' -v
+
+      - name: Verify runbooks
+        run: ../../scripts/verify-runbooks.sh
+
   github-settings:
     name: github-settings
     # Spec 30 FR-39..FR-48: the repeatable settings gate. The PR test job stays
