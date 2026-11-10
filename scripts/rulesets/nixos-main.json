@@ -1,0 +1,94 @@
+{
+  "name": "main-protection",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": [
+        "refs/heads/main"
+      ],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews_on_push": true,
+        "require_last_push_approval": true,
+        "required_review_thread_resolution": false,
+        "require_code_owner_review": false
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": false,
+        "required_status_checks": [
+          {
+            "context": "changes"
+          },
+          {
+            "context": "build-x86 (bee-pc)"
+          },
+          {
+            "context": "build-x86 (bee-gpd)"
+          },
+          {
+            "context": "build-x86 (homelab)"
+          },
+          {
+            "context": "build-x86 (bee-gpu-server)"
+          },
+          {
+            "context": "build-x86 (protecli-vault)"
+          },
+          {
+            "context": "build-arm (pikvm)"
+          },
+          {
+            "context": "build-arm (node0)"
+          },
+          {
+            "context": "build-arm (node1)"
+          },
+          {
+            "context": "build-arm (node2)"
+          },
+          {
+            "context": "build-arm (node3)"
+          },
+          {
+            "context": "build-arm (node4)"
+          },
+          {
+            "context": "build-arm (rpi3)"
+          },
+          {
+            "context": "pin-guard"
+          },
+          {
+            "context": "closure-diff"
+          },
+          {
+            "context": "gate"
+          }
+        ]
+      }
+    }
+  ],
+  "bypass_actors": [
+    {
+      "actor_id": 44505855,
+      "actor_type": "User",
+      "bypass_mode": "always"
+    }
+  ]
+}
