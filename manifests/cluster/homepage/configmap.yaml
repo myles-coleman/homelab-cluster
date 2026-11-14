@@ -65,9 +65,9 @@ data:
             icon: copyparty.svg
             href: https://copyparty.cowlab.org/
             description: File Sharing and Management
-        - YoutubeDL:
+        - ytdl-material:
             icon: youtube.svg
-            href: https://youtube.cowlab.org/
+            href: https://ytdl.cowlab.org/
             description: YouTube Downloader
         - Llama.cpp:
             icon: ollama.svg

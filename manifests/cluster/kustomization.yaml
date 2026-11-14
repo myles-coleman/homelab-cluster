@@ -42,6 +42,8 @@ resources:
 - ai-artifacts-site
 - speedtest
 - node-exporter
+# Materialious (materialious-full) — account-free YouTube frontend, no Invidious
+- youtube-proxy
 # spec 20 — Kubernetes Agent Sandbox on k3s with Strata as the model backend
 # (Strata itself is reached by tailnet IP literal, not a Service — see Unit 3.)
 - squid

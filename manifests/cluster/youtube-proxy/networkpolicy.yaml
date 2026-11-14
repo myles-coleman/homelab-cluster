@@ -1,0 +1,76 @@
+# Constrains the Materialious pod without relying on the app's own proxy
+# allowlist. Written against namespaces and IP blocks, never Service ClusterIPs:
+# kube-proxy DNATs a ClusterIP before the policy is evaluated.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: materialious
+  namespace: youtube-proxy
+spec:
+  podSelector:
+    matchLabels:
+      app: materialious
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Browser traffic arrives through the Traefik pods, not from the LAN.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 3000
+    # Kubelet liveness/readiness probes originate from the node's address, which
+    # is not in the traefik namespace. Listed per node so a new LAN host cannot
+    # reach the pod directly.
+    - from:
+        - ipBlock:
+            cidr: 10.0.0.140/32
+        - ipBlock:
+            cidr: 10.0.0.141/32
+        - ipBlock:
+            cidr: 10.0.0.142/32
+        - ipBlock:
+            cidr: 10.0.0.143/32
+        - ipBlock:
+            cidr: 10.0.0.144/32
+      ports:
+        - protocol: TCP
+          port: 3000
+  egress:
+    # Cluster DNS. Without this the container resolves nothing and every fetch
+    # fails with a name-resolution error.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Upstream YouTube + the Return YouTube Dislike API. NetworkPolicy cannot
+    # express hostnames, so this is web egress with private ranges excluded:
+    # the pod cannot reach cluster Services, node IPs, or the LAN, which is the
+    # actual lateral-movement risk for an app with a built-in CORS proxy.
+    #
+    # Caveat: `except` is standard Kubernetes API, but if the CNI's policy
+    # engine ignores it this degrades to "all web egress" — narrower than the
+    # default, not a lateral-movement barrier. Verified at deploy time, not in
+    # this file.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 127.0.0.0/8
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
