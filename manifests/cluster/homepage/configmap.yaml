@@ -65,6 +65,10 @@ data:
             icon: copyparty.svg
             href: https://copyparty.cowlab.org/
             description: File Sharing and Management
+        - YouTube:
+            icon: youtube.svg
+            href: https://youtube.cowlab.org/
+            description: Account-free YouTube Frontend
         - ytdl-material:
             icon: youtube.svg
             href: https://ytdl.cowlab.org/
