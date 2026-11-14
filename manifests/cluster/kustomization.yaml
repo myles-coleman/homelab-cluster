@@ -10,7 +10,12 @@ resources:
 - jellyseerr
 # - vaultwarden
 - clickhouse-operator
-- discord-bot
+# Discord bot retired: container stopped and the bot token revoked in the
+# Discord Developer Portal. Leaving it declared kept a live credential in a
+# public repo and a crash-looping pod in the cluster. Re-enabling requires
+# minting a new token, storing it in Vaultwarden, and wiring an ExternalSecret
+# (the committed Secret is gone) before uncommenting this line.
+# - discord-bot
 - longhorn
 # - pihole
 - pikvm

@@ -3,4 +3,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - deployment.yaml
-  - secret.yaml
+  # secret.yaml removed: it held the live Discord bot token in a public repo.
+  # The token is revoked and the workload is disabled in
+  # manifests/cluster/kustomization.yaml. Wire an ExternalSecret here before
+  # re-enabling, rather than committing credentials again.
