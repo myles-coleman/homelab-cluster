@@ -9,6 +9,10 @@ cat "$BOOTSTRAP_DIR/kustomization.yaml" | grep -v "^- " > "$TEMP_KUST"
 echo "Parsing resources from $CLUSTER_KUSTOMIZATION..."
 resources=$(grep "^- " "$CLUSTER_KUSTOMIZATION" | sed 's/^- //')
 
+# Application files this run owns, keyed by basename. Anything matching
+# *-app.yaml in BOOTSTRAP_DIR but absent here is a retired service.
+declare -A expected_app_files
+
 # Namespace mapping for cases where directory name != namespace
 declare -A namespace_map
 namespace_map["metallb"]="metallb-system"
@@ -74,6 +78,10 @@ extra_ignore_differences["signoz"]='    - group: apps
 for resource in $resources; do
   echo "Generating Application for $resource..."
   
+  # Track the Application files this run intends to own, so the prune below can
+  # tell a live service from a retired one.
+  expected_app_files["$resource-app.yaml"]=1
+
   # Use mapped namespace if exists, otherwise use resource name
   target_namespace="${namespace_map[$resource]:-$resource}"
   
@@ -140,3 +148,22 @@ done
 mv "$TEMP_KUST" "$BOOTSTRAP_DIR/kustomization.yaml"
 
 echo "Updated $BOOTSTRAP_DIR/kustomization.yaml with all application resources"
+
+# Prune Application files for services that are no longer declared.
+#
+# Commenting a service out of CLUSTER_KUSTOMIZATION removes its line from the
+# bootstrap kustomization, which makes ArgoCD prune the Application and cascade
+# to the namespace. It does NOT remove the generated <service>-app.yaml file,
+# because this script only ever writes files. The orphan is inert to kustomize,
+# but it is a fully-formed Application manifest sitting in the tree, so it reads
+# as live configuration to anyone browsing the repo. discord-bot was the first
+# such orphan; without this, every retirement leaves one behind.
+shopt -s nullglob
+for app_file in "$BOOTSTRAP_DIR"/*-app.yaml; do
+  app_basename="$(basename "$app_file")"
+  if [ -z "${expected_app_files[$app_basename]:-}" ]; then
+    echo "Removing orphaned Application file: $app_basename"
+    rm -f "$app_file"
+  fi
+done
+shopt -u nullglob
