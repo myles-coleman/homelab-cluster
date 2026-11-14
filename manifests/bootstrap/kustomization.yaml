@@ -18,7 +18,6 @@ resources:
 - jellyfin-app.yaml
 - jellyseerr-app.yaml
 - clickhouse-operator-app.yaml
-- discord-bot-app.yaml
 - longhorn-app.yaml
 - pikvm-app.yaml
 - dex-app.yaml
