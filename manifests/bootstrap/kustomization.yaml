@@ -47,6 +47,7 @@ resources:
 - ai-artifacts-site-app.yaml
 - speedtest-app.yaml
 - node-exporter-app.yaml
+- youtube-proxy-app.yaml
 - squid-app.yaml
 - agent-sandbox-app.yaml
 - sandbox-telemetry-app.yaml

@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: materialious
+  namespace: youtube-proxy
+spec:
+  replicas: 1
+  # sqlite on a ReadWriteOnce Longhorn volume: never run two pods at once.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: materialious
+  template:
+    metadata:
+      labels:
+        app: materialious
+    spec:
+      containers:
+      - name: materialious
+        image: wardpearce/materialious-full:1.18.26
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: TZ
+          value: "Etc/UTC"
+        - name: COOKIE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: materialious-secrets
+              key: COOKIE_SECRET
+        - name: DATABASE_CONNECTION_URI
+          value: "sqlite:///materialious-data/materialious.db"
+        - name: PUBLIC_INTERNAL_AUTH
+          value: "true"
+        - name: PUBLIC_REQUIRE_AUTH
+          value: "true"
+        - name: PUBLIC_REGISTRATION_ALLOWED
+          value: "false"
+        - name: PUBLIC_ADMIN_USERNAMES
+          value: "bee"
+        # TLS terminates at Traefik, so the proof-of-work captcha works.
+        - name: PUBLIC_CAPTCHA_DISABLED
+          value: "false"
+        - name: HISTORY_CULLING
+          value: "30"
+        # No Invidious in this namespace: the bundled backend plays video and
+        # proxies upstream requests server-side.
+        - name: PUBLIC_DEFAULT_INVIDIOUS_INSTANCE
+          value: ""
+        # Return YouTube Dislike is kept (public API). Self-hosting ryd-proxy is
+        # possible but its image has not been updated since 2024-04; see README.md.
+        - name: PUBLIC_DEFAULT_RETURNYTDISLIKES_INSTANCE
+          value: "https://returnyoutubedislikeapi.com"
+        # Blank disables the feature entirely. Both send watched video IDs to a
+        # third party, so they stay off until a self-hosted SponsorBlock server
+        # exists. NOTE: upstream spells it SPONSERBLOCK; keep that spelling.
+        - name: PUBLIC_DEFAULT_SPONSERBLOCK_INSTANCE
+          value: ""
+        - name: PUBLIC_DEFAULT_DEARROW_INSTANCE
+          value: ""
+        - name: PUBLIC_DEFAULT_DEARROW_THUMBNAIL_INSTANCE
+          value: ""
+        ports:
+        - name: http
+          containerPort: 3000
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 5
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            # Video is proxied server-side, so memory tracks concurrent streams,
+            # not idle usage.
+            memory: "2Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: data
+          mountPath: /materialious-data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: materialious-data
