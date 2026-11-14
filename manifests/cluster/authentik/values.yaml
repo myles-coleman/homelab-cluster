@@ -19,6 +19,12 @@ postgresql:
   auth:
     username: "authentik"
     password: "REPLACEME"
+    # Without an explicit value the chart generates a random superuser password
+    # on every `helmfile template`, so each regeneration commits a new live
+    # credential to this public repo. Pin it to a placeholder; the real value
+    # never enters git because kustomization.yaml swaps this Secret's volume
+    # for the ESO-managed `authentik-secrets`.
+    postgresPassword: "REPLACEME"
     database: "authentik"
   primary:
     persistence:
