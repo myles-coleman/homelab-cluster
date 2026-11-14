@@ -35,7 +35,10 @@ spec:
         - name: PUBLIC_REQUIRE_AUTH
           value: "true"
         - name: PUBLIC_REGISTRATION_ALLOWED
-          value: "false"
+          # Temporarily "true" so the first account can be created. Revert to
+          # "false" once the `bee` admin exists. The host is LAN-only
+          # (wildcard DNS -> 10.0.0.99), so this window is not internet-facing.
+          value: "true"
         - name: PUBLIC_ADMIN_USERNAMES
           value: "bee"
         # TLS terminates at Traefik, so the proof-of-work captcha works.
