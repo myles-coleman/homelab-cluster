@@ -1,0 +1,23 @@
+# Lets HTTPRoutes in other namespaces reference the shared `authentik` Middleware
+# in this namespace. Without it, a cross-namespace ExtensionRef is refused and the
+# route reports ResolvedRefs=False.
+#
+# ReferenceGrant has no wildcard for namespaces: `from[].namespace` is one exact
+# namespace. Adding a protected application therefore means adding one entry here
+# alongside the ExtensionRef in its HTTPRoute. That is deliberate in the API (a
+# grant must name what it trusts), and it keeps the list of namespaces allowed to
+# borrow this Middleware explicit.
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: authentik-middleware
+  namespace: traefik
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: jellyfin
+  to:
+    - group: traefik.io
+      kind: Middleware
+      name: authentik

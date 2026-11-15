@@ -6,5 +6,4 @@ resources:
   - namespace.yaml
   - service.yaml
   - endpointslice.yaml
-  - middleware.yaml
   - httproute.yaml
