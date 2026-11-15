@@ -81,12 +81,13 @@ data:
       #
       # Setting the type at the write stage fixes every future enrollment, which
       # a per-user edit cannot. The stage is identified by name and the bundled
-      # blueprint sets only user_creation_mode, so these two attributes are ours.
+      # blueprint sets only user_creation_mode, so this attribute is ours.
       #
-      # create_users_group also removes the manual step of adding each new user
-      # to homelab. It resolves the group by name because Terraform owns that
-      # object; if the group does not exist yet, discovery fails and retries
-      # rather than creating a second writer for it.
+      # Deliberately NOT set: create_users_group. The Google source accepts any
+      # Google account, so auto-adding every enrollee to homelab would grant
+      # anyone with a Gmail address access to every application bound to it.
+      # App access is therefore opt-in: membership of homelab is the allowlist,
+      # and it is assigned per user.
       - id: default-source-enrollment-write
         model: authentik_stages_user_write.userwritestage
         identifiers:
@@ -94,4 +95,3 @@ data:
         attrs:
           user_creation_mode: always_create
           user_type: internal
-          create_users_group: !Find [authentik_core.group, [name, homelab]]
