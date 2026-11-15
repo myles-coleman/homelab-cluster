@@ -40,22 +40,33 @@ data:
           consumer_key: !Env [GOOGLE_OAUTH_CLIENT_ID, null]
           consumer_secret: !Env [GOOGLE_OAUTH_CLIENT_SECRET, null]
           enabled: true
+          # Both flows are required in practice, though the provider and the API
+          # mark them optional. Without enrollment_flow a first-time Google user
+          # cannot be created and the login errors with
+          # "Source is not configured for enrollment"; without
+          # authentication_flow an existing user cannot authenticate.
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-source-authentication]]
+          enrollment_flow: !Find [authentik_flows.flow, [slug, default-source-enrollment]]
 
       # Creating the source is not enough: it appears on the login page only when
       # the identification stage lists it. The stage is a built-in object, so it
       # is identified by name and updated in place.
       #
-      # Every attribute is restated rather than only `sources` — the default
-      # blueprint also configures this stage (user_fields), and relying on a
-      # partial merge would leave two writers disagreeing about the same object.
+      # user_fields is empty on purpose: the login form is rendered from
+      # user_fields (plus password_fields, which is false here because the stage
+      # has no password_stage), so an empty list leaves Google as the only way in.
+      # The trade-off is that akadmin can no longer sign in through the UI either;
+      # break-glass is `ak shell`, or restore a field here and re-apply.
+      #
+      # The remaining attributes are restated rather than only sources — the
+      # default blueprint also configures this stage, and relying on a partial
+      # merge would leave two writers disagreeing about the same object.
       - id: default-authentication-identification
         model: authentik_stages_identification.identificationstage
         identifiers:
           name: default-authentication-identification
         attrs:
-          user_fields:
-            - email
-            - username
+          user_fields: []
           pretend_user_exists: true
           show_matched_user: true
           enable_remember_me: false
