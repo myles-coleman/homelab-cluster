@@ -395,7 +395,8 @@ spec:
       tls:
         mode: Terminate
         certificateRefs:
-          - kind: Secret
+          - group: ""
+            kind: Secret
             name: cowlab-production-tls
 ---
 # Source: traefik/templates/gatewayclass.yaml
