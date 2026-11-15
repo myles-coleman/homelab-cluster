@@ -58,6 +58,14 @@ ports:
       tls:
         enabled: true
 
+# The dashboard/API is served on the internal `traefik` entrypoint (8080).
+# That port is not published by the Service, so this stays cluster-internal and
+# only reachable through `kubectl port-forward`; it exists so route state can be
+# inspected (`/api/http/routers`) without creating a dashboard IngressRoute.
+api:
+  dashboard: true
+  insecure: true
+
 # Disable default dashboard IngressRoute (we'll create our own)
 ingressRoute:
   dashboard:
