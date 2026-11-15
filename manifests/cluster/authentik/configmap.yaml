@@ -40,6 +40,13 @@ data:
           consumer_key: !Env [GOOGLE_OAUTH_CLIENT_ID, null]
           consumer_secret: !Env [GOOGLE_OAUTH_CLIENT_SECRET, null]
           enabled: true
+          # Both flows are required in practice, though the provider and the API
+          # mark them optional. Without enrollment_flow a first-time Google user
+          # cannot be created and the login errors with
+          # "Source is not configured for enrollment"; without
+          # authentication_flow an existing user cannot authenticate.
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-source-authentication]]
+          enrollment_flow: !Find [authentik_flows.flow, [slug, default-source-enrollment]]
 
       # Creating the source is not enough: it appears on the login page only when
       # the identification stage lists it. The stage is a built-in object, so it
