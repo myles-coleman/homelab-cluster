@@ -96,5 +96,5 @@ See [Managing Secrets](../guides/managing-secrets.md) for usage patterns.
 - **Sync wave**: 10
 - **Key config**:
     - Tunnel configuration managed via Terragrunt (`modules/cloudflare/tunnel.tf`)
-    - Currently routes `jellyfin.cowlab.org` to `traefik.traefik.svc.cluster.local:80`
+    - Catch-all 404 rule only; no service hostname is published
     - DNS CNAME record for tunneled services created automatically by the Cloudflare module

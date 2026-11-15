@@ -99,7 +99,7 @@ resource "cloudflare_record" "my_service" {
 
 For services that need public internet access (outside the home network), the cluster uses a Cloudflare Zero Trust Tunnel:
 
-- **Current routes**: `jellyfin.cowlab.org` → `traefik.traefik.svc.cluster.local:80`
+- **Current routes**: none (catch-all 404). `jellyfin.cowlab.org` was withdrawn with the service.
 - **Configuration**: Managed via Terragrunt in `modules/cloudflare/tunnel.tf`
 - **How it works**: Cloudflare's edge network receives the request and forwards it through an encrypted tunnel to the `cloudflared` pod running in the cluster, which then routes to Traefik
 

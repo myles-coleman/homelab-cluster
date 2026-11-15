@@ -69,7 +69,7 @@ ArgoCD deploys services in wave order (lower numbers first). This ensures depend
 | 2 | traefik, metallb | Networking layer (ingress + load balancer) |
 | 3 | longhorn | Storage layer for persistent workloads |
 | 4 | dex | Authentication (OIDC for ArgoCD) |
-| 10 | All application workloads | Default wave for apps (sonarr, radarr, jellyfin, etc.) |
+| 10 | All application workloads | Default wave for apps (sonarr, radarr, prowlarr, etc.) |
 
 See [Sync Wave Reference](../reference/sync-wave-reference.md) for detailed documentation.
 

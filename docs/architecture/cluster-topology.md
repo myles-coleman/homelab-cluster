@@ -40,13 +40,13 @@ graph TB
             subgraph "Kubernetes Services"
                 MLB["MetalLB<br/>(IP allocation)"]
                 TFK["Traefik LB<br/>10.0.0.99"]
-                SVC["Application Services<br/>(sonarr, radarr, jellyfin, etc.)"]
+                SVC["Application Services<br/>(sonarr, radarr, prowlarr, etc.)"]
             end
         end
     end
 
     CF -->|"Wildcard A record<br/>*.cowlab.org → 10.0.0.99"| TFK
-    CFT -->|"Tunnel route<br/>jellyfin.cowlab.org"| TFK
+    CFT -.->|"Tunnel (no routes)"| TFK
     VIP --> N0
     N0 --- N1
     N0 --- N2
