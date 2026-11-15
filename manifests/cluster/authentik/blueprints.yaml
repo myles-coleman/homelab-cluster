@@ -1,0 +1,57 @@
+# Authentik configuration kept in a blueprint rather than Terraform, because the
+# Google OAuth client secret is a resource attribute: Terraform would record it in
+# terraform.tfstate. Here it is read from the pod environment via !Env, and the
+# environment comes from the ESO-managed Secret.
+#
+# The chart can mount a blueprint ConfigMap itself (blueprints.configMaps), but
+# that renders a copy container into the worker pod. Discovery walks the whole
+# blueprints tree (tasks.py: rglob("**/*.yaml")), so a plain ConfigMap volume
+# mounted under it is enough and needs no chart change.
+#
+# Only keys ending in .yaml are discovered.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprints
+  namespace: authentik
+data:
+  google-source.yaml: |
+    version: 1
+    metadata:
+      name: Homelab - Google source
+    entries:
+      # The login-page button. slug must stay "google": the redirect URI
+      # registered in Google Cloud is
+      # https://authentik.cowlab.org/source/oauth/callback/google/
+      - id: google-source
+        model: authentik_sources_oauth.oauthsource
+        identifiers:
+          slug: google
+        attrs:
+          name: Google
+          provider_type: google
+          consumer_key: !Env [GOOGLE_OAUTH_CLIENT_ID, null]
+          consumer_secret: !Env [GOOGLE_OAUTH_CLIENT_SECRET, null]
+          enabled: true
+
+      # Creating the source is not enough: it appears on the login page only when
+      # the identification stage lists it. The stage is a built-in object, so it
+      # is identified by name and updated in place.
+      #
+      # Every attribute is restated rather than only `sources` — the default
+      # blueprint also configures this stage (user_fields), and relying on a
+      # partial merge would leave two writers disagreeing about the same object.
+      - id: default-authentication-identification
+        model: authentik_stages_identification.identificationstage
+        identifiers:
+          name: default-authentication-identification
+        attrs:
+          user_fields:
+            - email
+            - username
+          pretend_user_exists: true
+          show_matched_user: true
+          enable_remember_me: false
+          case_insensitive_matching: true
+          sources:
+            - !KeyOf google-source
