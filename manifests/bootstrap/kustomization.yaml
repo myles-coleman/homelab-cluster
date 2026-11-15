@@ -6,7 +6,6 @@ resources:
 - lidarr-app.yaml
 - prowlarr-app.yaml
 - jellyseerr-app.yaml
-- jellyfin-app.yaml
 - clickhouse-operator-app.yaml
 - longhorn-app.yaml
 - dex-app.yaml
