@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: dex
 resources:
   - helm-chart.yaml
-  - ingress.yaml
+  - httproute.yaml
   - namespace.yaml
 
 components:
