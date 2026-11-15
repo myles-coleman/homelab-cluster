@@ -8,4 +8,4 @@ resources:
   - persistent-volume-claim-nfs.yaml
   - deployment.yaml
   - service.yaml
-  - ingress.yaml
+  - httproute.yaml
