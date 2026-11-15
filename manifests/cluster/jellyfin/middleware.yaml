@@ -1,0 +1,36 @@
+# Forward every request to the Authentik proxy outpost before Traefik serves it.
+# A request without a valid session is answered by the outpost with a redirect
+# into the login flow; a valid one is proxied through with the X-authentik-*
+# identity headers attached.
+#
+# Lives in the application's namespace on purpose. A Middleware in another
+# namespace would rely on Traefik's allowCrossNamespace, and Gateway API
+# ExtensionRef cross-namespace references normally want a ReferenceGrant. Same
+# namespace needs neither. The cost is one copy per application; if this grows
+# past a handful, centralise it with a ReferenceGrant rather than a per-app copy.
+#
+# trustForwardHeader is deliberately not set: it is deprecated in Traefik v3.7,
+# and enabling it would let a client supply its own X-Forwarded-Host, which is
+# how the outpost decides which application is being authorised.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: authentik
+  namespace: jellyfin
+spec:
+  forwardAuth:
+    address: http://authentik-outpost.authentik.svc.cluster.local:9000/outpost.goauthentik.io/auth/traefik
+    authRequestHeaders:
+      - Cookie
+      - X-Forwarded-Method
+      - X-Forwarded-Proto
+      - X-Forwarded-Host
+      - X-Forwarded-Uri
+      - X-Forwarded-For
+    authResponseHeaders:
+      - X-authentik-username
+      - X-authentik-groups
+      - X-authentik-email
+      - X-authentik-name
+      - X-authentik-uid
+      - X-authentik-jwt
