@@ -119,7 +119,7 @@ ArgoCD deploys services in wave order (lower numbers first). This ensures depend
 | 3 | longhorn | Storage layer for persistent workloads |
 | 4 | dex | Authentication (OIDC for ArgoCD) |
 | 5 | generic-device-plugin | GPU device registration (must be ready before GPU workloads) |
-| 10 | All application workloads | Default wave for apps (sonarr, radarr, jellyfin, etc.) |
+| 10 | All application workloads | Default wave for apps (sonarr, radarr, prowlarr, etc.) |
 
 Wave assignments are defined in the `sync_wave_map` associative array in `generate-apps.sh`. Any service not in the map defaults to wave 10.
 
