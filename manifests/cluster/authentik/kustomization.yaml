@@ -4,7 +4,7 @@ namespace: authentik
 
 resources:
   - namespace.yaml
-  - blueprints.yaml
+  - configmap.yaml
   - external-secret.yaml
   - helm-chart.yaml
   - httproute.yaml
@@ -73,9 +73,9 @@ patches:
         template:
           spec:
             volumes:
-              - name: authentik-blueprints
+              - name: authentik-config
                 configMap:
-                  name: authentik-blueprints
+                  name: authentik-config
             containers:
               - name: worker
                 env:
@@ -107,7 +107,7 @@ patches:
                 # Blueprint discovery walks the whole tree, so the path only has
                 # to be under the blueprints root.
                 volumeMounts:
-                  - name: authentik-blueprints
+                  - name: authentik-config
                     mountPath: /blueprints/mounted/homelab
                     readOnly: true
   # Point the PostgreSQL credential volume at the ESO-managed Secret.
