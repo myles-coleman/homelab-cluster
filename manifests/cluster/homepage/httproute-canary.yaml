@@ -1,6 +1,10 @@
 # TEMPORARY canary route (spec 04, task 2.11). Proves the Gateway path on a
 # hostname no IngressRoute claims, before any production host moves.
 # Removed in task 4.7.
+#
+# Defaults are stated explicitly (parentRefs.group/kind, backendRefs.group/kind/
+# weight, and the match). Omitting them makes the API server fill them in, and
+# ArgoCD then reports the object OutOfSync forever against its own defaults.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -8,12 +12,21 @@ metadata:
   namespace: homepage
 spec:
   parentRefs:
-    - name: traefik-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
       namespace: traefik
       sectionName: websecure
   hostnames:
     - gateway-canary.cowlab.org
   rules:
-    - backendRefs:
-        - name: homepage
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: homepage
           port: 3000
+          weight: 1
