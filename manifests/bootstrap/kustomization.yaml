@@ -24,6 +24,7 @@ resources:
 - metallb-app.yaml
 - traefik-app.yaml
 - argocd-secret-app.yaml
+- authentik-app.yaml
 - cloudflared-app.yaml
 - argocd-mcp-app.yaml
 - searxng-app.yaml
