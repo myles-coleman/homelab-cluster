@@ -3,4 +3,4 @@ kind: Kustomization
 namespace: argocd
 resources:
   - external-secret.yaml
-  - ingress.yaml
+  - httproute.yaml
