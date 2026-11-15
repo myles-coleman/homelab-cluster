@@ -1,25 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-# - jellyfin-app.yaml
-# - pihole-app.yaml
-# - pikvm-app.yaml
-# - monitoring-app.yaml
-# - dapr-app.yaml
-# - pihole-app.yaml
-# - pikvm-app.yaml
-# - vaultwarden-app.yaml
-# - fittrackee-app.yaml
-# - authentik-app.yaml
 - sonarr-app.yaml
 - radarr-app.yaml
 - lidarr-app.yaml
 - prowlarr-app.yaml
-- jellyfin-app.yaml
 - jellyseerr-app.yaml
 - clickhouse-operator-app.yaml
 - longhorn-app.yaml
-- pikvm-app.yaml
 - dex-app.yaml
 - qbittorrent-app.yaml
 - external-secrets-app.yaml

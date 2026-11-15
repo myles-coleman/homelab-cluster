@@ -6,7 +6,6 @@ resources:
 - radarr
 - lidarr
 - prowlarr
-- jellyfin
 - jellyseerr
 # - vaultwarden
 - clickhouse-operator
@@ -18,7 +17,6 @@ resources:
 # - discord-bot
 - longhorn
 # - pihole
-- pikvm
 - dex
 - qbittorrent
 - external-secrets
