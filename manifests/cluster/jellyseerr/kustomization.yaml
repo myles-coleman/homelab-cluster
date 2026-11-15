@@ -5,5 +5,5 @@ resources:
   - backup-pv.yaml
   - deployment.yaml
   - service.yaml
-  - ingress.yaml
+  - httproute.yaml
   - config-pvc.yaml
