@@ -1,0 +1,33 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: portal
+  namespace: homepage
+  labels:
+    app.kubernetes.io/name: homepage
+  annotations:
+    gethomepage.dev/description: Dynamically Detected Homepage
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Cluster Management
+    gethomepage.dev/icon: homepage.png
+    gethomepage.dev/name: Homepage
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - portal.cowlab.org
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: homepage
+          port: 3000
+          weight: 1
