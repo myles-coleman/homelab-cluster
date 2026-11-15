@@ -7,7 +7,6 @@ resources:
 - lidarr
 - prowlarr
 - jellyseerr
-- jellyfin
 # - vaultwarden
 - clickhouse-operator
 # Discord bot retired: container stopped and the bot token revoked in the

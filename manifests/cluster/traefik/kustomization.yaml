@@ -11,4 +11,3 @@ resources:
   # Shared Authentik forward-auth gate, referenced by HTTPRoutes in other
   # namespaces through a ReferenceGrant.
   - middleware-authentik.yaml
-  - referencegrant-authentik.yaml
