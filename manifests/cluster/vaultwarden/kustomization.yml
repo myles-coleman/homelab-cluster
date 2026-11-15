@@ -4,5 +4,5 @@ resources:
   - namespace.yml
   - deployment.yml
   - service.yml
-  - ingress.yml
+  - httproute.yml
   - data-pvc.yaml
