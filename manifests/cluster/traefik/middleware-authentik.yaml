@@ -2,9 +2,10 @@
 # through an ExtensionRef filter; there is no per-application copy, so the
 # security-critical configuration cannot drift between services.
 #
-# Cross-namespace references from the routes are permitted by the ReferenceGrant
-# beside this file. Traefik watches referencegrants (its ClusterRole includes
-# get/list/watch on them), so a route in another namespace can point here.
+# Cross-namespace references need a ReferenceGrant in this namespace naming the
+# route's namespace (the API has no namespace wildcard). There is none right now
+# because no route references this Middleware yet — add it together with the
+# first protected application, in this file's directory.
 #
 # trustForwardHeader is deliberately not set. It is deprecated in Traefik v3.7,
 # and enabling it would let a client supply its own X-Forwarded-Host, which is
