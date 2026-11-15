@@ -34,6 +34,9 @@ sync_wave_map["metallb"]="2"
 sync_wave_map["longhorn"]="3"
 # Wave 4: Auth
 sync_wave_map["dex"]="4"
+# Authentik shares the auth wave: applications in wave 10 attach the forward-auth
+# middleware, and the outpost must exist before them.
+sync_wave_map["authentik"]="4"
 # Wave 5: GPU device registration
 sync_wave_map["generic-device-plugin"]="5"
 # Wave 10: Applications (default)

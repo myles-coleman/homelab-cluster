@@ -41,7 +41,7 @@ resources:
 - metallb
 - traefik
 - argocd-secret
-# - authentik
+- authentik
 - cloudflared
 # - generic-device-plugin
 # - llama-cpp

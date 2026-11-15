@@ -1,0 +1,105 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: authentik
+
+resources:
+  - namespace.yaml
+  - external-secret.yaml
+  - helm-chart.yaml
+  - httproute.yaml
+  - networkpolicy.yaml
+  - outpost-deployment.yaml
+
+patches:
+  # The chart renders its own Secret from the placeholders in values.yaml. Override
+  # only the credentials that must come from Vaultwarden, keyed by env name, so
+  # the chart's remaining environment (listen addresses, metrics, error
+  # reporting) survives. A container's `env` takes precedence over its
+  # `envFrom`, which is where the chart puts the placeholder Secret.
+  #
+  # This replaces an earlier patch that swapped the whole env list, which silently
+  # discarded every variable the chart set.
+  - target:
+      kind: Deployment
+      name: authentik-server
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: authentik-server
+      spec:
+        template:
+          spec:
+            containers:
+              - name: server
+                env:
+                  - name: AUTHENTIK_SECRET_KEY
+                    valueFrom:
+                      secretKeyRef:
+                        name: authentik-secrets
+                        key: secret-key
+                  - name: AUTHENTIK_POSTGRESQL__USER
+                    valueFrom:
+                      secretKeyRef:
+                        name: authentik-secrets
+                        key: db-user
+                  - name: AUTHENTIK_POSTGRESQL__PASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: authentik-secrets
+                        key: db-password
+  - target:
+      kind: Deployment
+      name: authentik-worker
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: authentik-worker
+      spec:
+        template:
+          spec:
+            containers:
+              - name: worker
+                env:
+                  - name: AUTHENTIK_SECRET_KEY
+                    valueFrom:
+                      secretKeyRef:
+                        name: authentik-secrets
+                        key: secret-key
+                  - name: AUTHENTIK_POSTGRESQL__USER
+                    valueFrom:
+                      secretKeyRef:
+                        name: authentik-secrets
+                        key: db-user
+                  - name: AUTHENTIK_POSTGRESQL__PASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: authentik-secrets
+                        key: db-password
+  # Point the PostgreSQL credential volume at the ESO-managed Secret.
+  #
+  # Targeted by volume NAME, not by its position in the list: the previous
+  # configuration patched /spec/template/spec/volumes/3, which would silently
+  # write to the wrong volume if the chart ever reordered or inserted one, and
+  # the failure mode is PostgreSQL starting with the placeholder password.
+  - target:
+      kind: StatefulSet
+      name: authentik-postgresql
+    patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: authentik-postgresql
+      spec:
+        template:
+          spec:
+            volumes:
+              - name: postgresql-password
+                secret:
+                  secretName: authentik-secrets
+                  items:
+                    - key: db-password
+                      path: password
+                    - key: db-password
+                      path: postgres-password

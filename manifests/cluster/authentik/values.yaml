@@ -1,0 +1,69 @@
+authentik:
+  # Placeholders, not credentials. The real values come from Vaultwarden via the
+  # ExternalSecret and are injected by kustomization.yaml as environment
+  # variables, which take precedence over this chart-generated Secret. They must
+  # still be non-empty here so the chart renders a valid Secret object.
+  secret_key: "REPLACEME"
+
+  error_reporting:
+    enabled: false
+    environment: "k8s"
+    send_pii: false
+
+  postgresql:
+    host: "authentik-postgresql"
+    name: "authentik"
+    user: "authentik"
+    password: "REPLACEME"
+    port: 5432
+
+  log_level: "info"
+
+postgresql:
+  enabled: true
+  auth:
+    username: "authentik"
+    password: "REPLACEME"
+    # Without an explicit value the chart generates a random superuser password
+    # on every render, so each regeneration would commit a new live credential to
+    # this public repository. Pinned to a placeholder; kustomization.yaml points
+    # the StatefulSet's credential volume at the ESO-managed Secret instead.
+    postgresPassword: "REPLACEME"
+    database: "authentik"
+  primary:
+    # The chart's own policy sets allowExternal: true, admitting 5432 from every
+    # source. NetworkPolicy is additive, so leaving it enabled would reopen the
+    # namespace despite the default-deny in networkpolicy.yaml.
+    networkPolicy:
+      enabled: false
+    persistence:
+      enabled: true
+      storageClass: "longhorn"
+      size: 8Gi
+
+server:
+  enabled: true
+  replicas: 1
+
+  ingress:
+    enabled: false
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+worker:
+  enabled: true
+  replicas: 1
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "512Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"

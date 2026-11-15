@@ -1,0 +1,28 @@
+# authentik.cowlab.org is the one host that must accept unauthenticated traffic:
+# it is where users log in. It therefore carries no forward-auth middleware — the
+# IdP cannot sit behind itself.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: authentik
+  namespace: authentik
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - authentik.cowlab.org
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: authentik-server
+          port: 80
+          weight: 1
