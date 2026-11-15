@@ -62,23 +62,8 @@ rules:
       - networking.k8s.io
     resources:
       - ingressclasses
-      - ingresses
     verbs:
       - get
-      - list
-      - watch
-  - apiGroups:
-      - extensions
-      - networking.k8s.io
-    resources:
-      - ingresses/status
-    verbs:
-      - update
-  - apiGroups:
-      - ""
-    resources:
-      - namespaces
-    verbs:
       - list
       - watch
   - apiGroups:
@@ -241,11 +226,7 @@ spec:
         - --providers.kubernetescrd
         - --providers.kubernetescrd.ingressClass=traefik-external
         - --providers.kubernetescrd.allowCrossNamespace=true
-        - --providers.kubernetescrd.allowExternalNameServices=true
         - --providers.kubernetescrd.allowEmptyServices=true
-        - --providers.kubernetesingress
-        - --providers.kubernetesingress.allowExternalNameServices=true
-        - --providers.kubernetesingress.allowEmptyServices=true
         - --providers.kubernetesgateway
         - --providers.kubernetesgateway.statusaddress.service.name=traefik
         - --providers.kubernetesgateway.statusaddress.service.namespace=traefik

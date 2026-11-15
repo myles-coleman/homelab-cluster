@@ -73,16 +73,18 @@ ingressRoute:
 
 # Providers
 providers:
+  # kubernetesCRD stays enabled permanently: it is still required for
+  # Middleware as ExtensionRef, and it is a supported Traefik configuration.
+  # allowExternalNameServices is off because no ExternalName Service remains.
   kubernetesCRD:
     enabled: true
     ingressClass: traefik-external
-    allowExternalNameServices: true
+    allowExternalNameServices: false
     allowCrossNamespace: true
+  # The standard Ingress provider is disabled: zero Ingress objects exist, and
+  # its default IngressClass only creates a second, unreviewed ingress path.
   kubernetesIngress:
-    enabled: true
-    allowExternalNameServices: true
-    publishedService:
-      enabled: false
+    enabled: false
   kubernetesGateway:
     enabled: true
 
