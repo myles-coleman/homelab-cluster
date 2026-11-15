@@ -4,7 +4,8 @@ namespace: traefik
 
 resources:
   - namespace.yaml
-  - crds.yaml
+  - crds-traefik.yaml
+  - crds-gateway-api.yaml
   - helm-chart.yaml
   - tls-store.yaml
   - middleware-authentik.yaml

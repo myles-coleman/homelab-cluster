@@ -83,6 +83,44 @@ providers:
     allowExternalNameServices: true
     publishedService:
       enabled: false
+  kubernetesGateway:
+    enabled: true
+
+# Gateway API. The chart renders GatewayClass/traefik and Gateway/traefik-gateway
+# in this namespace from the listeners below.
+#
+# ESCAPE HATCH (pre-agreed): if chart-rendered Gateway output regresses, set
+# `gateway.enabled: false` and commit a hand-written ~10-line Gateway into this
+# same kustomization. Do not simply delete the GatewayClass while a Gateway
+# references it: the gateway-exists-finalizer blocks the deletion and hangs the
+# sync.
+gatewayClass:
+  enabled: true
+
+gateway:
+  enabled: true
+  listeners:
+    # Listener ports are the IN-POD entrypoint ports (8000/8443), never the
+    # Service ports (80/443). The chart fails the render if a listener port is
+    # not declared in `ports` above.
+    web:
+      port: 8000
+      protocol: HTTP
+      # Defaults to Same, which would silently detach every route in another
+      # namespace. This is the Gateway API equivalent of allowCrossNamespace.
+      namespacePolicy:
+        from: All
+    websecure:
+      port: 8443
+      protocol: HTTPS
+      # The chart hard-fails an HTTPS listener without certificateRefs. The
+      # Secret lives in this namespace, so no ReferenceGrant is needed.
+      mode: Terminate
+      certificateRefs:
+        - kind: Secret
+          name: cowlab-production-tls
+      namespacePolicy:
+        from: All
 
 # RBAC
 rbac:
