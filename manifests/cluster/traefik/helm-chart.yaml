@@ -8,7 +8,8 @@ metadata:
   labels:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/instance: traefik-traefik
-    helm.sh/chart: traefik-33.2.1
+    app.kubernetes.io/version: "v3.7.18"
+    helm.sh/chart: traefik-42.4.0
     app.kubernetes.io/managed-by: Helm
   annotations:
 automountServiceAccountToken: false
@@ -21,20 +22,15 @@ metadata:
   labels:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/instance: traefik-traefik
-    helm.sh/chart: traefik-33.2.1
+    app.kubernetes.io/version: "v3.7.18"
+    helm.sh/chart: traefik-42.4.0
     app.kubernetes.io/managed-by: Helm
 rules:
   - apiGroups:
       - ""
     resources:
+      - configmaps
       - nodes
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - ""
-    resources:
       - services
     verbs:
       - get
@@ -47,6 +43,12 @@ rules:
     verbs:
       - list
       - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
   - apiGroups:
       - ""
     resources:
@@ -73,6 +75,13 @@ rules:
     verbs:
       - update
   - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - list
+      - watch
+  - apiGroups:
       - traefik.io
     resources:
       - ingressroutes
@@ -98,7 +107,8 @@ metadata:
   labels:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/instance: traefik-traefik
-    helm.sh/chart: traefik-33.2.1
+    app.kubernetes.io/version: "v3.7.18"
+    helm.sh/chart: traefik-42.4.0
     app.kubernetes.io/managed-by: Helm
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -118,26 +128,27 @@ metadata:
   labels:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/instance: traefik-traefik
-    helm.sh/chart: traefik-33.2.1
+    app.kubernetes.io/version: "v3.7.18"
+    helm.sh/chart: traefik-42.4.0
     app.kubernetes.io/managed-by: Helm
   annotations:
 spec:
-  type: LoadBalancer
   loadBalancerIP: 10.0.0.99
+  type: LoadBalancer
   selector:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/instance: traefik-traefik
   ports:
   - port: 80
-    name: "web"
+    name: web
     targetPort: web
     protocol: TCP
   - port: 443
-    name: "websecure"
+    name: websecure
     targetPort: websecure
     protocol: TCP
-  - port: 443
-    name: "websecure-http3"
+  - port: 4443
+    name: websecure-http3
     targetPort: websecure-http3
     protocol: UDP
 ---
@@ -150,7 +161,8 @@ metadata:
   labels:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/instance: traefik-traefik
-    helm.sh/chart: traefik-33.2.1
+    app.kubernetes.io/version: "v3.7.18"
+    helm.sh/chart: traefik-42.4.0
     app.kubernetes.io/managed-by: Helm
   annotations:
 spec:
@@ -165,26 +177,107 @@ spec:
       maxUnavailable: 0
       maxSurge: 1
   minReadySeconds: 0
+  
   template: 
     metadata:
       annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/path: "/metrics"
+        prometheus.io/path: /metrics
         prometheus.io/port: "9100"
+        prometheus.io/scrape: "true"
       labels:
-        app.kubernetes.io/name: traefik
         app.kubernetes.io/instance: traefik-traefik
-        helm.sh/chart: traefik-33.2.1
         app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: traefik
+        app.kubernetes.io/version: v3.7.18
+        helm.sh/chart: traefik-42.4.0
     spec:
-      serviceAccountName: traefik
       automountServiceAccountToken: true
-      terminationGracePeriodSeconds: 60
-      hostNetwork: false
       containers:
-      - image: docker.io/traefik:v3.2.2
+      - args:
+        - --global.checkNewVersion=false
+        - --entryPoints.metrics.address=:9100/tcp
+        - --entryPoints.traefik.address=:8080/tcp
+        - --entryPoints.web.address=:8000/tcp
+        - --entryPoints.websecure.address=:8443/tcp
+        - --api.dashboard=true
+        - --ping=true
+        - --metrics.prometheus=true
+        - --metrics.prometheus.entrypoint=metrics
+        - --providers.kubernetescrd
+        - --providers.kubernetescrd.ingressClass=traefik-external
+        - --providers.kubernetescrd.allowCrossNamespace=true
+        - --providers.kubernetescrd.allowExternalNameServices=true
+        - --providers.kubernetescrd.allowEmptyServices=true
+        - --providers.kubernetesingress
+        - --providers.kubernetesingress.allowExternalNameServices=true
+        - --providers.kubernetesingress.allowEmptyServices=true
+        - --entryPoints.web.http.redirections.entryPoint.to=:443
+        - --entryPoints.web.http.redirections.entryPoint.scheme=https
+        - --entryPoints.web.http.redirections.entryPoint.priority=10
+        - --entryPoints.web.transport.lifeCycle.requestAcceptGraceTimeout=5s
+        - --entryPoints.websecure.http.tls=true
+        - --entryPoints.websecure.http3
+        - --entryPoints.websecure.http3.advertisedPort=4443
+        - --entryPoints.websecure.transport.lifeCycle.requestAcceptGraceTimeout=5s
+        - --log.level=INFO
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: USER
+          value: traefik
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              divisor: "1"
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          value: 460MiB
+        image: docker.io/traefik:v3.7.18
         imagePullPolicy: IfNotPresent
+        lifecycle: null
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /ping
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 2
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
         name: traefik
+        ports:
+        - containerPort: 9100
+          name: metrics
+          protocol: TCP
+        - containerPort: 8080
+          name: traefik
+          protocol: TCP
+        - containerPort: 8000
+          name: web
+          protocol: TCP
+        - containerPort: 8443
+          name: websecure
+          protocol: TCP
+        - containerPort: 8443
+          name: websecure-http3
+          protocol: UDP
+        readinessProbe:
+          failureThreshold: 1
+          httpGet:
+            path: /ping
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 2
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
         resources:
           limits:
             cpu: 500m
@@ -192,43 +285,6 @@ spec:
           requests:
             cpu: 100m
             memory: 128Mi
-        readinessProbe:
-          httpGet:
-            path: /ping
-            port: 8080
-            scheme: HTTP
-          failureThreshold: 1
-          initialDelaySeconds: 2
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 2
-        livenessProbe:
-          httpGet:
-            path: /ping
-            port: 8080
-            scheme: HTTP
-          failureThreshold: 3
-          initialDelaySeconds: 2
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 2
-        lifecycle:
-        ports:
-        - name: "metrics"
-          containerPort: 9100
-          protocol: "TCP"
-        - name: "traefik"
-          containerPort: 8080
-          protocol: "TCP"
-        - name: "web"
-          containerPort: 8000
-          protocol: "TCP"
-        - name: "websecure"
-          containerPort: 8443
-          protocol: "TCP"
-        - name: "websecure-http3"
-          containerPort: 8443
-          protocol: UDP
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -236,66 +292,24 @@ spec:
             - ALL
           readOnlyRootFilesystem: true
         volumeMounts:
-          - name: data
-            mountPath: /data
-          - name: tmp
-            mountPath: /tmp
-        args:
-          - "--global.sendanonymoususage=false"
-          - "--global.checknewversion=false"
-          - "--entryPoints.metrics.address=:9100/tcp"
-          - "--entryPoints.traefik.address=:8080/tcp"
-          - "--entryPoints.web.address=:8000/tcp"
-          - "--entryPoints.websecure.address=:8443/tcp"
-          - "--api.dashboard=true"
-          - "--ping=true"
-          - "--metrics.prometheus=true"
-          - "--metrics.prometheus.entrypoint=metrics"
-          - "--providers.kubernetescrd"
-          - "--providers.kubernetescrd.ingressClass=traefik-external"
-          - "--providers.kubernetescrd.allowCrossNamespace=true"
-          - "--providers.kubernetescrd.allowExternalNameServices=true"
-          - "--providers.kubernetescrd.allowEmptyServices=true"
-          - "--providers.kubernetesingress"
-          - "--providers.kubernetesingress.allowExternalNameServices=true"
-          - "--providers.kubernetesingress.allowEmptyServices=true"
-          - "--entryPoints.web.http.redirections.entryPoint.to=:443"
-          - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
-          - "--entryPoints.web.http.redirections.entryPoint.priority=10"
-          - "--entryPoints.websecure.http.tls=true"
-          - "--entryPoints.websecure.http3"
-          - "--log.level=INFO"
-          
-          - "--serversTransport.insecureSkipVerify=true"
-          - "--log.level=INFO"
-        env:
-          - name: POD_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.name
-          - name: POD_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-          - name: GOMAXPROCS
-            valueFrom:
-              resourceFieldRef:
-                resource: limits.cpu
-                divisor: '1'
-          - name: GOMEMLIMIT
-            valueFrom:
-              resourceFieldRef:
-                resource: limits.memory
-                divisor: '1'
-      volumes:
-        - name: data
-          emptyDir: {}
-        - name: tmp
-          emptyDir: {}
+        - mountPath: /data
+          name: data
+        - mountPath: /tmp
+          name: tmp
+      hostNetwork: false
       securityContext:
         runAsGroup: 65532
         runAsNonRoot: true
         runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: traefik
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - emptyDir: {}
+        name: data
+      - emptyDir: {}
+        name: tmp
 ---
 # Source: traefik/templates/ingressclass.yaml
 apiVersion: networking.k8s.io/v1
@@ -306,7 +320,8 @@ metadata:
   labels:
     app.kubernetes.io/name: traefik
     app.kubernetes.io/instance: traefik-traefik
-    helm.sh/chart: traefik-33.2.1
+    app.kubernetes.io/version: "v3.7.18"
+    helm.sh/chart: traefik-42.4.0
     app.kubernetes.io/managed-by: Helm
   name: traefik
 spec:

@@ -1,39 +1,62 @@
 # Traefik Helm Chart Values
-# Version: v33.2.1
+# Version: v42.4.0
+#
+# Chart 42 enforces a strict JSON schema (since 39.0.0), so keys the chart has
+# removed fail the render instead of being ignored. This file is written
+# against the 42.4.0 values surface, not the 33.2.1 one.
 
-# Global arguments
-globalArguments:
-  - "--global.sendanonymoususage=false"
-  - "--global.checknewversion=false"
+global:
+  # Replaces the chart-33 globalArguments flags.
+  checkNewVersion: false
+  sendAnonymousUsage: false
 
-# Additional arguments
-additionalArguments:
-  - "--serversTransport.insecureSkipVerify=true"
-  - "--log.level=INFO"
+# Log level is a first-class value in chart 42. The old additionalArguments list
+# carried it twice; the duplicate is gone with the list.
+log:
+  level: INFO
 
-# Deployment configuration
+# Backend TLS verification is deliberately left at the chart default (verify).
+# The previous `additionalArguments: --serversTransport.insecureSkipVerify=true`
+# existed only for the pikvm route, which spec 04 retires. Reintroducing it
+# needs a written justification, not a flag.
+
 deployment:
   enabled: true
   replicas: 1
-  annotations: {}
-  podAnnotations: {}
-  additionalContainers: []
-  initContainers: []
+
+# Chart 42 names this `updateStrategy`; there is no `deployment.strategy` key.
+# The pin is load-bearing: with maxUnavailable 0 a surge pod that cannot
+# schedule turns the rollout into a silent no-op while ArgoCD still reports
+# Synced, which is exactly the failure this cluster's memory pressure invites.
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
 
 # Ports configuration
 ports:
   web:
     # Redirect HTTP to HTTPS
-    redirectTo:
-      port: websecure
-      priority: 10
+    http:
+      redirections:
+        entryPoint:
+          # Chart 42 validates `to` against entrypoint names ("Cannot redirect
+          # web to :443: entryPoint not found"), then renders the entrypoint's
+          # service port: `to: websecure` becomes `to=:443` in the args, so the
+          # Location header never carries :8443.
+          to: websecure
+          scheme: https
+          priority: 10
   websecure:
-    # Enable HTTP/3 (QUIC)
+    # Enable HTTP/3 (QUIC). Chart 42 nests advertisedPort under http3; the
+    # chart-33 top-level `ports.websecure.advertisedPort` is schema-invalid.
     http3:
       enabled: true
-    advertisedPort: 4443
-    tls:
-      enabled: true
+      advertisedPort: 4443
+    http:
+      tls:
+        enabled: true
 
 # Disable default dashboard IngressRoute (we'll create our own)
 ingressRoute:
@@ -60,14 +83,10 @@ rbac:
 # Service configuration
 service:
   enabled: true
-  type: LoadBalancer
-  annotations: {}
-  labels: {}
   spec:
+    type: LoadBalancer
     # This IP should be from your MetalLB range (10.0.0.80-10.0.0.99)
     loadBalancerIP: 10.0.0.99
-  loadBalancerSourceRanges: []
-  externalIPs: []
 
 # Resources
 resources:
