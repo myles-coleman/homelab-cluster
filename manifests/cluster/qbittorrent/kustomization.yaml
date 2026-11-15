@@ -4,7 +4,7 @@ resources:
   - namespace.yaml
   - deployment.yaml
   - service.yaml
-  - ingress.yaml
+  - httproute.yaml
   - config-pvc.yaml
   - wireguard-external-secret.yaml
   - wireguard-config-pvc.yaml
