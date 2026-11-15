@@ -1,0 +1,19 @@
+# TEMPORARY canary route (spec 04, task 2.11). Proves the Gateway path on a
+# hostname no IngressRoute claims, before any production host moves.
+# Removed in task 4.7.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: gateway-canary
+  namespace: homepage
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - gateway-canary.cowlab.org
+  rules:
+    - backendRefs:
+        - name: homepage
+          port: 3000

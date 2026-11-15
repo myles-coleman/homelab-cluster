@@ -117,7 +117,10 @@ gateway:
       # Secret lives in this namespace, so no ReferenceGrant is needed.
       mode: Terminate
       certificateRefs:
-        - kind: Secret
+        # group is stated explicitly: the API server defaults it to "", and an
+        # omitted field reads as perpetual OutOfSync against the live object.
+        - group: ""
+          kind: Secret
           name: cowlab-production-tls
       namespacePolicy:
         from: All

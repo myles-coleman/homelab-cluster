@@ -5,6 +5,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+  - httproute-canary.yaml
   - secret.yaml
   - configmap.yaml
   - service-account.yaml
