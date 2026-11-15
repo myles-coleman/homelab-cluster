@@ -1,0 +1,16 @@
+repositories:
+  - name: authentik
+    url: https://charts.goauthentik.io
+releases:
+  - name: authentik
+    namespace: authentik
+    chart: authentik/authentik
+    # Pinned deliberately. Without a version, `helmfile template` pulls the
+    # newest chart, which moves authentik and the bundled PostgreSQL across
+    # major versions as a side effect of regenerating this file. 2026.5.x is the
+    # stable line; 2026.8 is marked pre-release upstream. Bump with the
+    # Terraform provider in homelab-terraform/modules/authentik, which tracks
+    # the same release.
+    version: 2026.5.6
+    values:
+      - values.yaml
