@@ -10,4 +10,4 @@ resources:
   - media-pvcs.yaml
   - app-deployment.yaml
   - app-service.yaml
-  - ingress.yaml
+  - httproute.yaml
