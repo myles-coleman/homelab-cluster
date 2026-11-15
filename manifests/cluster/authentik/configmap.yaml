@@ -73,3 +73,25 @@ data:
           case_insensitive_matching: true
           sources:
             - !KeyOf google-source
+
+      # Users created by a source are "external" by default, and Authentik
+      # restricts its own user interface to internal users — so a freshly
+      # enrolled Google user authenticates fine and is then refused at /if/user/
+      # with "Interface can only be accessed by internal users".
+      #
+      # Setting the type at the write stage fixes every future enrollment, which
+      # a per-user edit cannot. The stage is identified by name and the bundled
+      # blueprint sets only user_creation_mode, so this attribute is ours.
+      #
+      # Deliberately NOT set: create_users_group. The Google source accepts any
+      # Google account, so auto-adding every enrollee to homelab would grant
+      # anyone with a Gmail address access to every application bound to it.
+      # App access is therefore opt-in: membership of homelab is the allowlist,
+      # and it is assigned per user.
+      - id: default-source-enrollment-write
+        model: authentik_stages_user_write.userwritestage
+        identifiers:
+          name: default-source-enrollment-write
+        attrs:
+          user_creation_mode: always_create
+          user_type: internal
