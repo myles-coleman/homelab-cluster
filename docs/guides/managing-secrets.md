@@ -144,7 +144,7 @@ resources:
   - namespace.yaml
   - deployment.yaml
   - service.yaml
-  - ingress.yaml
+  - httproute.yaml
   - external-secret.yaml
 ```
 

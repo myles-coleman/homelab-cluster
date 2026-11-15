@@ -52,7 +52,7 @@ graph TB
     N0 --- N2
     N0 --- N3
     MLB --> TFK
-    TFK -->|"IngressRoute rules"| SVC
+    TFK -->|"HTTPRoute rules"| SVC
 ```
 
 ### Key Network Components
@@ -61,13 +61,13 @@ graph TB
 - **MetalLB** — Bare-metal load balancer that assigns external IPs to `LoadBalancer`-type services
 - **Traefik (10.0.0.99)** — Ingress controller and reverse proxy. All HTTP(S) traffic enters the cluster through this IP
 - **Cloudflare DNS** — Wildcard `*.cowlab.org` resolves to 10.0.0.99. Additional A/CNAME records exist for services outside the cluster (pihole, pikvm, vaultwarden, etc.)
-- **Cloudflare Zero Trust Tunnel** — Provides public internet access to select services (currently `jellyfin.cowlab.org`) without exposing any ports on the home network
+- **Cloudflare Zero Trust Tunnel** — Provides public internet access to select services without exposing any ports on the home network. No service hostname is published through it today; `jellyfin.cowlab.org` was withdrawn with the service.
 
 ### Traffic Flow
 
 1. External request for `<service>.cowlab.org` resolves via Cloudflare DNS to `10.0.0.99`
 2. Traefik receives the request on the `websecure` (443) entrypoint
-3. Traefik matches the `Host()` rule in the service's `IngressRoute`
+3. Traefik matches the `HTTPRoute` hostname attached to `Gateway/traefik-gateway`
 4. Traefik forwards the request to the Kubernetes Service
 5. The Service routes to the appropriate pod(s)
 

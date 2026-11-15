@@ -136,3 +136,13 @@ grep -nE "kubernetesingress|allowExternalNameServices=true|insecureSkipVerify" m
 `providers.kubernetesCRD` stays enabled permanently: it is still needed for `Middleware` as
 `ExtensionRef`. A cluster that serves only Gateway API routes but keeps the CRD provider is the
 intended end state, not a half-finished migration.
+
+## Changing a listener
+
+Listeners are chart values, not manifests: edit `gateway.listeners` in
+`manifests/cluster/traefik/values.yaml`, re-render (`make` in that directory), and diff the rendered
+`Gateway` in `helm-chart.yaml` before committing. A listener port must exist in `ports` and, for
+HTTPS, must carry `certificateRefs` — the chart fails the render otherwise.
+
+Do **not** hand-edit the rendered Gateway. It is chart output, and a hand edit is reverted on the
+next render.

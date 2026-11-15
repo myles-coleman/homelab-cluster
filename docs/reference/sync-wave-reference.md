@@ -32,7 +32,7 @@ Wave 3: longhorn
 Wave 4: dex
    │    (authentication ready)
    ▼
-Wave 10: sonarr, radarr, jellyfin, ...
+Wave 10: sonarr, radarr, prowlarr, ...
          (application workloads)
 ```
 

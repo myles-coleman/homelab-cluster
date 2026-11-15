@@ -37,8 +37,8 @@ This is a personal homelab Kubernetes cluster running media management, home aut
 | **MetalLB / Traefik LoadBalancer IP** | 10.0.0.99 |
 | **Domain** | cowlab.org |
 | **DNS provider** | Cloudflare (wildcard `*.cowlab.org` → 10.0.0.99) |
-| **Ingress controller** | Traefik v3 (IngressRoute CRD) |
-| **External access** | Cloudflare Zero Trust Tunnel (currently routes jellyfin.cowlab.org) |
+| **Ingress controller** | Traefik v3 with Gateway API (`Gateway/traefik-gateway` + `HTTPRoute`) |
+| **External access** | Cloudflare Zero Trust Tunnel (no service hostnames published) |
 
 ### Key Infrastructure Components
 
@@ -69,7 +69,7 @@ To schedule a GPU workload, a pod spec needs: nodeSelector (`gpu.node/type: amd-
 
 ## 2. Repository Layout
 
-- `manifests/cluster/<service>/` — Per-service Kubernetes manifests (Kustomize). Each service has namespace.yaml, deployment.yaml, service.yaml, ingress.yaml, and kustomization.yaml.
+- `manifests/cluster/<service>/` — Per-service Kubernetes manifests (Kustomize). Each service has namespace.yaml, deployment.yaml, service.yaml, httproute.yaml, and kustomization.yaml.
 - `manifests/cluster/_template/` — Skeleton manifests for new services (NOT deployed). Copy this when adding a service.
 - `manifests/cluster/kustomization.yaml` — Source of truth for all active services.
 - `manifests/bootstrap/` — AUTO-GENERATED ArgoCD Application definitions. Never edit directly.
@@ -143,7 +143,7 @@ Copy the template: `cp -r manifests/cluster/_template manifests/cluster/<service
 
 ### Step 2: Edit the Manifests
 
-Update all placeholder values in the copied files (namespace.yaml, deployment.yaml, service.yaml, ingress.yaml, kustomization.yaml). Use any existing service (e.g., `manifests/cluster/sonarr/`) as a reference for a complete working example.
+Update all placeholder values in the copied files (namespace.yaml, deployment.yaml, service.yaml, httproute.yaml, kustomization.yaml). Use any existing service (e.g., `manifests/cluster/sonarr/`) as a reference for a complete working example.
 
 ### Step 3: Optional Resources
 
@@ -173,9 +173,9 @@ If the service needs to deploy before wave 10 (e.g., it's infrastructure), add t
 
 ## 5. Manifest Patterns Reference
 
-### Raw Manifest Services (e.g., sonarr, radarr, jellyfin)
+### Raw Manifest Services (e.g., sonarr, radarr, prowlarr)
 
-Standard pattern: `namespace.yaml` + `deployment.yaml` + `service.yaml` + `ingress.yaml` + `kustomization.yaml`, plus optional PVC/PV files.
+Standard pattern: `namespace.yaml` + `deployment.yaml` + `service.yaml` + `httproute.yaml` + `kustomization.yaml`, plus optional PVC/PV files.
 
 ### Helm-Based Services (e.g., traefik, longhorn, cert-manager, external-secrets)
 
@@ -203,9 +203,23 @@ The cluster uses 4 `ClusterSecretStore` types, all backed by a `bitwarden-cli` w
 
 For ExternalSecret examples, see any service with a `secret.yaml` file (e.g., search `manifests/cluster/` for `ExternalSecret` resources).
 
-### Traefik IngressRoute Pattern
+### Gateway API HTTPRoute Pattern
 
-Always use the Traefik CRD (`traefik.io/v1alpha1 IngressRoute`), **never** standard Kubernetes `networking.k8s.io/v1 Ingress`. The `kubernetes.io/ingress.class: traefik-external` annotation is required. Entry point is always `websecure`. Host matcher uses the pattern `Host(\`<service>.cowlab.org\`)`.
+Always use a Gateway API `HTTPRoute` attached to `Gateway/traefik-gateway` in namespace `traefik`
+with `sectionName: websecure`. **Never** use a standard Kubernetes `networking.k8s.io/v1 Ingress`
+(that provider is disabled) and never a Traefik `IngressRoute` (retired — the CRD provider stays
+enabled only for `Middleware` as `ExtensionRef`).
+
+- `parentRefs` must state `group: gateway.networking.k8s.io`, `kind: Gateway`,
+  `name: traefik-gateway`, `namespace: traefik`, `sectionName: websecure`.
+- `backendRefs` must state `group: ""`, `kind: Service`, `name`, `port`, `weight: 1`, and the rule
+  must state `matches: [{path: {type: PathPrefix, value: /}}]`. Omitted defaults leave the object
+  permanently `OutOfSync` in ArgoCD even though it serves traffic.
+- Do not add `tls` or `certResolver`: the `websecure` listener terminates TLS with the
+  `cowlab-production-tls` wildcard certificate.
+- Host is `<service>.cowlab.org`; the wildcard record resolves it with no DNS change.
+- Verify with `kubectl get httproute -n <namespace>` showing `Accepted=True` and
+  `ResolvedRefs=True`.
 
 ---
 

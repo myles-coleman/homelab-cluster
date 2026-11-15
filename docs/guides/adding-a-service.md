@@ -90,28 +90,47 @@ spec:
       targetPort: <port>
 ```
 
-### 5. Create ingress.yaml
+### 5. Create httproute.yaml
 
-Use the Traefik `IngressRoute` CRD — **never** standard Kubernetes `Ingress`:
+Use a Gateway API `HTTPRoute` attached to the shared Gateway — **never** a Traefik
+`IngressRoute` (retired) and **never** a standard Kubernetes `Ingress` (the provider is disabled):
 
 ```yaml
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
 metadata:
   name: <service-name>
   namespace: <service-name>
-  annotations:
-    kubernetes.io/ingress.class: traefik-external
 spec:
-  entryPoints:
-    - websecure
-  routes:
-    - match: Host(`<service-name>.cowlab.org`)
-      kind: Rule
-      services:
-        - name: <service-name>
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - <service-name>.cowlab.org
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: <service-name>
           port: <port>
+          weight: 1
 ```
+
+Two things to know:
+
+- **TLS is not yours to configure.** The `websecure` listener terminates TLS with the
+  `cowlab-production-tls` wildcard certificate. Do not add `tls`, `certResolver`, or an
+  `ingress.class` annotation.
+- **State the defaults.** `parentRefs.group/kind`, `backendRefs.group/kind/weight` and the `matches`
+  path are filled in by the API server when omitted, and ArgoCD's diff does not apply the same
+  defaults — an omitted field leaves the route permanently `OutOfSync` while serving correctly.
 
 The wildcard DNS `*.cowlab.org` already points to the Traefik load balancer (10.0.0.99), so your service will be accessible at `https://<service-name>.cowlab.org` automatically.
 
@@ -124,7 +143,7 @@ resources:
   - namespace.yaml
   - deployment.yaml
   - service.yaml
-  - ingress.yaml
+  - httproute.yaml
 ```
 
 Add any additional resource files (PVCs, ConfigMaps, ExternalSecrets) to this list.

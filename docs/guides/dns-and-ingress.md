@@ -16,37 +16,57 @@ All DNS is managed through **Cloudflare**:
 
 The wildcard record means **any new `<service>.cowlab.org` subdomain automatically resolves** to the Traefik load balancer without any DNS changes required.
 
-## Ingress with Traefik IngressRoute
+## Ingress with Gateway API
 
-All cluster services use the Traefik `IngressRoute` CRD for HTTP(S) ingress. **Never use standard Kubernetes `Ingress` (`networking.k8s.io/v1`).**
+All cluster services use the Kubernetes Gateway API: an `HTTPRoute` attached to the shared
+`Gateway/traefik-gateway` in namespace `traefik`. **Never use a standard Kubernetes `Ingress`
+(`networking.k8s.io/v1`)** — that provider is disabled — and `IngressRoute` is retired.
 
-### Standard IngressRoute Pattern
+### Standard HTTPRoute Pattern
 
 ```yaml
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
 metadata:
   name: <service-name>
   namespace: <service-name>
-  annotations:
-    kubernetes.io/ingress.class: traefik-external
 spec:
-  entryPoints:
-    - websecure
-  routes:
-    - match: Host(`<service-name>.cowlab.org`)
-      kind: Rule
-      services:
-        - name: <service-name>
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - <service-name>.cowlab.org
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: <service-name>
           port: <port>
+          weight: 1
 ```
 
 ### Key Details
 
-- **Entry point**: Always `websecure` (HTTPS on port 443). Traefik automatically redirects HTTP → HTTPS.
-- **Annotation**: `kubernetes.io/ingress.class: traefik-external` is required.
-- **Host matching**: Uses backtick syntax: `` Host(`service.cowlab.org`) ``
-- **Cross-namespace**: Traefik is configured with `allowCrossNamespace=true`, so IngressRoutes in any namespace work.
+- **Gateway**: one `Gateway` (`traefik-gateway`) and one `GatewayClass` (`traefik`), both owned by
+  the Traefik Helm chart through `gateway.listeners` in `manifests/cluster/traefik/values.yaml`.
+  Listeners use the in-pod entrypoint ports: `web` = 8000/HTTP, `websecure` = 8443/HTTPS.
+- **Section name**: attach to `websecure`. The `web` listener exists only for the HTTP → HTTPS
+  redirect and serves no routes.
+- **TLS**: the listener's `certificateRefs` (`cowlab-production-tls`) terminates TLS. Routes carry
+  no `tls` block.
+- **Cross-namespace**: both listeners set `allowedRoutes.namespaces.from: All`, so an `HTTPRoute`
+  in any namespace can attach. This replaces the old `allowCrossNamespace` flag.
+- **Redirect**: `http://` requests get a `308` to `https://<host>/` with no port in the `Location`
+  header.
+- **Verification**: `kubectl get httproute -n <namespace>` must show `Accepted=True` and
+  `ResolvedRefs=True`.
 
 ## Adding DNS Records
 
@@ -100,7 +120,7 @@ For services that need public internet access (outside the home network), the cl
 ```
 Client → Cloudflare DNS (*.cowlab.org → 10.0.0.99)
        → Traefik (port 443, websecure entrypoint)
-       → IngressRoute Host() match
+       → HTTPRoute hostnames match
        → Kubernetes Service
        → Pod
 ```
@@ -110,7 +130,7 @@ For tunnel-based access:
 Client → Cloudflare Edge
        → Cloudflare Tunnel → cloudflared pod
        → Traefik (traefik.traefik.svc.cluster.local:80)
-       → IngressRoute Host() match
+       → HTTPRoute hostnames match
        → Kubernetes Service
        → Pod
 ```

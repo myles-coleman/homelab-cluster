@@ -29,7 +29,7 @@ Strata is published only on `bee-gpu-server`'s `tailscale0` interface
 time out. `hostNetwork: true` puts the collector on that node's tailnet route.
 Pinning also keeps the scrape local to the node that needs it.
 
-Do not add a NodePort or an IngressRoute for Strata metrics. That would expose an
+Do not add a NodePort or an HTTPRoute for Strata metrics. That would expose an
 unauthenticated (or bearer-key-bearing) endpoint to the LAN and, through the
 wildcard DNS, to Cloudflare.
 

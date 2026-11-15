@@ -22,11 +22,15 @@ The bootstrap Application is created by the `modules/argocd-configure/` Terragru
 - **LoadBalancer IP**: 10.0.0.99 (assigned by MetalLB)
 - **Key config**:
     - Entry points: `web` (HTTP, redirects to HTTPS), `websecure` (HTTPS with TLS), `websecure-http3` (HTTP/3 UDP)
-    - CRD provider: `kubernetescrd` with `ingressClass=traefik-external`
-    - Cross-namespace routing enabled
-    - Prometheus metrics on port 9100
+    - Gateway API provider: renders `GatewayClass/traefik` and `Gateway/traefik-gateway` with
+      listeners `web` (8000/HTTP) and `websecure` (8443/HTTPS, wildcard certificate)
+    - CRD provider: `kubernetescrd` with `ingressClass=traefik-external`, kept enabled for
+      `Middleware` as `ExtensionRef`
+    - Cross-namespace routing: `allowedRoutes.namespaces.from: All` on both listeners
+    - Prometheus metrics on port 9100; dashboard/API on the unexposed internal entrypoint 8080
 
-All services use `IngressRoute` CRD (`traefik.io/v1alpha1`) for ingress — never standard Kubernetes `Ingress`.
+All services use Gateway API `HTTPRoute`s attached to `Gateway/traefik-gateway` — never standard
+Kubernetes `Ingress` (provider disabled) and never the retired Traefik `IngressRoute`.
 
 ## MetalLB
 
