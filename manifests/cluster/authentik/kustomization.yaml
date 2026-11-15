@@ -4,6 +4,7 @@ namespace: authentik
 
 resources:
   - namespace.yaml
+  - configmap.yaml
   - external-secret.yaml
   - helm-chart.yaml
   - httproute.yaml
@@ -48,6 +49,18 @@ patches:
                       secretKeyRef:
                         name: authentik-secrets
                         key: db-password
+                  # Read by the blueprint's !Env, which is evaluated by whichever
+                  # process applies it. Present on both server and worker.
+                  - name: GOOGLE_OAUTH_CLIENT_ID
+                    valueFrom:
+                      secretKeyRef:
+                        name: authentik-secrets
+                        key: google-client-id
+                  - name: GOOGLE_OAUTH_CLIENT_SECRET
+                    valueFrom:
+                      secretKeyRef:
+                        name: authentik-secrets
+                        key: google-client-secret
   - target:
       kind: Deployment
       name: authentik-worker
@@ -59,6 +72,10 @@ patches:
       spec:
         template:
           spec:
+            volumes:
+              - name: authentik-config
+                configMap:
+                  name: authentik-config
             containers:
               - name: worker
                 env:
@@ -77,6 +94,22 @@ patches:
                       secretKeyRef:
                         name: authentik-secrets
                         key: db-password
+                  - name: GOOGLE_OAUTH_CLIENT_ID
+                    valueFrom:
+                      secretKeyRef:
+                        name: authentik-secrets
+                        key: google-client-id
+                  - name: GOOGLE_OAUTH_CLIENT_SECRET
+                    valueFrom:
+                      secretKeyRef:
+                        name: authentik-secrets
+                        key: google-client-secret
+                # Blueprint discovery walks the whole tree, so the path only has
+                # to be under the blueprints root.
+                volumeMounts:
+                  - name: authentik-config
+                    mountPath: /blueprints/mounted/homelab
+                    readOnly: true
   # Point the PostgreSQL credential volume at the ESO-managed Secret.
   #
   # Targeted by volume NAME, not by its position in the list: the previous
