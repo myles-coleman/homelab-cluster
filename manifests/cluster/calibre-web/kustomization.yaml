@@ -4,7 +4,7 @@ resources:
   - namespace.yaml
   - deployment.yaml
   - service.yaml
-  - httproute.yaml
+  - ingress.yaml
   - persistent-volume.yaml
   - persistent-volume-claim.yaml
   - config-pvc.yaml
