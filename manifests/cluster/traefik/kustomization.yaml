@@ -8,3 +8,7 @@ resources:
   - crds-gateway-api.yaml
   - helm-chart.yaml
   - tls-store.yaml
+  # Shared Authentik forward-auth gate, referenced by HTTPRoutes in other
+  # namespaces through a ReferenceGrant.
+  - middleware-authentik.yaml
+  - referencegrant-authentik.yaml

@@ -1,0 +1,20 @@
+# Manual endpoints for the selectorless Service above. The port name matches the
+# Service port so Gateway API backendRefs resolve to it.
+#
+# The slice carries the label the Service controller looks for, which is what
+# binds it to Service/jellyfin without a pod selector.
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: jellyfin
+  namespace: jellyfin
+  labels:
+    kubernetes.io/service-name: jellyfin
+addressType: IPv4
+ports:
+  - name: http
+    port: 8096
+    protocol: TCP
+endpoints:
+  - addresses:
+      - 10.0.0.150
