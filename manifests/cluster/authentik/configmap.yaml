@@ -73,3 +73,25 @@ data:
           case_insensitive_matching: true
           sources:
             - !KeyOf google-source
+
+      # Users created by a source are "external" by default, and Authentik
+      # restricts its own user interface to internal users — so a freshly
+      # enrolled Google user authenticates fine and is then refused at /if/user/
+      # with "Interface can only be accessed by internal users".
+      #
+      # Setting the type at the write stage fixes every future enrollment, which
+      # a per-user edit cannot. The stage is identified by name and the bundled
+      # blueprint sets only user_creation_mode, so these two attributes are ours.
+      #
+      # create_users_group also removes the manual step of adding each new user
+      # to homelab. It resolves the group by name because Terraform owns that
+      # object; if the group does not exist yet, discovery fails and retries
+      # rather than creating a second writer for it.
+      - id: default-source-enrollment-write
+        model: authentik_stages_user_write.userwritestage
+        identifiers:
+          name: default-source-enrollment-write
+        attrs:
+          user_creation_mode: always_create
+          user_type: internal
+          create_users_group: !Find [authentik_core.group, [name, homelab]]
