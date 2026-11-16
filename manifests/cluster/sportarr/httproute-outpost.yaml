@@ -1,0 +1,36 @@
+# The Authentik login callback for this host.
+#
+# Single-application forward auth does not send the browser to
+# authentik.cowlab.org for the callback: it redirects to
+# `/outpost.goauthentik.io/...` on the application's own hostname, and the
+# outpost is reached through this route. It therefore must NOT carry the
+# forward-auth filter — it is the endpoint that performs the authentication.
+#
+# The cross-namespace backend is permitted by ReferenceGrant
+# `allow-outpost-routes` in the `authentik` namespace.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: sportarr-outpost
+  namespace: sportarr
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - sportarr.cowlab.org
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /outpost.goauthentik.io
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: authentik-outpost
+          namespace: authentik
+          port: 9000
+          weight: 1

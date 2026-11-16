@@ -1,0 +1,27 @@
+# Permits a protected HTTPRoute to reference the shared forward-auth Middleware
+# that lives in this namespace.
+#
+# Gateway API has no namespace wildcard: `from.namespace` names exactly one
+# namespace, so every protected namespace is listed. `to.name` is stated rather
+# than omitted even though omitting it would allow any Middleware in this
+# namespace, so a future Middleware cannot be referenced by accident.
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: allow-forward-auth
+  namespace: traefik
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: sportarr
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: jellyseerr
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: copyparty
+  to:
+    - group: traefik.io
+      kind: Middleware
+      name: authentik
