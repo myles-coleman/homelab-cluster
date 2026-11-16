@@ -7,9 +7,17 @@ metadata:
     app.kubernetes.io/name: homepage
 spec:
   revisionHistoryLimit: 3
-  replicas: 1
+  # Two replicas so a single unhealthy node cannot take the portal down. The pod
+  # previously ran alone on node1, and node1's kubelet going silent was enough to
+  # turn portal.cowlab.org into a 503: the pod's Ready condition follows node
+  # readiness, so the endpoint went unready and Traefik had no server to send to.
+  replicas: 2
   strategy:
     type: RollingUpdate
+    rollingUpdate:
+      # Never drop below the current replica count during a rollout.
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: homepage
@@ -22,6 +30,16 @@ spec:
       automountServiceAccountToken: true
       dnsPolicy: ClusterFirst
       enableServiceLinks: true
+      # Prefer different nodes, but never refuse to schedule: with soft affinity a
+      # cluster already short on nodes still runs the second replica, which is
+      # better than a pod stuck Pending.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: homepage
       containers:
         - name: homepage
           image: "ghcr.io/gethomepage/homepage:v1.3.2"

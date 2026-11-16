@@ -1,0 +1,12 @@
+# Keep one replica serving during voluntary disruption (node drain, upgrade).
+# Without this, a drain can evict both replicas before either is ready again.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: homepage
+  namespace: homepage
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: homepage
