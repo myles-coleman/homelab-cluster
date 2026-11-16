@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sportarr
+  namespace: sportarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sportarr
+  template:
+    metadata:
+      labels:
+        app: sportarr
+    spec:
+      containers:
+      - name: sportarr
+        image: sportarr/sportarr:latest
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: UMASK
+          value: "022"
+        - name: TZ
+          value: "America/Los_Angeles"
+        ports:
+        - name: http
+          containerPort: 1867
+        readinessProbe:
+          tcpSocket:
+            port: 1867
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 1867
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          failureThreshold: 5
+        resources:
+          limits:
+            memory: "1024Mi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+        - name: config-volume
+          mountPath: /config
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: sportarr-data
+      - name: config-volume
+        persistentVolumeClaim:
+          claimName: sportarr-config

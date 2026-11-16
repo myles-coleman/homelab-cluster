@@ -37,6 +37,10 @@ data:
             icon: prowlarr.svg
             href: https://prowlarr.cowlab.org/
             description: Indexer Collection Manager
+        - Sportarr:
+            icon: sportarr.svg
+            href: https://sportarr.cowlab.org/
+            description: Sports Event Collection Manager
         - Openbooks:
             icon: readarr.svg
             href: https://openbooks.cowlab.org/
