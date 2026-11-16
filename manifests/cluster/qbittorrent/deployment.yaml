@@ -14,6 +14,40 @@ spec:
         app: qbittorrent
     spec:
       initContainers:
+      # Pod-level kill switch. Only root (tailscaled) may use the pod network
+      # directly; the app (uid 1000) may reach only the tailnet interface or
+      # in-cluster CIDRs. If the Tailscale sidecar dies and the exit-node route
+      # disappears, qBittorrent falls back to eth0 and is dropped here instead
+      # of leaking to the ISP. Rules live in the pod netns for the pod's life.
+      - name: killswitch
+        image: tailscale/tailscale:stable
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          iptables -A OUTPUT -o lo -j ACCEPT
+          iptables -A OUTPUT -o tailscale0 -j ACCEPT
+          iptables -A OUTPUT -d 10.42.0.0/16 -j ACCEPT
+          iptables -A OUTPUT -d 10.43.0.0/16 -j ACCEPT
+          iptables -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
+          iptables -A OUTPUT -j DROP
+          if [ -d /proc/sys/net/ipv6 ]; then
+            ip6tables -A OUTPUT -o lo -j ACCEPT
+            ip6tables -A OUTPUT -o tailscale0 -j ACCEPT
+            ip6tables -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
+            ip6tables -A OUTPUT -j DROP
+          fi
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]
+        resources:
+          limits:
+            memory: "64Mi"
+            cpu: "100m"
+          requests:
+            memory: "16Mi"
+            cpu: "25m"
       # Native sidecar. Joins the tailnet and forces all pod egress through
       # protecli-vault, which serves as the tailnet exit node and sends that
       # traffic out through its single Mullvad WireGuard tunnel. This replaces
