@@ -13,6 +13,9 @@ spec:
       labels:
         app: qbittorrent
     spec:
+      # Neither container talks to the Kubernetes API. Drop the token so a
+      # compromised app cannot read the tailscale-auth Secret.
+      automountServiceAccountToken: false
       initContainers:
       # Pod-level kill switch. Only root (tailscaled) may use the pod network
       # directly; the app (uid 1000) may reach only the tailnet interface or

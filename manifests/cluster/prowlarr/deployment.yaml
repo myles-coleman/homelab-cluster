@@ -13,6 +13,9 @@ spec:
       labels:
         app: prowlarr
     spec:
+      # Neither container talks to the Kubernetes API. Drop the token so a
+      # compromised app cannot read the tailscale-auth Secret.
+      automountServiceAccountToken: false
       initContainers:
       # Pod-level kill switch. Same policy as qBittorrent: only root
       # (tailscaled) may use the pod network directly, the app (uid 911) may
