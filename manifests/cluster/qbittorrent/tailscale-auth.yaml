@@ -1,7 +1,7 @@
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: wireguard-config
+  name: tailscale-auth
   namespace: qbittorrent
 spec:
   refreshInterval: 1h
@@ -9,13 +9,11 @@ spec:
     kind: ClusterSecretStore
     name: bitwarden-notes
   target:
-    name: wireguard-config
+    name: tailscale-auth
     creationPolicy: Owner
-    template:
-      engineVersion: v2
-      data:
-        wg0.conf: "{{ .wgconfig }}"
   data:
-  - secretKey: wgconfig
+  - secretKey: authkey
     remoteRef:
-      key: 08101098-e81a-4641-9411-1957c2510c92
+      # Vaultwarden item whose Notes contain a reusable, tagged Tailscale auth
+      # key. Replace this UUID before merging.
+      key: REPLACE_WITH_VAULTWARDEN_ITEM_ID

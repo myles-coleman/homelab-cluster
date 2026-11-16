@@ -14,78 +14,63 @@ spec:
         app: qbittorrent
     spec:
       initContainers:
-      - name: wireguard-config-init
-        image: busybox:latest
-        command: ["/bin/sh", "-c"]
-        args:
-        - |
-          echo "Creating WireGuard configuration..."
-          mkdir -p /config/wg_confs
-          mkdir -p /config/custom-cont-init.d
-          
-          # Extract endpoint IP from the config and get default gateway
-          ENDPOINT_IP=$(grep 'Endpoint' /secret/wg0.conf | sed 's/.*= *//' | cut -d: -f1)
-          DEFAULT_GW=$(ip route | grep default | awk '{print $3}')
-          DEFAULT_DEV=$(ip route | grep default | awk '{print $5}')
-          
-          echo "VPN Endpoint: $ENDPOINT_IP, Gateway: $DEFAULT_GW, Device: $DEFAULT_DEV"
-          
-          # Copy config without PostUp/PostDown (linuxserver container doesn't support them)
-          cp /secret/wg0.conf /config/wg_confs/wg0.conf
-          chmod 600 /config/wg_confs/wg0.conf
-          
-          # Create custom init script to add route before WireGuard starts
-          echo '#!/bin/bash' > /config/custom-cont-init.d/10-add-vpn-route.sh
-          echo "echo 'Adding route for VPN endpoint to prevent routing loop...'" >> /config/custom-cont-init.d/10-add-vpn-route.sh
-          echo "ip route add ${ENDPOINT_IP}/32 via ${DEFAULT_GW} dev ${DEFAULT_DEV} || true" >> /config/custom-cont-init.d/10-add-vpn-route.sh
-          echo "echo 'Route added:'" >> /config/custom-cont-init.d/10-add-vpn-route.sh
-          echo "ip route get ${ENDPOINT_IP}" >> /config/custom-cont-init.d/10-add-vpn-route.sh
-          chmod +x /config/custom-cont-init.d/10-add-vpn-route.sh
-          echo "Custom init script:"
-          cat /config/custom-cont-init.d/10-add-vpn-route.sh
-          
-          echo "WireGuard configuration created successfully"
-        volumeMounts:
-        - name: wireguard-config-volume
-          mountPath: /config
-        - name: wireguard-secret-volume
-          mountPath: /secret
-      containers:
-      - name: wireguard
-        image: lscr.io/linuxserver/wireguard:latest
+      # Native sidecar. Joins the tailnet and forces all pod egress through
+      # protecli-vault, which serves as the tailnet exit node and sends that
+      # traffic out through its single Mullvad WireGuard tunnel. This replaces
+      # the per-app Mullvad config: the only Mullvad device is the Vault.
+      - name: tailscale
+        image: tailscale/tailscale:stable
+        restartPolicy: Always
+        env:
+        - name: TS_AUTHKEY
+          valueFrom:
+            secretKeyRef:
+              name: tailscale-auth
+              key: authkey
+        - name: TS_STATE_DIR
+          value: /var/lib/tailscale
+        - name: TS_USERSPACE
+          value: "false"
+        # Use the tailnet's global DNS (Pi-hole, set to apply with the exit
+        # node). Cluster-internal names do not resolve in this pod; qBittorrent
+        # only needs public DNS.
+        - name: TS_ACCEPT_DNS
+          value: "true"
+        - name: TS_HOSTNAME
+          value: qbittorrent-egress
+        - name: TS_EXTRA_ARGS
+          value: "--exit-node=protecli-vault --exit-node-allow-lan-access"
         securityContext:
           capabilities:
-            add:
-              - NET_ADMIN
-              - SYS_MODULE
-          appArmorProfile:
-            type: Unconfined
-          privileged: true
-        env:
-        - name: PUID
-          value: "1000"
-        - name: PGID
-          value: "1000"
-        - name: TZ
-          value: "America/Los_Angeles"
-        - name: INTERNAL_SUBNET
-          value: "10.42.0.0/16,10.43.0.0/16"
-        - name: KILLSWITCH
-          value: "false"
-        volumeMounts:
-        - name: wireguard-config-volume
-          mountPath: /config
-        ports:
-        - containerPort: 51820
-          protocol: UDP
-          name: wireguard
+            add: ["NET_ADMIN"]
         resources:
           limits:
-            memory: "512Mi"
-            cpu: "500m"
-          requests:
             memory: "256Mi"
-            cpu: "250m"
+            cpu: "200m"
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - tailscale status --json | grep -Eq '"BackendState":[[:space:]]*"Running"'
+          periodSeconds: 5
+          failureThreshold: 60
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - tailscale status --json | grep -Eq '"BackendState":[[:space:]]*"Running"'
+          periodSeconds: 10
+        volumeMounts:
+        - name: tailscale-state
+          mountPath: /var/lib/tailscale
+        - name: dev-net-tun
+          mountPath: /dev/net/tun
+      containers:
       - name: qbittorrent
         image: lscr.io/linuxserver/qbittorrent:latest
         startupProbe:
@@ -94,16 +79,13 @@ spec:
             - /bin/sh
             - -c
             - |
-              # Check if WireGuard tunnel is up and has an IP address
-              ip link show wg0 | grep -q "LOWER_UP" && \
-              ip addr show wg0 | grep -q "inet" || exit 1
-          initialDelaySeconds: 10
+              # Wait for the sidecar to bring tailscale0 up with an address.
+              ip link show tailscale0 | grep -q "LOWER_UP" && \
+              ip addr show tailscale0 | grep -q "inet" || exit 1
+          initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 5
-          failureThreshold: 30
-        securityContext:
-          capabilities:
-            add: ["NET_ADMIN"]
+          failureThreshold: 60
         env:
         - name: TZ
           value: "America/Los_Angeles"
@@ -132,12 +114,13 @@ spec:
       - name: config-volume
         persistentVolumeClaim:
           claimName: qbittorrent-config
-      - name: wireguard-config-volume
-        persistentVolumeClaim:
-          claimName: wireguard-config
-      - name: wireguard-secret-volume
-        secret:
-          secretName: wireguard-config
       - name: data-nfs-volume
         persistentVolumeClaim:
           claimName: qbittorrent-data-nfs
+      - name: tailscale-state
+        persistentVolumeClaim:
+          claimName: qbittorrent-tailscale-state
+      - name: dev-net-tun
+        hostPath:
+          path: /dev/net/tun
+          type: CharDevice

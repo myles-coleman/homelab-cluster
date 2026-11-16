@@ -1,0 +1,18 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: tailscale-auth
+  namespace: prowlarr
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: bitwarden-notes
+  target:
+    name: tailscale-auth
+    creationPolicy: Owner
+  data:
+  - secretKey: authkey
+    remoteRef:
+      # Same Vaultwarden item as the qBittorrent ExternalSecret.
+      key: REPLACE_WITH_VAULTWARDEN_ITEM_ID
