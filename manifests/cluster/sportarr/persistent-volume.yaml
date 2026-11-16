@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sportarr-data
+spec:
+  capacity:
+    storage: 1Ti
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    path: /mnt/md0/data
+    server: 10.0.0.150
+  persistentVolumeReclaimPolicy: Retain

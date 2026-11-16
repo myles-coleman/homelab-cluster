@@ -5,6 +5,7 @@ resources:
 - radarr-app.yaml
 - lidarr-app.yaml
 - prowlarr-app.yaml
+- sportarr-app.yaml
 - jellyseerr-app.yaml
 - clickhouse-operator-app.yaml
 - longhorn-app.yaml
