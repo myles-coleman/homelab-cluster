@@ -15,4 +15,4 @@ spec:
   - secretKey: authkey
     remoteRef:
       # Same Vaultwarden item as the qBittorrent ExternalSecret.
-      key: REPLACE_WITH_VAULTWARDEN_ITEM_ID
+      key: 5b6cea36-2a29-4d7c-971d-c3e98f845c08

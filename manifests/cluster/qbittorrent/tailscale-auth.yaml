@@ -16,4 +16,4 @@ spec:
     remoteRef:
       # Vaultwarden item whose Notes contain a reusable, tagged Tailscale auth
       # key. Replace this UUID before merging.
-      key: REPLACE_WITH_VAULTWARDEN_ITEM_ID
+      key: 5b6cea36-2a29-4d7c-971d-c3e98f845c08
