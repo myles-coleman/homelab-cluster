@@ -13,6 +13,96 @@ spec:
       labels:
         app: prowlarr
     spec:
+      # Neither container talks to the Kubernetes API. Drop the token so a
+      # compromised app cannot read the tailscale-auth Secret.
+      automountServiceAccountToken: false
+      initContainers:
+      # Pod-level kill switch. Same policy as qBittorrent: only root
+      # (tailscaled) may use the pod network directly, the app (uid 911) may
+      # reach only tailscale0 or in-cluster CIDRs, everything else is dropped.
+      # If the sidecar dies and the exit-node route disappears, Prowlarr cannot
+      # fall back to the home ISP.
+      - name: killswitch
+        image: tailscale/tailscale:stable
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          iptables -A OUTPUT -o lo -j ACCEPT
+          iptables -A OUTPUT -o tailscale0 -j ACCEPT
+          iptables -A OUTPUT -d 10.42.0.0/16 -j ACCEPT
+          iptables -A OUTPUT -d 10.43.0.0/16 -j ACCEPT
+          iptables -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
+          iptables -A OUTPUT -j DROP
+          if [ -d /proc/sys/net/ipv6 ]; then
+            ip6tables -A OUTPUT -o lo -j ACCEPT
+            ip6tables -A OUTPUT -o tailscale0 -j ACCEPT
+            ip6tables -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
+            ip6tables -A OUTPUT -j DROP
+          fi
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]
+        resources:
+          limits:
+            memory: "64Mi"
+            cpu: "100m"
+          requests:
+            memory: "16Mi"
+            cpu: "25m"
+      # Native sidecar. Same egress path as qBittorrent: pod -> tailnet ->
+      # protecli-vault exit node -> Mullvad. Keeps indexer API traffic off the
+      # home ISP while sharing the Vault's single Mullvad device.
+      - name: tailscale
+        image: tailscale/tailscale:stable
+        restartPolicy: Always
+        env:
+        - name: TS_AUTHKEY
+          valueFrom:
+            secretKeyRef:
+              name: tailscale-auth
+              key: authkey
+        - name: TS_STATE_DIR
+          value: /var/lib/tailscale
+        - name: TS_USERSPACE
+          value: "false"
+        - name: TS_ACCEPT_DNS
+          value: "true"
+        - name: TS_HOSTNAME
+          value: prowlarr-egress
+        - name: TS_EXTRA_ARGS
+          value: "--exit-node=protecli-vault --exit-node-allow-lan-access"
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - tailscale status --json | grep -Eq '"BackendState":[[:space:]]*"Running"'
+          periodSeconds: 5
+          failureThreshold: 60
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - tailscale status --json | grep -Eq '"BackendState":[[:space:]]*"Running"'
+          periodSeconds: 10
+        volumeMounts:
+        - name: tailscale-state
+          mountPath: /var/lib/tailscale
+        - name: dev-net-tun
+          mountPath: /dev/net/tun
       containers:
       - name: prowlarr
         image: lscr.io/linuxserver/prowlarr:latest
@@ -40,3 +130,10 @@ spec:
       - name: config-volume
         persistentVolumeClaim:
           claimName: prowlarr-config
+      - name: tailscale-state
+        persistentVolumeClaim:
+          claimName: prowlarr-tailscale-state
+      - name: dev-net-tun
+        hostPath:
+          path: /dev/net/tun
+          type: CharDevice

@@ -6,7 +6,7 @@ resources:
   - service.yaml
   - httproute.yaml
   - config-pvc.yaml
-  - wireguard-external-secret.yaml
-  - wireguard-config-pvc.yaml
+  - tailscale-auth.yaml
+  - tailscale-state-pvc.yaml
   - nfs-pv.yaml
   - nfs-pvc.yaml
