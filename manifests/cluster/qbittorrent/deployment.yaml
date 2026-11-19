@@ -5,11 +5,15 @@ metadata:
   namespace: qbittorrent
 spec:
   replicas: 1
-  # The Longhorn config volume is ReadWriteOnce. RollingUpdate would start the
-  # new pod before the old one releases the volume; Recreate terminates the old
-  # pod first so the new one can attach it.
+  # The Longhorn config volume is ReadWriteOnce. maxSurge 0 stops the new pod
+  # from starting before the old one releases the volume; maxUnavailable 1 lets
+  # the old pod terminate first. type Recreate is rejected by the API because
+  # the live Deployment retains the default rollingUpdate fields.
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: qbittorrent
