@@ -5,6 +5,11 @@ metadata:
   namespace: prowlarr
 spec:
   replicas: 1
+  # The Longhorn config volume is ReadWriteOnce. RollingUpdate would start the
+  # new pod before the old one releases the volume; Recreate terminates the old
+  # pod first so the new one can attach it.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: prowlarr
