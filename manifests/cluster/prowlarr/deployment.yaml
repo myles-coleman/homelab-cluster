@@ -38,17 +38,23 @@ spec:
         - -c
         - |
           set -eu
-          iptables -A OUTPUT -o lo -j ACCEPT
-          iptables -A OUTPUT -o tailscale0 -j ACCEPT
-          iptables -A OUTPUT -d 10.42.0.0/16 -j ACCEPT
-          iptables -A OUTPUT -d 10.43.0.0/16 -j ACCEPT
-          iptables -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
-          iptables -A OUTPUT -j DROP
+          # The image's `iptables` symlink points at the legacy backend, which
+          # the nodes' nftables-only kernel rejects. Use the nft backend.
+          IPT=iptables-nft
+          IP6T=ip6tables-nft
+          command -v "$IPT" >/dev/null 2>&1 || IPT=iptables
+          command -v "$IP6T" >/dev/null 2>&1 || IP6T=ip6tables
+          "$IPT" -A OUTPUT -o lo -j ACCEPT
+          "$IPT" -A OUTPUT -o tailscale0 -j ACCEPT
+          "$IPT" -A OUTPUT -d 10.42.0.0/16 -j ACCEPT
+          "$IPT" -A OUTPUT -d 10.43.0.0/16 -j ACCEPT
+          "$IPT" -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
+          "$IPT" -A OUTPUT -j DROP
           if [ -d /proc/sys/net/ipv6 ]; then
-            ip6tables -A OUTPUT -o lo -j ACCEPT
-            ip6tables -A OUTPUT -o tailscale0 -j ACCEPT
-            ip6tables -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
-            ip6tables -A OUTPUT -j DROP
+            "$IP6T" -A OUTPUT -o lo -j ACCEPT
+            "$IP6T" -A OUTPUT -o tailscale0 -j ACCEPT
+            "$IP6T" -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
+            "$IP6T" -A OUTPUT -j DROP
           fi
         securityContext:
           capabilities:
