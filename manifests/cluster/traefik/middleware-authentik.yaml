@@ -1,11 +1,14 @@
-# The single forward-auth gate. Every protected HTTPRoute references this object
-# through an ExtensionRef filter; there is no per-application copy, so the
-# security-critical configuration cannot drift between services.
+# Canonical forward-auth gate definition.
 #
-# Cross-namespace references need a ReferenceGrant in this namespace naming the
-# route's namespace (the API has no namespace wildcard). There is none right now
-# because no route references this Middleware yet — add it together with the
-# first protected application, in this file's directory.
+# This object is NOT what protects traffic: Traefik's Gateway API provider
+# resolves an HTTPRoute's `ExtensionRef` in the route's own namespace, so each
+# protected namespace needs its own copy. This file is the reference those
+# copies are kept identical to; edit here first, then mirror the change.
+#
+# Do not try to reference this object from another namespace: there is no
+# `namespace` field on Gateway API's `ExtensionRef`, and the miss shows up as
+# `middleware "<route-ns>-authentik@kubernetescrd" does not exist` with a 404
+# for every request.
 #
 # trustForwardHeader is deliberately not set. It is deprecated in Traefik v3.7,
 # and enabling it would let a client supply its own X-Forwarded-Host, which is
