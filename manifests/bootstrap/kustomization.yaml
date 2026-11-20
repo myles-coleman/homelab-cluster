@@ -30,7 +30,6 @@ resources:
 - argocd-mcp-app.yaml
 - searxng-app.yaml
 - open-webui-app.yaml
-- otel-collector-app.yaml
 - signoz-app.yaml
 - signoz-k8s-infra-app.yaml
 - ai-artifacts-site-app.yaml
