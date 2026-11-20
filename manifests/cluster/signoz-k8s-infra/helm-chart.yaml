@@ -824,7 +824,7 @@ spec:
       hostNetwork: false
       containers:
         - name: k8s-infra-otel-agent
-          image: docker.io/otel/opentelemetry-collector-contrib:0.139.0
+          image: docker.io/otel/opentelemetry-collector-contrib:0.139.0@sha256:faf125d656fa47cea568b2f3b4494efd2525083bc75c1e96038bc23f05cd68fd
           imagePullPolicy: IfNotPresent
           ports:
             - name: health-check
@@ -969,7 +969,7 @@ spec:
             name: k8s-infra-otel-deployment
       containers:
         - name: k8s-infra-otel-deployment
-          image: docker.io/otel/opentelemetry-collector-contrib:0.139.0
+          image: docker.io/otel/opentelemetry-collector-contrib:0.139.0@sha256:faf125d656fa47cea568b2f3b4494efd2525083bc75c1e96038bc23f05cd68fd
           imagePullPolicy: IfNotPresent
           ports:
             - name: health-check

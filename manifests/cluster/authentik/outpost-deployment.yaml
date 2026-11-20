@@ -18,7 +18,7 @@ spec:
           # Pinned to the server release. A floating `latest` on the component
           # that terminates authentication is an unreviewed upgrade on every pod
           # restart, and the proxy must speak the same API version as the server.
-          image: ghcr.io/goauthentik/proxy:2026.5.6
+          image: ghcr.io/goauthentik/proxy:2026.5.6@sha256:05aa14db088b254c1ff89debe8dd5deb5d31aa342b67e70cd454f0870c944d55
           ports:
             - containerPort: 9000
               name: http
