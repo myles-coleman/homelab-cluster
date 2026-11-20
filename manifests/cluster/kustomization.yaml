@@ -49,7 +49,6 @@ resources:
 - argocd-mcp
 - searxng
 - open-webui
-- otel-collector
 - signoz
 - signoz-k8s-infra
 - ai-artifacts-site
