@@ -10,6 +10,9 @@ resources:
   - httproute.yaml
   - networkpolicy.yaml
   - outpost-deployment.yaml
+  # Cross-namespace backend reference for the login callback routes on
+  # protected hosts.
+  - referencegrant-outpost.yaml
 
 patches:
   # The chart renders its own Secret from the placeholders in values.yaml. Override
