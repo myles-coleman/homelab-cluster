@@ -13,3 +13,22 @@ defaultBackupStore:
 # 233G disks is what pushed new volumes past Longhorn's scheduling limits.
 persistence:
   defaultClassReplicaCount: 2
+
+# Digest pins (spec 06 task 2.0). Only the components rendered by the active
+# services are pinned; the chart renders `repository:tag`, so the digest is a
+# tag suffix rather than a separate field.
+image:
+  longhorn:
+    manager:
+      tag: v1.11.2@sha256:0f80ca11ac4eb7522f4e6e801a7afc9909ea8d3041575f3d029964c46590f096
+    shareManager:
+      tag: v1.11.2@sha256:c11559e998ea982e6bac1637d66cc2aaab662a6b546709f2e54e2bfa50ffb0c3
+    ui:
+      tag: v1.11.2@sha256:885bc78f99f31da0d9b0fd8f533a53558a3aa81f9719c62e0d3c69ed8456d5b7
+    # engine and instanceManager are not PodSpec images: they are passed to
+    # longhorn-manager as `--engine-image` / `--instance-manager-image` args, so a
+    # scan of `image:` keys alone would leave them floating.
+    engine:
+      tag: v1.11.2@sha256:7482e0437fbf475e1e32696fab22f47bf99b1ef8d067ffce9e34028347722628
+    instanceManager:
+      tag: v1.11.2@sha256:16dac125ef30bd3a375bc8ff7d10636ea0302d22d208c0cfb1be37ebb93ca30b

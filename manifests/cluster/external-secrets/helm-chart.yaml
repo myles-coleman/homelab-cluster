@@ -13325,7 +13325,7 @@ spec:
             runAsUser: 1000
             seccompProfile:
               type: RuntimeDefault
-          image: oci.external-secrets.io/external-secrets/external-secrets:v0.10.4
+          image: oci.external-secrets.io/external-secrets/external-secrets:v0.10.4@sha256:da1a2ea3f7e855b2fafed792740151edffd7935cfc34542ec6715da30e65ac92
           imagePullPolicy: IfNotPresent
           args:
           - certcontroller
@@ -13393,7 +13393,7 @@ spec:
             runAsUser: 1000
             seccompProfile:
               type: RuntimeDefault
-          image: oci.external-secrets.io/external-secrets/external-secrets:v0.10.4
+          image: oci.external-secrets.io/external-secrets/external-secrets:v0.10.4@sha256:da1a2ea3f7e855b2fafed792740151edffd7935cfc34542ec6715da30e65ac92
           imagePullPolicy: IfNotPresent
           args:
           - --concurrent=1
@@ -13449,7 +13449,7 @@ spec:
             runAsUser: 1000
             seccompProfile:
               type: RuntimeDefault
-          image: oci.external-secrets.io/external-secrets/external-secrets:v0.10.4
+          image: oci.external-secrets.io/external-secrets/external-secrets:v0.10.4@sha256:da1a2ea3f7e855b2fafed792740151edffd7935cfc34542ec6715da30e65ac92
           imagePullPolicy: IfNotPresent
           args:
           - webhook

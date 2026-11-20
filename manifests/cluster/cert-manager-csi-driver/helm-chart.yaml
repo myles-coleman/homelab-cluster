@@ -100,7 +100,7 @@ spec:
             allowPrivilegeEscalation: false
             capabilities: { drop: [ "ALL" ] }
             readOnlyRootFilesystem: true
-          image: "quay.io/jetstack/csi-node-driver-registrar:v2.18.0"
+          image: "quay.io/jetstack/csi-node-driver-registrar:v2.18.0@sha256:b7fefd08651f00ac4df1a196ed4c621c2451fbb899297fe9fad9e36c667af0c0"
           imagePullPolicy: IfNotPresent
           args:
             - -v=1
@@ -123,7 +123,7 @@ spec:
             allowPrivilegeEscalation: false
             capabilities: { drop: [ "ALL" ] }
             readOnlyRootFilesystem: true
-          image: "quay.io/jetstack/livenessprobe:v2.20.0"
+          image: "quay.io/jetstack/livenessprobe:v2.20.0@sha256:19f2cf2f40e1987c7943945deca5f65cd4e4bf5cc0657fc78a5df131861578e8"
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/plugin/csi.sock
@@ -140,7 +140,7 @@ spec:
             privileged: true
             capabilities: { drop: [ "ALL" ] }
             readOnlyRootFilesystem: true
-          image: "quay.io/jetstack/cert-manager-csi-driver:v0.16.1"
+          image: "quay.io/jetstack/cert-manager-csi-driver:v0.16.1@sha256:00493ba0324911cd93db80e9012076931053100b4d53bedd5fb574fc4c6aca8b"
           imagePullPolicy: IfNotPresent
           args :
             - --log-level=1

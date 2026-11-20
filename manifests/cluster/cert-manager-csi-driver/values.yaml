@@ -19,3 +19,12 @@ tolerations:
     operator: Equal
     value: gvisor
     effect: NoSchedule
+
+# Digest pins (spec 06 task 2.0), per component. Tag suffix, not the `digest`
+# field, because the digest field drops the tag from the rendered reference.
+image:
+  tag: v0.16.1@sha256:00493ba0324911cd93db80e9012076931053100b4d53bedd5fb574fc4c6aca8b
+nodeDriverRegistrarImage:
+  tag: v2.18.0@sha256:b7fefd08651f00ac4df1a196ed4c621c2451fbb899297fe9fad9e36c667af0c0
+livenessProbeImage:
+  tag: v2.20.0@sha256:19f2cf2f40e1987c7943945deca5f65cd4e4bf5cc0657fc78a5df131861578e8

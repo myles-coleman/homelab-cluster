@@ -6,6 +6,10 @@ controller:
   enabled: true
   # Replicas for the controller
   replicas: 1
+  # Digest pin (spec 06 task 2.0): the chart templates `repository:tag`, so the
+  # digest is a tag suffix and the version stays readable.
+  image:
+    tag: v0.14.8@sha256:93b83b39d06bbcb0aedc0eb750c9e43e3c46dc08a6f88400ed96105224d784ec
   
   resources:
     limits:
@@ -18,6 +22,9 @@ controller:
 # Speaker configuration (runs on all nodes)
 speaker:
   enabled: true
+  # Digest pin (spec 06 task 2.0).
+  image:
+    tag: v0.14.8@sha256:fd86bfc502601d6525739d411a0045e7085a4008a732be7e271c851800952142
   
   # FRR mode (for BGP) - set to false for Layer 2 mode
   frr:

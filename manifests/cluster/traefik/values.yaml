@@ -147,3 +147,9 @@ resources:
   limits:
     cpu: 500m
     memory: 512Mi
+
+# Digest pin (spec 06 task 2.0). The chart explicitly accepts a `<version>@<digest>`
+# tag, which keeps the version readable while the digest fixes identity.
+image:
+  registry: docker.io
+  tag: v3.7.18@sha256:9c437ac4f09ce6f4980a8544902d3475fdf70a1a7c578729581d2535dfa7d635

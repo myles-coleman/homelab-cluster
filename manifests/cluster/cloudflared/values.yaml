@@ -16,3 +16,9 @@ resources:
   requests:
     cpu: 50m
     memory: 64Mi
+
+# Digest pin (spec 06 task 2.0). Tag is `latest` today; task 3.0 replaces it with
+# a concrete version tag and keeps this digest.
+image:
+  repository: cloudflare/cloudflared
+  tag: latest@sha256:e613aadbc2d9511785d2e67a86b0c8ac18dd63a3f9af0d06faf04cbfdcb35f2d
