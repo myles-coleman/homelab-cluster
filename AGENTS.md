@@ -20,7 +20,7 @@ This is a personal homelab Kubernetes cluster running media management, home aut
 | node1 | k3s agent (worker) | 10.0.0.141 | Raspberry Pi 5, aarch64, NVMe SSD |
 | node2 | k3s agent (worker) | 10.0.0.142 | Raspberry Pi 5, aarch64, NVMe SSD |
 | node3 | k3s agent (worker) | 10.0.0.143 | Raspberry Pi 5, aarch64, NVMe SSD |
-| node4 | k3s agent (GPU worker) | 10.0.0.144 | Raspberry Pi 5 8GB, aarch64, SD card, AMD RX 6700 XT eGPU |
+| node4 | k3s agent (worker) | 10.0.0.144 | Raspberry Pi 5, aarch64, NVMe SSD |
 
 ### Operating System & Kubernetes
 
@@ -54,16 +54,7 @@ This is a personal homelab Kubernetes cluster running media management, home aut
 
 ### GPU Workloads
 
-Node4 has an AMD RX 6700 XT eGPU connected via PCIe, running Vulkan compute through Mesa RADV drivers. GPU access in Kubernetes is provided by `squat/generic-device-plugin` (DaemonSet in `device-system` namespace), which exposes `/dev/dri/renderD128` and `/dev/dri/card0` as a schedulable resource.
-
-| Property | Value |
-|----------|-------|
-| **Kubernetes resource** | `gpu.cowlab.org/dri: 1` |
-| **Node labels** | `gpu.node/type=amd-vulkan`, `gpu.node/vram=12Gi` |
-| **Node taint** | `gpu=amd:NoSchedule` |
-| **GPU backend** | Vulkan (Mesa RADV, no ROCm on ARM64) |
-
-To schedule a GPU workload, a pod spec needs: nodeSelector (`gpu.node/type: amd-vulkan`), toleration (`gpu=amd:NoSchedule`), and resource request/limit (`gpu.cowlab.org/dri: 1`). See `manifests/cluster/llama-cpp/deployment.yaml` for a complete example.
+There is no dedicated GPU node. All five nodes are NVMe-backed Raspberry Pi 5 agents. `generic-device-plugin` and `llama-cpp` are disabled in the cluster manifests.
 
 ---
 
