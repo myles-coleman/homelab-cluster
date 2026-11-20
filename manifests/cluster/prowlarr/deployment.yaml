@@ -92,7 +92,7 @@ spec:
         - name: TS_HOSTNAME
           value: prowlarr-egress
         - name: TS_EXTRA_ARGS
-          value: "--exit-node=protecli-vault --exit-node-allow-lan-access"
+          value: "--exit-node=100.112.185.27 --exit-node-allow-lan-access"
         securityContext:
           capabilities:
             add: ["NET_ADMIN"]
