@@ -29,3 +29,32 @@ config:
         receivers: [otlp]
         processors: []
         exporters: [debug]
+
+# The collector starts healthy, then the chart-default one-second liveness
+# timeout trips under load and the kubelet SIGTERMs it. Give it room and a
+# resource request so it is not starved on the Pi.
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: 13133
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 13133
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 5
