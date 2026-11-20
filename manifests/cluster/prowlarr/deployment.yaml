@@ -78,6 +78,11 @@ spec:
             secretKeyRef:
               name: tailscale-auth
               key: authkey
+        # Use the PVC for state. Without this, containerboot defaults to a
+        # Kubernetes Secret and needs the service-account namespace file, which
+        # automountServiceAccountToken=false removes.
+        - name: TS_KUBE_SECRET
+          value: ""
         - name: TS_STATE_DIR
           value: /var/lib/tailscale
         - name: TS_USERSPACE
