@@ -4,3 +4,4 @@ namespace: signoz-k8s-infra
 resources:
   - namespace.yaml
   - helm-chart.yaml
+  - agent-heartbeat-cronjob.yaml

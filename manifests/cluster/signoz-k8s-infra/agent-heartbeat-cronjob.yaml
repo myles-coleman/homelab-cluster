@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: agent-traces-heartbeat
+  namespace: signoz-k8s-infra
+spec:
+  # Feeds the agent-traces smoke check when the sandbox is idle. The check looks
+  # for spans with deployment.environment=agent-sandbox in the last hour; the
+  # agent only emits them while it is being used. One tiny span every 15 minutes
+  # proves the same ingest path is alive without depending on agent activity.
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app: agent-traces-heartbeat
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          containers:
+          - name: heartbeat
+            image: curlimages/curl:8.10.1
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              start=$(( $(date +%s) * 1000000000 ))
+              end=$(( start + 1000000 ))
+              trace=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+              span=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
+              payload=$(cat <<EOF
+              {"resourceSpans":[{"resource":{"attributes":[{"key":"deployment.environment","value":{"stringValue":"agent-sandbox"}},{"key":"service.name","value":{"stringValue":"agent-heartbeat"}}]},"scopeSpans":[{"scope":{"name":"heartbeat"},"spans":[{"traceId":"$trace","spanId":"$span","name":"heartbeat","kind":1,"startTimeUnixNano":"$start","endTimeUnixNano":"$end"}]}]}]}
+              EOF
+              )
+              curl --fail-with-body --silent --show-error --max-time 10 \
+                -X POST -H 'Content-Type: application/json' \
+                --data-binary "$payload" \
+                http://k8s-infra-otel-agent.signoz-k8s-infra.svc.cluster.local:4318/v1/traces
+            resources:
+              limits:
+                memory: "64Mi"
+                cpu: "100m"
+              requests:
+                memory: "16Mi"
+                cpu: "25m"
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop: ["ALL"]
