@@ -21,7 +21,7 @@ spec:
         fsGroup: 1000
       containers:
       - name: copyparty
-        image: copyparty/ac:1.18.6
+        image: copyparty/ac:1.18.6@sha256:6a925c50732959921262eb795eabfba2a6b3bf705c7a7115f01edf72a201d065
         ports:
         - containerPort: 3923
         resources:

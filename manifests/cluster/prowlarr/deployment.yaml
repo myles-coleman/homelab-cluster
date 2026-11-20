@@ -32,7 +32,7 @@ spec:
       # If the sidecar dies and the exit-node route disappears, Prowlarr cannot
       # fall back to the home ISP.
       - name: killswitch
-        image: tailscale/tailscale:stable
+        image: tailscale/tailscale:stable@sha256:72c1e19e0aedca96b8533bbb0b4368564410ff20b17e53b804eb6c1f04a31be4
         command:
         - /bin/sh
         - -c
@@ -70,7 +70,7 @@ spec:
       # protecli-vault exit node -> Mullvad. Keeps indexer API traffic off the
       # home ISP while sharing the Vault's single Mullvad device.
       - name: tailscale
-        image: tailscale/tailscale:stable
+        image: tailscale/tailscale:stable@sha256:72c1e19e0aedca96b8533bbb0b4368564410ff20b17e53b804eb6c1f04a31be4
         restartPolicy: Always
         env:
         - name: TS_AUTHKEY
@@ -125,7 +125,7 @@ spec:
           mountPath: /dev/net/tun
       containers:
       - name: prowlarr
-        image: lscr.io/linuxserver/prowlarr:latest
+        image: lscr.io/linuxserver/prowlarr:latest@sha256:45117ba8439e2337a92ffe38a451a4dafc0be771754d05d88cdf102419d09646
         resources:
           limits:
             memory: "1024Mi"

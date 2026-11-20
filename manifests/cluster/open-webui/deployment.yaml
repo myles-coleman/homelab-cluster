@@ -32,7 +32,7 @@ spec:
         # open a database written by v0.10+ ("Can't locate revision
         # identified by '42e2978c7933'"). v0.12.3 migrates the existing DB
         # forward cleanly. Bump this tag deliberately, never back to `:main`.
-        image: ghcr.io/open-webui/open-webui:v0.12.3
+        image: ghcr.io/open-webui/open-webui:v0.12.3@sha256:a537bbe1e6b428820f52ed4a029d7fff97062e24d5cf32c365fba36fd0542def
         imagePullPolicy: IfNotPresent
         env:
         - name: TZ

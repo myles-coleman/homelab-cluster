@@ -32,7 +32,7 @@ spec:
       # disappears, qBittorrent falls back to eth0 and is dropped here instead
       # of leaking to the ISP. Rules live in the pod netns for the pod's life.
       - name: killswitch
-        image: tailscale/tailscale:stable
+        image: tailscale/tailscale:stable@sha256:72c1e19e0aedca96b8533bbb0b4368564410ff20b17e53b804eb6c1f04a31be4
         command:
         - /bin/sh
         - -c
@@ -71,7 +71,7 @@ spec:
       # traffic out through its single Mullvad WireGuard tunnel. This replaces
       # the per-app Mullvad config: the only Mullvad device is the Vault.
       - name: tailscale
-        image: tailscale/tailscale:stable
+        image: tailscale/tailscale:stable@sha256:72c1e19e0aedca96b8533bbb0b4368564410ff20b17e53b804eb6c1f04a31be4
         restartPolicy: Always
         env:
         - name: TS_AUTHKEY
@@ -129,7 +129,7 @@ spec:
           mountPath: /dev/net/tun
       containers:
       - name: qbittorrent
-        image: lscr.io/linuxserver/qbittorrent:latest
+        image: lscr.io/linuxserver/qbittorrent:latest@sha256:3d4c4545d51a690a0df15a2ff99038823a88a9822df8e794526447b9afbd7384
         startupProbe:
           exec:
             command:

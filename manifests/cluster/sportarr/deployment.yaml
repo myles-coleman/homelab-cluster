@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: sportarr
-        image: sportarr/sportarr:latest
+        image: sportarr/sportarr:latest@sha256:8d6d301576b24be1b1ba889ec40c9e09fd3e5cba5c4a9729989c343918701dc8
         env:
         - name: PUID
           value: "1000"
