@@ -17,6 +17,14 @@ spec:
         - path:
             type: PathPrefix
             value: /
+      # The shared forward-auth gate. Cross-namespace reference, permitted by
+      # ReferenceGrant `allow-forward-auth` in the `traefik` namespace.
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: authentik
       backendRefs:
         - group: ""
           kind: Service

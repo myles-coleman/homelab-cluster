@@ -1,0 +1,27 @@
+# Permits a protected HTTPRoute to send the Authentik login callback to the
+# outpost Service in this namespace.
+#
+# Single-application forward auth redirects the browser to
+# `/outpost.goauthentik.io/` on the application's own hostname, so each
+# protected host needs a route to this Service. That backend is cross-namespace,
+# and Gateway API requires a ReferenceGrant in the *backend's* namespace for
+# every cross-namespace reference — the Middleware grant in `traefik` does not
+# cover it. Without this, the outpost routes report `ResolvedRefs=False` and the
+# login round trip fails in a way that looks like a redirect loop.
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: allow-outpost-routes
+  namespace: authentik
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: jellyseerr
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: copyparty
+  to:
+    - group: ""
+      kind: Service
+      name: authentik-outpost
