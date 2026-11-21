@@ -6,5 +6,7 @@ resources:
   - pvc.yaml
   - deployment.yaml
   - service.yaml
+  - middleware-authentik.yaml
   - httproute.yaml
+  - httproute-outpost.yaml
   - network-policy.yaml
