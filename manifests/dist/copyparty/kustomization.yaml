@@ -9,8 +9,8 @@ resources:
 - Middleware_copyparty_idp-key.yaml
 - Namespace_cluster_copyparty.yaml
 - NetworkPolicy_copyparty_copyparty.yaml
-- PersistentVolumeClaim_copyparty_copyparty-config.yaml
 - PersistentVolumeClaim_copyparty_copyparty-data.yaml
+- PersistentVolumeClaim_copyparty_copyparty-hists.yaml
 - PersistentVolumeClaim_copyparty_copyparty-media.yaml
 - PersistentVolume_cluster_copyparty-media.yaml
 - Service_copyparty_copyparty.yaml

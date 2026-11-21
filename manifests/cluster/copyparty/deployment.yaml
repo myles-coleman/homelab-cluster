@@ -83,4 +83,5 @@ spec:
           claimName: copyparty-media
       - name: persistent-config
         persistentVolumeClaim:
-          claimName: copyparty-config
+          # Replaces the wedged `copyparty-config` volume; see the PVC's comment.
+          claimName: copyparty-hists
