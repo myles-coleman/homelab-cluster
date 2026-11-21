@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: copyparty-config
+  namespace: copyparty
+data:
+  copyparty.conf: |
+    # Copyparty configuration.
+    #
+    # There is no [accounts] block on purpose: identity comes from the Authentik
+    # forward-auth headers, so the file holds no credential and a config parse
+    # error (which dumps this file into the log) cannot leak one.
+    [global]
+      p: 3923
+      e2dsa
+      e2ts
+      hist: /cfg/hists/
+      idp-h-usr: X-Authentik-Username
+      idp-h-grp: X-Authentik-Groups
+      idp-h-key: X-Idp-Key
+      idp-gsep: ,
+      xff-hdr: cf-connecting-ip
+      xff-src: 10.42.0.0/16
+      u2sz: 1,64,96
+
+    [/]
+      /w
+      accs:
+        r: @homelab
+        rw: @homelab
+
+    # Library access is limited to the Authentik group that names the people who
+    # may manage media, not to a local account.
+    [/media]
+      /w/media
+      accs:
+        r: @copyparty-admins
+        rw: @copyparty-admins
+
+    [/uploads]
+      /w/uploads
+      accs:
+        w: @homelab
+        rw: @homelab
+      flags:
+        e2d
+        nodupe
