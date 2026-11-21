@@ -34,7 +34,7 @@ spec:
         - .spec.target.template.engineVersion
         - .spec.target.template.mergePolicy
   source:
-    path: manifests/cluster/clickhouse-operator
+    path: manifests/dist/clickhouse-operator
     repoURL: "https://github.com/myles-coleman/homelab-cluster"
     targetRevision: main
   syncPolicy:

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "automerge": false,
+  "pinDigests": true,
+  "ignorePaths": [
+    "manifests/dist/**",
+    "manifests/bootstrap/**",
+    "manifests/cluster/**/helm-chart.yaml",
+    "manifests/cluster/**/helmchart.yaml",
+    "manifests/cluster/_template/**"
+  ],
+  "packageRules": [
+    {
+      "matchFileNames": [
+        "manifests/cluster/**/values.yaml",
+        "manifests/cluster/**/deployment.yaml",
+        "manifests/cluster/**/*-deployment.yaml"
+      ],
+      "semanticCommitType": "fix"
+    }
+  ]
+}

@@ -40,7 +40,7 @@ spec:
         - /spec/conversion/webhook/clientConfig/caBundle
         - /spec/conversion/webhook/clientConfig/service/port
   source:
-    path: manifests/cluster/metallb
+    path: manifests/dist/metallb
     repoURL: "https://github.com/myles-coleman/homelab-cluster"
     targetRevision: main
   syncPolicy:

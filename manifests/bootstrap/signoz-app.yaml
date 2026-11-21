@@ -50,7 +50,7 @@ spec:
       jqPathExpressions:
         - .spec.volumeClaimTemplates[].status
   source:
-    path: manifests/cluster/signoz
+    path: manifests/dist/signoz
     repoURL: "https://github.com/myles-coleman/homelab-cluster"
     targetRevision: main
   syncPolicy:

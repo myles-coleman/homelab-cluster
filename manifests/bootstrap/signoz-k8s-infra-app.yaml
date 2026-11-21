@@ -34,7 +34,7 @@ spec:
         - .spec.target.template.engineVersion
         - .spec.target.template.mergePolicy
   source:
-    path: manifests/cluster/signoz-k8s-infra
+    path: manifests/dist/signoz-k8s-infra
     repoURL: "https://github.com/myles-coleman/homelab-cluster"
     targetRevision: main
   syncPolicy:

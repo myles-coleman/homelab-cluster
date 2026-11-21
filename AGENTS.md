@@ -64,11 +64,51 @@ There is no dedicated GPU node. All five nodes are NVMe-backed Raspberry Pi 5 ag
 - `manifests/cluster/_template/` — Skeleton manifests for new services (NOT deployed). Copy this when adding a service.
 - `manifests/cluster/kustomization.yaml` — Source of truth for all active services.
 - `manifests/bootstrap/` — AUTO-GENERATED ArgoCD Application definitions. Never edit directly.
+- `manifests/dist/` — AUTO-GENERATED rendered manifests. This is what ArgoCD applies. Never edit directly.
 - `modules/` — Terragrunt/OpenTofu infrastructure modules (argocd-install, argocd-configure, cloudflare, s3-backups, authentik, bootstrap).
 - `docs/` — MkDocs documentation site (Material theme).
 - `scripts/generate-apps.sh` — Generates ArgoCD Application YAMLs from the cluster kustomization.
 - `common-inputs.yaml` — Shared Terragrunt variables.
 - `root.hcl` — Terragrunt root config (S3 backend, tofu binary).
+
+---
+
+### Generated artifacts — do NOT hand-edit
+
+Two trees in this repository are generated. Editing them by hand produces a change
+that either disappears on the next regeneration or, worse, drifts from the source
+it claims to represent.
+
+| Tree | Produced by | What it is |
+|------|-------------|------------|
+| `manifests/dist/` | `scripts/render-dist.sh` | The rendered manifests ArgoCD actually applies: one file per object, named `<Kind>_<namespace>_<name>.yaml`, plus a generated `kustomization.yaml` per service. |
+| `manifests/bootstrap/` | `generate-apps.sh` | One ArgoCD `Application` per active service. |
+| `manifests/cluster/*/helm-chart.yaml` and `manifests/cluster/cloudflared/helmchart.yaml` | `helmfile template --skip-deps` | Pre-rendered Helm output. Never edit the file; change `values.yaml` and re-render. |
+
+**Why `manifests/dist/` exists.** ArgoCD used to build `manifests/cluster/<service>/` at sync
+time, so nothing in the repository proved what reached the cluster. `manifests/dist/` is that
+proof: the deployed YAML is committed, reviewable as a diff, and checked by CI
+before merge.
+
+**What to do instead of editing `manifests/dist/`:**
+
+```bash
+./scripts/render-dist.sh          # regenerate after changing manifests/cluster/
+./scripts/render-dist.sh --check  # what CI runs: fail if manifests/dist/ is stale
+```
+
+**What CI enforces** (`.github/workflows/dist-verify.yml`, `scripts/verify-dist.py`):
+
+- every image reference in `manifests/dist/` is pinned as `repository:tag@sha256:…`, with
+  exceptions listed by exact value in `scripts/dist-allowlist.txt`, each with a reason;
+- `manifests/dist/<service>` has the same object set as `kustomize build manifests/cluster/<service>`,
+  and the same bodies apart from image digests;
+- `manifests/dist/` matches a fresh render;
+- every `Namespace`, `PersistentVolumeClaim` and `PersistentVolume` carries
+  `argocd.argoproj.io/sync-options: Prune=false`.
+
+Never delete a `Prune=false` annotation to "clean up" a manifest. Those annotations
+are what stops a short render from deleting a namespace or a Longhorn volume.
 
 ---
 

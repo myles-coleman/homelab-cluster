@@ -34,7 +34,7 @@ spec:
         - .spec.target.template.engineVersion
         - .spec.target.template.mergePolicy
   source:
-    path: manifests/cluster/agent-sandbox
+    path: manifests/dist/agent-sandbox
     repoURL: "https://github.com/myles-coleman/homelab-cluster"
     targetRevision: main
   syncPolicy:

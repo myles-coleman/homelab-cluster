@@ -141,7 +141,7 @@ spec:
         - .spec.target.template.engineVersion
         - .spec.target.template.mergePolicy
 ${extra_ignore_differences[$resource]:-}  source:
-    path: manifests/cluster/$resource
+    path: manifests/dist/$resource
     repoURL: "https://github.com/myles-coleman/homelab-cluster"
     targetRevision: main
   syncPolicy:
