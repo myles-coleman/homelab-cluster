@@ -17,6 +17,18 @@ spec:
         - path:
             type: PathPrefix
             value: /
+      filters:
+        # Gate first, then mark the request for Copyparty's identity headers.
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: authentik
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: idp-key
       backendRefs:
         - group: ""
           kind: Service

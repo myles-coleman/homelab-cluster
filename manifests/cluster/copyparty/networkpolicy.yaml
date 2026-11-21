@@ -1,0 +1,24 @@
+# Nothing but the ingress controller may reach this pod.
+#
+# Copyparty trusts identity headers, so the network path is part of the security
+# boundary: if another workload could connect directly it could assert any user.
+# Traefik is the only admitted source.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: copyparty
+  namespace: copyparty
+spec:
+  podSelector:
+    matchLabels:
+      app: copyparty
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 3923
