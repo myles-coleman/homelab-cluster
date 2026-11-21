@@ -4,9 +4,10 @@ name: Verify dist
 # every image in it is digest-pinned, and that data-bearing objects cannot be
 # pruned.
 #
-# This workflow is read-only by design. It renders into a scratch tree, compares
-# it with dist/, and fails. It never commits, so it introduces no second writer
-# to main alongside release.yaml and generate-apps.yml, and it needs no secret.
+# This workflow is read-only by design. It runs `task check`, which renders into
+# a scratch tree, compares it with dist/, and fails. It never commits, so it
+# introduces no second writer to main alongside release.yaml and
+# generate-apps.yml, and it needs no secret.
 # No job here contacts a container registry: every image is already pinned, so
 # rendering resolves nothing.
 # Runs on every pull request rather than a path filter: `main` requires this
@@ -59,19 +60,24 @@ jobs:
           install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
           kustomize version
 
-      - name: Render and compare
+      - name: Install pinned task
         run: |
           set -euo pipefail
-          ./scripts/render-dist.sh --check
+          # shellcheck disable=SC1091
+          source scripts/tools.env
 
-      - name: Assert every image is pinned and no object was lost
-        run: |
-          set -euo pipefail
-          ./scripts/verify-dist.py --report
+          base="https://github.com/go-task/task/releases/download"
+          archive="task_linux_amd64.tar.gz"
+          curl -fsSL --retry 3 -o "/tmp/${archive}" "${base}/v${TASK_VERSION}/${archive}"
+          curl -fsSL --retry 3 -o /tmp/task_checksums.txt \
+            "${base}/v${TASK_VERSION}/task_checksums.txt"
+          ( cd /tmp && grep " ${archive}\$" task_checksums.txt | sha256sum -c - )
+          tar -xzf "/tmp/${archive}" -C /tmp task
+          install -m 0755 /tmp/task /usr/local/bin/task
+          task --version
 
-      - name: Assert data-bearing objects cannot be pruned
-        run: |
-          set -euo pipefail
-          # Explicit, separate step so a failure names the property that broke
-          # rather than surfacing as one line inside verify-dist's report.
-          ./scripts/verify-dist.py --check-protected
+      - name: Verify dist
+        # The same entry point a contributor runs. Keeping CI on `task check`
+        # rather than a copy of its steps means the documented command and the
+        # enforced one cannot drift apart.
+        run: task check

@@ -1,0 +1,109 @@
+version: '3'
+
+# Entry point for the dist/ pipeline.
+#
+# These targets are a facade: the work lives in scripts/render-dist.sh,
+# scripts/split-manifests.py and scripts/verify-dist.py. Nothing is reimplemented
+# here, so the behaviour a contributor runs locally is the same code CI runs, and
+# `task --list` is the index the repository otherwise lacks.
+#
+# Every target is unconditional on purpose. A skip-if-unchanged optimisation
+# (cp. `status: git diff origin/main --exit-code`) would make `task check` green
+# while proving nothing, and the point of the check is that it always renders.
+
+set: [pipefail]
+output: prefixed
+shopt: [globstar]
+
+tasks:
+  default:
+    desc: List the available tasks
+    silent: true
+    cmds:
+      - task --list
+
+  render:
+    desc: Regenerate dist/ from manifests/cluster/
+    summary: |
+      Rebuilds every active service into dist/<service>/, one file per object,
+      then swaps the whole tree in. Requires the kustomize version pinned in
+      scripts/tools.env; the script refuses to run on a mismatch.
+    cmds:
+      - ./scripts/render-dist.sh
+
+  check:
+    desc: Render, then verify — exactly what CI runs
+    summary: |
+      The single command that answers "is this branch mergeable?". It renders
+      into a scratch tree, fails if dist/ differs, then applies every invariant:
+      images pinned, object sets equal, bodies equal modulo digests, and
+      data-bearing objects unprunable.
+    cmds:
+      - ./scripts/render-dist.sh --check
+      - ./scripts/verify-dist.py
+      - ./scripts/verify-dist.py --check-protected
+
+  verify:
+    desc: Apply the invariants to the committed dist/ without rendering
+    summary: |
+      For reviewing a tree someone else produced. Skips the freshness check by
+      design, so it cannot tell you dist/ is stale — use `task check` for that.
+    cmds:
+      - ./scripts/verify-dist.py --report
+      - ./scripts/verify-dist.py --check-protected
+
+  pins:
+    desc: Report every rendered image that is not digest-pinned
+    summary: |
+      Report-only: resolves tags against the registries and prints an old → new
+      table. Writes no files. Not used by CI, and not used by the renderer.
+    cmds:
+      - ./scripts/pin-digests.sh --scope all
+
+  bootstrap:
+    desc: Regenerate manifests/bootstrap/ from the cluster kustomization
+    summary: |
+      Emits one ArgoCD Application per service listed in resources:. Never edit
+      manifests/bootstrap/*-app.yaml by hand.
+    cmds:
+      - bash ./generate-apps.sh
+
+  helm:
+    desc: Re-render one chart's generated output (task helm SERVICE=<name>)
+    summary: |
+      values.yaml is the source; helm-chart.yaml (or helmchart.yaml for
+      cloudflared) is generated. This target runs the same command the commit
+      history used, and writes to whichever filename the service already uses.
+    requires:
+      vars: [SERVICE]
+    dir: 'manifests/cluster/{{.SERVICE}}'
+    cmds:
+      - |
+        out=helm-chart.yaml
+        [ -f helmchart.yaml ] && out=helmchart.yaml
+        helmfile template --skip-deps > "/tmp/{{.SERVICE}}.yaml"
+        mv "/tmp/{{.SERVICE}}.yaml" "$out"
+        echo "re-rendered manifests/cluster/{{.SERVICE}}/$out"
+
+  tools:
+    desc: Check the local tool versions against scripts/tools.env
+    summary: |
+      A kustomize or helm version difference re-serialises generated output into
+      a diff that touches nothing. This target says so before you commit it.
+    silent: true
+    cmds:
+      - |
+        set -a
+        # shellcheck disable=SC1091
+        . ./scripts/tools.env
+        set +a
+        fail=0
+        have_kustomize=$(kustomize version 2>/dev/null | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+        [ "$have_kustomize" = "${KUSTOMIZE_VERSION}" ] \
+          && echo "kustomize ${KUSTOMIZE_VERSION} ok" \
+          || { echo "kustomize: want ${KUSTOMIZE_VERSION}, have ${have_kustomize:-none}"; fail=1; }
+        have_helm=$(helm version --short 2>/dev/null | sed -E 's/^v([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+        [ "$have_helm" = "${HELM_VERSION}" ] \
+          && echo "helm ${HELM_VERSION} ok" \
+          || echo "helm: want ${HELM_VERSION}, have ${have_helm:-none} (needed only for task helm)"
+        exit $fail
