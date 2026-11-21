@@ -11,10 +11,17 @@ spec:
       storage: 50Gi
   storageClassName: longhorn
 ---
+# Upload history and resume state for /cfg/hists.
+#
+# This replaced a 1 GiB claim (`copyparty-config`) whose Longhorn volume wedged in
+# `creating`/`attaching` and would not start an engine. That volume held nothing
+# but this history, so it is abandoned in place rather than deleted: the
+# Prune=false annotation from ../_prune-protection means removing the object from
+# Git does not delete it from the cluster.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: copyparty-config
+  name: copyparty-hists
   namespace: copyparty
 spec:
   accessModes:

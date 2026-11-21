@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
-  name: copyparty-config
+  name: copyparty-hists
   namespace: copyparty
 spec:
   accessModes:

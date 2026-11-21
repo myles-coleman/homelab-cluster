@@ -76,4 +76,4 @@ spec:
           claimName: copyparty-media
       - name: persistent-config
         persistentVolumeClaim:
-          claimName: copyparty-config
+          claimName: copyparty-hists
