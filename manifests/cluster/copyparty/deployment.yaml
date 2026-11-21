@@ -72,8 +72,10 @@ spec:
           periodSeconds: 5
       volumes:
       - name: config-volume
-        configMap:
-          name: copyparty-config
+        secret:
+          # Rendered by ExternalSecret `copyparty-config`: the admin password is
+          # part of the configuration file, so the file itself is the secret.
+          secretName: copyparty-config
       - name: data-volume
         persistentVolumeClaim:
           claimName: copyparty-data

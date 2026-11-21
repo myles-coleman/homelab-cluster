@@ -1,0 +1,19 @@
+# Marks a request as having passed the proxy.
+#
+# Copyparty's `--idp-h-key` names a header that must be present before it will
+# trust the identity headers at all. Traefik sets it on every request it proxies,
+# and because `customRequestHeaders` overwrites, a client cannot supply its own
+# value.
+#
+# The value is a marker, not a secret: it is here so that a request arriving by
+# any path that bypasses Traefik cannot claim an identity. The NetworkPolicy in
+# this namespace is the control that matters; this is the second layer.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: idp-key
+  namespace: copyparty
+spec:
+  headers:
+    customRequestHeaders:
+      X-Idp-Key: authentik
