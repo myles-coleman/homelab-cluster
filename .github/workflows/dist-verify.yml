@@ -1,0 +1,73 @@
+name: Verify manifests
+
+# Required status check for `main`: the job is named `test` so the ruleset's
+# required context exists on every pull request that touches manifests.
+#
+# This workflow starts small and grows with the stack. At this stage it proves
+# that every active service still renders: an image edit or an annotation edit
+# that breaks YAML is a real regression, and it is the failure mode a
+# manifest-only change can actually introduce.
+#
+# It runs on every pull request rather than a path filter: `main` requires this
+# check, and a pull request that does not produce it can never merge. A 30-second
+# run on a docs-only change is cheaper than a stack that cannot be merged.
+#
+# Read-only by design: `contents: read`, no secret, no commit step. It never
+# contacts a container registry.
+on:
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-manifests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install pinned kustomize
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          source scripts/tools.env
+
+          base="https://github.com/kubernetes-sigs/kustomize/releases/download"
+          archive="kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL --retry 3 -o "/tmp/${archive}" \
+            "${base}/kustomize%2Fv${KUSTOMIZE_VERSION}/${archive}"
+          curl -fsSL --retry 3 -o /tmp/kustomize-checksums.txt \
+            "${base}/kustomize%2Fv${KUSTOMIZE_VERSION}/checksums.txt"
+          ( cd /tmp && grep " ${archive}\$" kustomize-checksums.txt | sha256sum -c - )
+          tar -xzf "/tmp/${archive}" -C /tmp kustomize
+          install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
+          kustomize version
+
+      - name: Render every active service
+        run: |
+          set -euo pipefail
+          # Every service listed in resources: must still build. This catches the
+          # only regression a manifest edit can introduce: invalid YAML, a broken
+          # patch, or a reference to a file that no longer exists.
+          failed=0
+          while read -r svc; do
+            if ! kustomize build "manifests/cluster/${svc}" >/dev/null; then
+              echo "::error::manifests/cluster/${svc} failed to render"
+              failed=1
+            fi
+          done < <(grep -E '^- ' manifests/cluster/kustomization.yaml | sed -E 's/^- +//')
+          if [ "${failed}" -ne 0 ]; then
+            exit 1
+          fi
+          echo "all services render"

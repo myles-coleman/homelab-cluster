@@ -20,7 +20,7 @@ spec:
         # wider bind without an inbound credential. Left on `:latest`, a restart
         # silently produced a loopback-only listener that the TCP probes could
         # never reach. See MCP_BIND_ADDRESS / args below.
-        image: ghcr.io/argoproj-labs/mcp-for-argocd:v0.9.0
+        image: ghcr.io/argoproj-labs/mcp-for-argocd:v0.9.0@sha256:dffc6c719d8635be2d5f2c8ad1c0178540325da4b40da0b373307e12b4c48f86
         imagePullPolicy: IfNotPresent
         # The image entrypoint is `node dist/index.js`; args replace its `http` CMD.
         # --allow-unauthenticated is the documented opt-out for a listener that is

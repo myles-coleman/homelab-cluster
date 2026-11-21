@@ -17,7 +17,7 @@ spec:
         # squid's ssl-bump port wants a certificate even when it only peeks and
         # splices (it is never presented to a client).
         - name: make-bump-cert
-          image: docker.io/alpine/openssl:3.3.1
+          image: docker.io/alpine/openssl:3.3.1@sha256:d428569834003946999b6eb12e902c3c03de740fa61ddb0147233bb1bd16affe
           command:
             - sh
             - -c

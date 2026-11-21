@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: openbooks
-        image: beebecomebigbee/openbooks:master
+        image: beebecomebigbee/openbooks:master@sha256:270c92ed679133374ad4c5bc2218b7a3f31bf4c3ec09a1e815add9f53be1c657
         resources:
           limits:
             memory: "1024Mi"
