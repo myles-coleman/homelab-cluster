@@ -65,9 +65,9 @@ spec:
         runAsGroup: 1000
         runAsUser: 1000
       volumes:
-      - configMap:
-          name: copyparty-config
-        name: config-volume
+      - name: config-volume
+        secret:
+          secretName: copyparty-config
       - name: data-volume
         persistentVolumeClaim:
           claimName: copyparty-data
