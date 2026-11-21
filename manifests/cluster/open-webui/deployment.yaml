@@ -67,6 +67,24 @@ spec:
         # Auth - first registered user becomes admin
         - name: WEBUI_AUTH
           value: "True"
+        # Authentication is delegated to the Authentik forward-auth gate in front
+        # of this host. The gate returns X-Authentik-Email / -Name on every
+        # authenticated request, and Open WebUI signs the user in from them.
+        #
+        # ENABLE_PASSWORD_AUTH is deliberately left at its default (true): the
+        # /signin handler returns 403 before it reaches the trusted-header branch
+        # when password auth is off. The form itself is hidden instead.
+        - name: ENABLE_LOGIN_FORM
+          value: "False"
+        - name: WEBUI_AUTH_TRUSTED_EMAIL_HEADER
+          value: X-Authentik-Email
+        - name: WEBUI_AUTH_TRUSTED_NAME_HEADER
+          value: X-Authentik-Name
+        # Accounts created by the trusted-header sign-in are usable immediately.
+        # The default, `pending`, would leave a household member authenticated
+        # but unable to use anything until an admin approves them.
+        - name: DEFAULT_USER_ROLE
+          value: "user"
         - name: WEBUI_SECRET_KEY
           valueFrom:
             secretKeyRef:

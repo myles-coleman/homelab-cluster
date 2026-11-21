@@ -1,0 +1,38 @@
+# Forward-auth gate for this namespace.
+#
+# This is a copy of `manifests/cluster/traefik/middleware-authentik.yaml`, and it
+# must stay byte-identical apart from `metadata.namespace`.
+#
+# Why a copy: Traefik's Kubernetes Gateway API provider resolves an HTTPRoute's
+# `ExtensionRef` filter in the route's own namespace, building the CRD reference
+# as `<route-namespace>-<name>@kubernetescrd`. A cross-namespace Middleware is
+# not supported, and a ReferenceGrant does not help — grants authorise backends.
+#
+# Open WebUI also consumes the identity this forwards: it is configured with
+# `WEBUI_AUTH_TRUSTED_EMAIL_HEADER: X-Authentik-Email`, so the `authResponseHeaders`
+# below are what sign the user in rather than just gating the request.
+#
+# trustForwardHeader is deliberately not set. It is deprecated in Traefik v3.7,
+# and enabling it would let a client supply its own X-Forwarded-* values.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: authentik
+  namespace: open-webui
+spec:
+  forwardAuth:
+    address: http://authentik-outpost.authentik.svc.cluster.local:9000/outpost.goauthentik.io/auth/traefik
+    authRequestHeaders:
+      - Cookie
+      - X-Forwarded-Method
+      - X-Forwarded-Proto
+      - X-Forwarded-Host
+      - X-Forwarded-Uri
+      - X-Forwarded-For
+    authResponseHeaders:
+      - X-authentik-username
+      - X-authentik-groups
+      - X-authentik-email
+      - X-authentik-name
+      - X-authentik-uid
+      - X-authentik-jwt

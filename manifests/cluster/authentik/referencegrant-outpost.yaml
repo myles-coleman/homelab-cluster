@@ -21,6 +21,9 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       namespace: copyparty
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: open-webui
   to:
     - group: ""
       kind: Service
