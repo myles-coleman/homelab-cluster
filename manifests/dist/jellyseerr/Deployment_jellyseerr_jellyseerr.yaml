@@ -5,9 +5,14 @@ metadata:
   namespace: jellyseerr
 spec:
   replicas: 1
-  selector:
+  selector: null
+  strategy:
     matchLabels:
       app: jellyseerr
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
   template:
     metadata:
       labels:

@@ -6,6 +6,17 @@ metadata:
 spec:
   replicas: 1
   selector:
+  # The volumes this Deployment mounts are Longhorn ReadWriteOnce, so a new pod
+  # cannot attach them while the old pod still holds them. maxSurge 0 terminates
+  # the old pod first; maxUnavailable 1 allows that. `type: Recreate` would say
+  # the same thing but is rejected by the API, because the live Deployment keeps
+  # its default rollingUpdate fields and both cannot be set at once.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+
     matchLabels:
       app: lidarr
   template:

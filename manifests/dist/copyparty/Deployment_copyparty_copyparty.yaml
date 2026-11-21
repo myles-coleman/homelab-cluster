@@ -7,9 +7,14 @@ metadata:
   namespace: copyparty
 spec:
   replicas: 1
-  selector:
+  selector: null
+  strategy:
     matchLabels:
       app: copyparty
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
   template:
     metadata:
       labels:
