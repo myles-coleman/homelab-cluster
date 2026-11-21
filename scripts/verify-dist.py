@@ -34,7 +34,7 @@ except ImportError:
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CLUSTER_KUSTOMIZATION = os.path.join(ROOT, "manifests", "cluster", "kustomization.yaml")
-DIST = os.path.join(ROOT, "dist")
+DIST = os.path.join(ROOT, "manifests", "dist")
 ALLOWLIST = os.path.join(ROOT, "scripts", "dist-allowlist.txt")
 
 PINNED = re.compile(r"@sha256:[0-9a-f]{64}$")
@@ -197,6 +197,24 @@ def main(argv):
             return 1
         print("verify-dist: protected-object check PASSED")
         return 0
+
+    # `manifests/dist` sits beside `manifests/cluster`, so a service could in
+    # principle list the rendered tree as a resource: either a cycle, or generated
+    # output laundered back into authored input. Fail loudly instead.
+    for root, _, files in os.walk(os.path.join(ROOT, "manifests", "cluster")):
+        for name in files:
+            if not name.endswith(("kustomization.yaml", "kustomization.yml")):
+                continue
+            path = os.path.join(root, name)
+            for lineno, line in enumerate(open(path, encoding="utf-8"), 1):
+                stripped = line.strip()
+                if stripped.startswith("#") or "dist" not in stripped:
+                    continue
+                if stripped.startswith("- ") or stripped.startswith("path:"):
+                    failures.append(
+                        f"{os.path.relpath(path, ROOT)}:{lineno} references the rendered "
+                        f"tree: {stripped!r}"
+                    )
 
     services = active_services()
     if not services:

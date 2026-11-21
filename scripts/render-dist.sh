@@ -20,7 +20,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLUSTER_KUSTOMIZATION="${ROOT}/manifests/cluster/kustomization.yaml"
-OUT_DIR="${ROOT}/dist"
+OUT_DIR="${ROOT}/manifests/dist"
 
 MODE="write"
 case "${1:-}" in
@@ -95,15 +95,15 @@ printf 'render-dist: rendered %d service(s)\n' "${#services[@]}" >&2
 
 if [ "${MODE}" = "check" ]; then
   if [ ! -d "${OUT_DIR}" ]; then
-    echo "render-dist: dist/ does not exist; run ./scripts/render-dist.sh" >&2
+    echo "render-dist: ${OUT_DIR#"${ROOT}"/} does not exist; run ./scripts/render-dist.sh" >&2
     exit 1
   fi
   if ! diff -r "${SCRATCH}" "${OUT_DIR}" >/dev/null 2>&1; then
-    echo "render-dist: dist/ is stale. Run ./scripts/render-dist.sh and commit the result." >&2
+    echo "render-dist: ${OUT_DIR#"${ROOT}"/} is stale. Run ./scripts/render-dist.sh and commit the result." >&2
     diff -r "${SCRATCH}" "${OUT_DIR}" | head -40 >&2 || true
     exit 1
   fi
-  echo "render-dist: dist/ matches a fresh render" >&2
+  echo "render-dist: ${OUT_DIR#"${ROOT}"/} matches a fresh render" >&2
   exit 0
 fi
 
