@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: dex
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: dex
+    app.kubernetes.io/version: 2.37.0
+    helm.sh/chart: dex-0.15.2
+  name: dex
+  namespace: dex
+spec:
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: dex
+      app.kubernetes.io/name: dex
+  template:
+    metadata:
+      annotations: null
+      labels:
+        app.kubernetes.io/instance: dex
+        app.kubernetes.io/name: dex
+    spec:
+      containers:
+      - args:
+        - dex
+        - serve
+        - --web-http-addr
+        - 0.0.0.0:5556
+        - --telemetry-addr
+        - 0.0.0.0:5558
+        - /etc/dex/config.yaml
+        env: null
+        image: dexidp/dex:latest-distroless@sha256:6e8ebefbded0bcb409468c81f6d5cc18a582d6c25b5ac72db26a327b2936bcfb
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz/live
+            port: telemetry
+        name: dex
+        ports:
+        - containerPort: 5556
+          name: http
+          protocol: TCP
+        - containerPort: 5558
+          name: telemetry
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /healthz/ready
+            port: telemetry
+        resources: {}
+        securityContext:
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+        volumeMounts:
+        - mountPath: /etc/dex
+          name: config
+          readOnly: true
+      securityContext: {}
+      serviceAccountName: dex
+      topologySpreadConstraints:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/instance: dex
+        maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/instance: dex
+        maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+      volumes:
+      - name: config
+        secret:
+          secretName: dex-config

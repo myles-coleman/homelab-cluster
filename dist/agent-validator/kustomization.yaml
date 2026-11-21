@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- Certificate_agent-validator_validator-client.yaml
+- Certificate_agent-validator_validator-server.yaml
+- Deployment_agent-validator_validator.yaml
+- Namespace_cluster_agent-validator.yaml
+- NetworkPolicy_agent-validator_validator-default-deny.yaml
+- NetworkPolicy_agent-validator_validator-egress.yaml
+- NetworkPolicy_agent-validator_validator-ingress.yaml
+- PersistentVolumeClaim_agent-validator_validator-audit-log.yaml
+- RoleBinding_agent-sandbox_validator-identity-reader.yaml
+- Role_agent-sandbox_validator-identity-reader.yaml
+- ServiceAccount_agent-validator_validator.yaml
+- Service_agent-validator_agent-validator.yaml

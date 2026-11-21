@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: otel-agent
+    app.kubernetes.io/instance: k8s-infra
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: k8s-infra
+    app.kubernetes.io/version: 0.139.0
+    helm.sh/chart: k8s-infra-0.17.1
+  name: k8s-infra-otel-agent
+  namespace: signoz-k8s-infra
+spec:
+  internalTrafficPolicy: Local
+  ports:
+  - name: health-check
+    nodePort: null
+    port: 13133
+    protocol: TCP
+    targetPort: health-check
+  - name: metrics
+    nodePort: null
+    port: 8888
+    protocol: TCP
+    targetPort: metrics
+  - name: otlp
+    nodePort: null
+    port: 4317
+    protocol: TCP
+    targetPort: otlp
+  - name: otlp-http
+    nodePort: null
+    port: 4318
+    protocol: TCP
+    targetPort: otlp-http
+  selector:
+    app.kubernetes.io/component: otel-agent
+    app.kubernetes.io/instance: k8s-infra
+    app.kubernetes.io/name: k8s-infra
+  type: ClusterIP

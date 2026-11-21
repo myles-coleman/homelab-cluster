@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- Deployment_youtube-proxy_materialious.yaml
+- ExternalSecret_youtube-proxy_materialious-secrets.yaml
+- HTTPRoute_youtube-proxy_youtube.yaml
+- Namespace_cluster_youtube-proxy.yaml
+- NetworkPolicy_youtube-proxy_materialious.yaml
+- PersistentVolumeClaim_youtube-proxy_materialious-data.yaml
+- Service_youtube-proxy_materialious.yaml

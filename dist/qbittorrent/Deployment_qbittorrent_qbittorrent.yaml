@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: qbittorrent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent
+    spec:
+      containers:
+      - env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: America/Los_Angeles
+        - name: INTERNAL_SUBNET
+          value: 10.42.0.0/16,10.43.0.0/16
+        - name: KILLSWITCH
+          value: "false"
+        image: lscr.io/linuxserver/wireguard:version-1.0.20260223-r0@sha256:10db56ad834f94541307d5dfdbe87370e26d155bb341a5bf65789f970f24ab5c
+        name: wireguard
+        ports:
+        - containerPort: 51820
+          name: wireguard
+          protocol: UDP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        securityContext:
+          appArmorProfile:
+            type: Unconfined
+          capabilities:
+            add:
+            - NET_ADMIN
+            - SYS_MODULE
+          privileged: true
+        volumeMounts:
+        - mountPath: /config
+          name: wireguard-config-volume
+      - env:
+        - name: TZ
+          value: America/Los_Angeles
+        - name: WEBUI_PORT
+          value: "8080"
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        image: lscr.io/linuxserver/qbittorrent:version-5.3.0_v2.1.2@sha256:3d4c4545d51a690a0df15a2ff99038823a88a9822df8e794526447b9afbd7384
+        name: qbittorrent
+        ports:
+        - containerPort: 8080
+          name: webui
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Check if WireGuard tunnel is up and has an IP address
+              ip link show wg0 | grep -q "LOWER_UP" && \
+              ip addr show wg0 | grep -q "inet" || exit 1
+          failureThreshold: 30
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+        volumeMounts:
+        - mountPath: /config
+          name: config-volume
+        - mountPath: /data
+          name: data-nfs-volume
+      initContainers:
+      - args:
+        - |
+          echo "Creating WireGuard configuration..."
+          mkdir -p /config/wg_confs
+          mkdir -p /config/custom-cont-init.d
+
+          # Extract endpoint IP from the config and get default gateway
+          ENDPOINT_IP=$(grep 'Endpoint' /secret/wg0.conf | sed 's/.*= *//' | cut -d: -f1)
+          DEFAULT_GW=$(ip route | grep default | awk '{print $3}')
+          DEFAULT_DEV=$(ip route | grep default | awk '{print $5}')
+
+          echo "VPN Endpoint: $ENDPOINT_IP, Gateway: $DEFAULT_GW, Device: $DEFAULT_DEV"
+
+          # Copy config without PostUp/PostDown (linuxserver container doesn't support them)
+          cp /secret/wg0.conf /config/wg_confs/wg0.conf
+          chmod 600 /config/wg_confs/wg0.conf
+
+          # Create custom init script to add route before WireGuard starts
+          echo '#!/bin/bash' > /config/custom-cont-init.d/10-add-vpn-route.sh
+          echo "echo 'Adding route for VPN endpoint to prevent routing loop...'" >> /config/custom-cont-init.d/10-add-vpn-route.sh
+          echo "ip route add ${ENDPOINT_IP}/32 via ${DEFAULT_GW} dev ${DEFAULT_DEV} || true" >> /config/custom-cont-init.d/10-add-vpn-route.sh
+          echo "echo 'Route added:'" >> /config/custom-cont-init.d/10-add-vpn-route.sh
+          echo "ip route get ${ENDPOINT_IP}" >> /config/custom-cont-init.d/10-add-vpn-route.sh
+          chmod +x /config/custom-cont-init.d/10-add-vpn-route.sh
+          echo "Custom init script:"
+          cat /config/custom-cont-init.d/10-add-vpn-route.sh
+
+          echo "WireGuard configuration created successfully"
+        command:
+        - /bin/sh
+        - -c
+        image: busybox:latest@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+        name: wireguard-config-init
+        volumeMounts:
+        - mountPath: /config
+          name: wireguard-config-volume
+        - mountPath: /secret
+          name: wireguard-secret-volume
+      volumes:
+      - name: config-volume
+        persistentVolumeClaim:
+          claimName: qbittorrent-config
+      - name: wireguard-config-volume
+        persistentVolumeClaim:
+          claimName: wireguard-config
+      - name: wireguard-secret-volume
+        secret:
+          secretName: wireguard-config
+      - name: data-nfs-volume
+        persistentVolumeClaim:
+          claimName: qbittorrent-data-nfs

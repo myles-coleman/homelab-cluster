@@ -1,0 +1,177 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app.kubernetes.io/component: otel-agent
+    app.kubernetes.io/instance: k8s-infra
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: k8s-infra
+    app.kubernetes.io/version: 0.139.0
+    helm.sh/chart: k8s-infra-0.17.1
+  name: k8s-infra-otel-agent
+  namespace: signoz-k8s-infra
+spec:
+  minReadySeconds: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: otel-agent
+      app.kubernetes.io/instance: k8s-infra
+      app.kubernetes.io/name: k8s-infra
+  template:
+    metadata:
+      annotations:
+        checksum/config: 8be1a5bb832af218c3516418ac17e41bc9259d1524def24613bc5df300386604
+      labels:
+        app.kubernetes.io/component: otel-agent
+        app.kubernetes.io/instance: k8s-infra
+        app.kubernetes.io/name: k8s-infra
+    spec:
+      containers:
+      - args:
+        - --config=/conf/otel-agent-config.yaml
+        command:
+        - /otelcol-contrib
+        env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://signoz-otel-collector.signoz.svc.cluster.local:4318
+        - name: OTEL_SECRETS_PATH
+          value: /secrets
+        - name: K8S_CLUSTER_NAME
+          value: homelab-cluster
+        - name: K8S_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: K8S_POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: K8S_HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: K8S_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: K8S_POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        - name: K8S_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: SIGNOZ_COMPONENT
+          value: otel-agent
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: signoz.component=$(SIGNOZ_COMPONENT),k8s.cluster.name=$(K8S_CLUSTER_NAME),k8s.node.name=$(K8S_NODE_NAME),host.name=$(K8S_NODE_NAME)
+        image: docker.io/otel/opentelemetry-collector-contrib:0.139.0@sha256:faf125d656fa47cea568b2f3b4494efd2525083bc75c1e96038bc23f05cd68fd
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: k8s-infra-otel-agent
+        ports:
+        - containerPort: 13133
+          hostPort: 13133
+          name: health-check
+          protocol: TCP
+        - containerPort: 8888
+          hostPort: 8888
+          name: metrics
+          protocol: TCP
+        - containerPort: 4317
+          hostPort: 4317
+          name: otlp
+          protocol: TCP
+        - containerPort: 4318
+          hostPort: 4318
+          name: otlp-http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 6
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            memory: 384Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        securityContext: {}
+        volumeMounts:
+        - mountPath: /conf
+          name: otel-agent-config-vol
+        - mountPath: /var/log
+          name: varlog
+          readOnly: true
+        - mountPath: /var/lib/docker/containers
+          name: varlibdockercontainers
+          readOnly: true
+        - mountPath: /hostfs
+          mountPropagation: HostToContainer
+          name: hostfs
+          readOnly: true
+      hostNetwork: false
+      priorityClassName: ""
+      securityContext: {}
+      serviceAccountName: k8s-infra-otel-agent
+      tolerations:
+      - effect: NoSchedule
+        key: gpu
+        operator: Equal
+        value: amd
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoSchedule
+        key: node.kubernetes.io/disk-pressure
+        operator: Exists
+      - effect: NoSchedule
+        key: node.kubernetes.io/memory-pressure
+        operator: Exists
+      - effect: NoSchedule
+        key: node.kubernetes.io/pid-pressure
+        operator: Exists
+      - effect: NoSchedule
+        key: node.kubernetes.io/unschedulable
+        operator: Exists
+      - effect: NoExecute
+        key: CriticalAddonsOnly
+        operator: Equal
+        value: "true"
+      - effect: NoSchedule
+        key: sandbox
+        operator: Equal
+        value: gvisor
+      volumes:
+      - configMap:
+          name: k8s-infra-otel-agent
+        name: otel-agent-config-vol
+      - hostPath:
+          path: /var/log
+        name: varlog
+      - hostPath:
+          path: /var/lib/docker/containers
+        name: varlibdockercontainers
+      - hostPath:
+          path: /
+        name: hostfs

@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- Deployment_prowlarr_prowlarr.yaml
+- HTTPRoute_prowlarr_prowlarr.yaml
+- Namespace_cluster_prowlarr.yaml
+- PersistentVolumeClaim_prowlarr_prowlarr-config.yaml
+- PersistentVolumeClaim_prowlarr_prowlarr-data.yaml
+- PersistentVolume_cluster_prowlarr-data.yaml
+- Service_prowlarr_prowlarr.yaml

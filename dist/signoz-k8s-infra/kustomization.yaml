@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ClusterRoleBinding_signoz-k8s-infra_k8s-infra-otel-agent-signoz-k8s-infra.yaml
+- ClusterRoleBinding_signoz-k8s-infra_k8s-infra-otel-deployment-signoz-k8s-infra.yaml
+- ClusterRole_signoz-k8s-infra_k8s-infra-otel-agent-signoz-k8s-infra.yaml
+- ClusterRole_signoz-k8s-infra_k8s-infra-otel-deployment-signoz-k8s-infra.yaml
+- ConfigMap_signoz-k8s-infra_k8s-infra-otel-agent.yaml
+- ConfigMap_signoz-k8s-infra_k8s-infra-otel-deployment.yaml
+- DaemonSet_signoz-k8s-infra_k8s-infra-otel-agent.yaml
+- Deployment_signoz-k8s-infra_k8s-infra-otel-deployment.yaml
+- Namespace_cluster_signoz-k8s-infra.yaml
+- Pod_signoz-k8s-infra_k8s-infra-otel-agent-test-connection.yaml
+- Pod_signoz-k8s-infra_k8s-infra-otel-deployment-test-connection.yaml
+- ServiceAccount_signoz-k8s-infra_k8s-infra-otel-agent.yaml
+- ServiceAccount_signoz-k8s-infra_k8s-infra-otel-deployment.yaml
+- Service_signoz-k8s-infra_k8s-infra-otel-agent.yaml
+- Service_signoz-k8s-infra_k8s-infra-otel-deployment.yaml

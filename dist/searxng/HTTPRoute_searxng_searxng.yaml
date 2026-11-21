@@ -1,0 +1,25 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: searxng
+  namespace: searxng
+spec:
+  hostnames:
+  - searxng.cowlab.org
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: traefik-gateway
+    namespace: traefik
+    sectionName: websecure
+  rules:
+  - backendRefs:
+    - group: ""
+      kind: Service
+      name: searxng
+      port: 80
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /

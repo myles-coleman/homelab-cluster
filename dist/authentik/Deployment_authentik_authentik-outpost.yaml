@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authentik-outpost
+  namespace: authentik
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authentik-outpost
+  template:
+    metadata:
+      labels:
+        app: authentik-outpost
+    spec:
+      containers:
+      - env:
+        - name: AUTHENTIK_HOST
+          value: http://authentik-server.authentik.svc.cluster.local
+        - name: AUTHENTIK_HOST_BROWSER
+          value: https://authentik.cowlab.org
+        - name: AUTHENTIK_INSECURE
+          value: "true"
+        - name: AUTHENTIK_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: outpost-token
+              name: authentik-secrets
+        image: ghcr.io/goauthentik/proxy:2026.5.6@sha256:05aa14db088b254c1ff89debe8dd5deb5d31aa342b67e70cd454f0870c944d55
+        name: proxy
+        ports:
+        - containerPort: 9000
+          name: http
+        - containerPort: 9443
+          name: https
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi

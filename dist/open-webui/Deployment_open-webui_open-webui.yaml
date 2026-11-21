@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-webui
+  namespace: open-webui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: open-webui
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: open-webui
+    spec:
+      containers:
+      - env:
+        - name: TZ
+          value: Etc/UTC
+        - name: ENV
+          value: prod
+        - name: ENABLE_OLLAMA_API
+          value: "False"
+        - name: ENABLE_OPENAI_API
+          value: "True"
+        - name: OPENAI_API_BASE_URLS
+          value: http://100.127.170.8:8080/v1
+        - name: OPENAI_API_KEYS
+          valueFrom:
+            secretKeyRef:
+              key: strata-api-key
+              name: open-webui-secrets
+        - name: WEBUI_AUTH
+          value: "True"
+        - name: WEBUI_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secret-key
+              name: open-webui-secrets
+        - name: WEBUI_URL
+          value: https://openwebui.cowlab.org
+        image: ghcr.io/open-webui/open-webui:v0.12.3@sha256:a537bbe1e6b428820f52ed4a029d7fff97062e24d5cf32c365fba36fd0542def
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: 8080
+          periodSeconds: 30
+        name: open-webui
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: 8080
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2048Mi
+          requests:
+            cpu: 250m
+            memory: 1024Mi
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        volumeMounts:
+        - mountPath: /app/backend/data
+          name: data-volume
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: open-webui-data

@@ -1,0 +1,135 @@
+apiVersion: agents.x-k8s.io/v1beta1
+kind: Sandbox
+metadata:
+  name: opencode
+  namespace: agent-sandbox
+spec:
+  podTemplate:
+    metadata:
+      labels:
+        app: opencode-sandbox
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - serve
+        - --hostname
+        - 0.0.0.0
+        - --port
+        - "4096"
+        command:
+        - opencode
+        env:
+        - name: HOME
+          value: /home/agent
+        - name: OPENCODE_SERVER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: opencode-server-password
+              name: opencode-sandbox-secrets
+        - name: STRATA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: strata-api-key
+              name: opencode-sandbox-secrets
+        - name: HTTP_PROXY
+          value: http://10.43.0.250:3128
+        - name: HTTPS_PROXY
+          value: http://10.43.0.250:3128
+        - name: NO_PROXY
+          value: 10.43.0.250,100.127.170.8,10.43.78.178,validator.agent.internal,10.43.30.10,localhost,127.0.0.1
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://10.43.78.178:4318
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: deployment.environment=agent-sandbox,service.namespace=agent-sandbox
+        - name: OPENCODE_DISABLE_MODELS_FETCH
+          value: "1"
+        - name: OPENCODE_DISABLE_LSP_DOWNLOAD
+          value: "1"
+        - name: OPENCODE_DISABLE_AUTOUPDATE
+          value: "1"
+        - name: GIT_COMMITTER_NAME
+          value: OpenCode Sandbox Agent
+        - name: GIT_COMMITTER_EMAIL
+          value: agent@sandbox.invalid
+        - name: GIT_SSL_CAINFO
+          value: /certs/ca.crt
+        - name: GIT_SSL_CERT
+          value: /certs/tls.crt
+        - name: GIT_SSL_KEY
+          value: /certs/tls.key
+        image: ghcr.io/myles-coleman/opencode-sandbox@sha256:f3c1b296968ac1f0123624f574eff3cf3d1b83f876a6bd514b861066969d8893
+        imagePullPolicy: IfNotPresent
+        name: opencode
+        ports:
+        - containerPort: 4096
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "2"
+            memory: 4Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /home/agent
+          name: workspace
+        - mountPath: /home/agent/.config/opencode
+          name: opencode-config
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /certs
+          name: identity
+          readOnly: true
+      dnsConfig:
+        nameservers:
+        - 127.0.0.1
+        searches: []
+      dnsPolicy: None
+      hostAliases:
+      - hostnames:
+        - validator.agent.internal
+        ip: 10.43.30.10
+      nodeSelector:
+        sandbox.node/runtime: gvisor
+      runtimeClassName: gvisor
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      tolerations:
+      - effect: NoSchedule
+        key: sandbox
+        operator: Equal
+        value: gvisor
+      volumes:
+      - name: workspace
+        persistentVolumeClaim:
+          claimName: opencode-workspace
+      - configMap:
+          name: opencode-sandbox-config
+        name: opencode-config
+      - emptyDir:
+          sizeLimit: 1Gi
+        name: tmp
+      - csi:
+          driver: csi.cert-manager.io
+          readOnly: true
+          volumeAttributes:
+            csi.cert-manager.io/duration: 12h
+            csi.cert-manager.io/fs-group: "1000"
+            csi.cert-manager.io/issuer-group: cert-manager.io
+            csi.cert-manager.io/issuer-kind: ClusterIssuer
+            csi.cert-manager.io/issuer-name: agent-mtls-ca
+            csi.cert-manager.io/key-usages: client auth
+            csi.cert-manager.io/uri-sans: spiffe://cowlab.org/ns/agent-sandbox/pod/opencode
+        name: identity

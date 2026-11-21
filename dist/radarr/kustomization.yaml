@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- Deployment_radarr_radarr.yaml
+- HTTPRoute_radarr_radarr.yaml
+- Namespace_cluster_radarr.yaml
+- PersistentVolumeClaim_radarr_radarr-config.yaml
+- PersistentVolumeClaim_radarr_radarr-data.yaml
+- PersistentVolume_cluster_backup-bf49e0d486b2473c.yaml
+- PersistentVolume_cluster_radarr-data.yaml
+- Service_radarr_radarr.yaml

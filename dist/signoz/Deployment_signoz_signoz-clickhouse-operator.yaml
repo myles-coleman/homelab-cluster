@@ -1,0 +1,170 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: signoz
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/version: 24.1.2
+    clickhouse.altinity.com/chop: 0.21.2
+    helm.sh/chart: clickhouse-24.1.18
+  name: signoz-clickhouse-operator
+  namespace: signoz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: operator
+      app.kubernetes.io/instance: signoz
+      app.kubernetes.io/name: clickhouse
+  template:
+    metadata:
+      annotations:
+        checksum/confd-files: 94f3e09ff7956c5a88558260c7c4f78b39abaac064f1753a0d7783178237f648
+        checksum/configd-files: cf3d35a6112c36b0b929dbd91bd08e819e859f4a83044514f65976416c60d95c
+        checksum/files: c8d653d0277e2f36fadae729f5508e66acfb92307c8990324f56169d68566179
+        checksum/templatesd-files: d65e4c1431979c24903978a1679116472d94ea7e063f98fd8b83ef163a00c446
+        checksum/usersd-files: 7924fd74a6d6fc630e48a6e867b458ebe2011175b536950821c5ccb05619ece7
+        signoz.io/port: "8888"
+        signoz.io/scrape: "true"
+      labels:
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: signoz
+        app.kubernetes.io/name: clickhouse
+    spec:
+      containers:
+      - env:
+        - name: OPERATOR_POD_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: OPERATOR_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: OPERATOR_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: OPERATOR_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: OPERATOR_POD_SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: OPERATOR_CONTAINER_CPU_REQUEST
+          valueFrom:
+            resourceFieldRef:
+              containerName: operator
+              resource: requests.cpu
+        - name: OPERATOR_CONTAINER_CPU_LIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: operator
+              resource: limits.cpu
+        - name: OPERATOR_CONTAINER_MEM_REQUEST
+          valueFrom:
+            resourceFieldRef:
+              containerName: operator
+              resource: requests.memory
+        - name: OPERATOR_CONTAINER_MEM_LIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: operator
+              resource: limits.memory
+        image: docker.io/altinity/clickhouse-operator:0.21.2@sha256:cd9252644ce0a1a26feea66eb77edbfe91b10dec2634b7b8ad73fa3196551488
+        imagePullPolicy: IfNotPresent
+        name: operator
+        resources: null
+        volumeMounts:
+        - mountPath: /etc/clickhouse-operator
+          name: etc-clickhouse-operator-folder
+        - mountPath: /etc/clickhouse-operator/conf.d
+          name: etc-clickhouse-operator-confd-folder
+        - mountPath: /etc/clickhouse-operator/config.d
+          name: etc-clickhouse-operator-configd-folder
+        - mountPath: /etc/clickhouse-operator/templates.d
+          name: etc-clickhouse-operator-templatesd-folder
+        - mountPath: /etc/clickhouse-operator/users.d
+          name: etc-clickhouse-operator-usersd-folder
+      - env:
+        - name: OPERATOR_POD_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: OPERATOR_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: OPERATOR_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: OPERATOR_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: OPERATOR_POD_SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: OPERATOR_CONTAINER_CPU_REQUEST
+          valueFrom:
+            resourceFieldRef:
+              containerName: operator
+              resource: requests.cpu
+        - name: OPERATOR_CONTAINER_CPU_LIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: operator
+              resource: limits.cpu
+        - name: OPERATOR_CONTAINER_MEM_REQUEST
+          valueFrom:
+            resourceFieldRef:
+              containerName: operator
+              resource: requests.memory
+        - name: OPERATOR_CONTAINER_MEM_LIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: operator
+              resource: limits.memory
+        image: docker.io/altinity/metrics-exporter:0.21.2@sha256:df3d57215356043a2b5bcc03a9cdb62198b907932c7077131e079fae1c01156c
+        imagePullPolicy: IfNotPresent
+        name: metrics-exporter
+        ports:
+        - containerPort: 8888
+          name: metrics
+        resources: null
+        volumeMounts:
+        - mountPath: /etc/clickhouse-operator
+          name: etc-clickhouse-operator-folder
+        - mountPath: /etc/clickhouse-operator/conf.d
+          name: etc-clickhouse-operator-confd-folder
+        - mountPath: /etc/clickhouse-operator/config.d
+          name: etc-clickhouse-operator-configd-folder
+        - mountPath: /etc/clickhouse-operator/templates.d
+          name: etc-clickhouse-operator-templatesd-folder
+        - mountPath: /etc/clickhouse-operator/users.d
+          name: etc-clickhouse-operator-usersd-folder
+      priorityClassName: ""
+      securityContext: {}
+      serviceAccountName: signoz-clickhouse-operator
+      volumes:
+      - configMap:
+          name: signoz-clickhouse-operator-etc-files
+        name: etc-clickhouse-operator-folder
+      - configMap:
+          name: signoz-clickhouse-operator-etc-confd-files
+        name: etc-clickhouse-operator-confd-folder
+      - configMap:
+          name: signoz-clickhouse-operator-etc-configd-files
+        name: etc-clickhouse-operator-configd-folder
+      - configMap:
+          name: signoz-clickhouse-operator-etc-templatesd-files
+        name: etc-clickhouse-operator-templatesd-folder
+      - configMap:
+          name: signoz-clickhouse-operator-etc-usersd-files
+        name: etc-clickhouse-operator-usersd-folder

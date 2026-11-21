@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ClusterRoleBinding_cluster_agent-sandbox-controller.yaml
+- ClusterRole_cluster_agent-sandbox-controller.yaml
+- ConfigMap_agent-sandbox_opencode-sandbox-config.yaml
+- CustomResourceDefinition_cluster_sandboxes.agents.x-k8s.io.yaml
+- Deployment_agent-sandbox-system_agent-sandbox-controller.yaml
+- ExternalSecret_agent-sandbox_opencode-sandbox-secrets.yaml
+- Namespace_cluster_agent-sandbox-system.yaml
+- Namespace_cluster_agent-sandbox.yaml
+- NetworkPolicy_agent-sandbox_default-deny.yaml
+- NetworkPolicy_agent-sandbox_opencode-sandbox-egress.yaml
+- NetworkPolicy_agent-sandbox_opencode-sandbox-ingress.yaml
+- PersistentVolumeClaim_agent-sandbox_opencode-workspace.yaml
+- RuntimeClass_cluster_gvisor.yaml
+- Sandbox_agent-sandbox_opencode.yaml
+- ServiceAccount_agent-sandbox-system_agent-sandbox-controller.yaml
+- Service_agent-sandbox-system_agent-sandbox-controller.yaml
+- Service_agent-sandbox_opencode-sandbox.yaml
+- StorageClass_cluster_local-path-retain.yaml

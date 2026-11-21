@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-to-outpost
+  namespace: authentik
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: traefik
+    ports:
+    - port: 9000
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: authentik-outpost
+  policyTypes:
+  - Ingress

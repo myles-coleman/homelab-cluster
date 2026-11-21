@@ -1,0 +1,27 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/part-of: agent-broker
+  name: publisher-server
+  namespace: agent-publisher
+spec:
+  commonName: publisher.agent.internal
+  dnsNames:
+  - publisher.agent.internal
+  - agent-publisher.agent-publisher.svc
+  - agent-publisher.agent-publisher.svc.cluster.local
+  duration: 720h
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: agent-mtls-ca
+  privateKey:
+    algorithm: ECDSA
+    rotationPolicy: Always
+    size: 256
+  renewBefore: 168h
+  secretName: publisher-server-tls
+  usages:
+  - server auth
+  - digital signature

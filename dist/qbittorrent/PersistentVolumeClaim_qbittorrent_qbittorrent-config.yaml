@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    longhorn.io/volume-name: backup-1e0a71b480e741a4
+  name: qbittorrent-config
+  namespace: qbittorrent
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Mi
+  storageClassName: longhorn

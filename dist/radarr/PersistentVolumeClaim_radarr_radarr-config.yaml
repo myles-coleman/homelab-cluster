@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    longhorn.io/volume-name: backup-bf49e0d486b2473c
+  name: radarr-config
+  namespace: radarr
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1.5Gi
+  storageClassName: longhorn

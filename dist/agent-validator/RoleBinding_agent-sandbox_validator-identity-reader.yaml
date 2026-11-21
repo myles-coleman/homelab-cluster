@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/part-of: agent-broker
+  name: validator-identity-reader
+  namespace: agent-sandbox
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: validator-identity-reader
+subjects:
+- kind: ServiceAccount
+  name: validator
+  namespace: agent-validator

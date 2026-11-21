@@ -1,0 +1,10 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: publisher-default-deny
+  namespace: agent-publisher
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress

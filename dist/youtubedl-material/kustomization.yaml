@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- Deployment_youtubedl-material_youtubedl-material.yaml
+- Deployment_youtubedl-material_ytdl-mongo-db.yaml
+- HTTPRoute_youtubedl-material_ytdl.yaml
+- Namespace_cluster_youtubedl-material.yaml
+- PersistentVolumeClaim_youtubedl-material_ytdl-appdata.yaml
+- PersistentVolumeClaim_youtubedl-material_ytdl-audio.yaml
+- PersistentVolumeClaim_youtubedl-material_ytdl-mongo-data.yaml
+- PersistentVolumeClaim_youtubedl-material_ytdl-subscriptions.yaml
+- PersistentVolumeClaim_youtubedl-material_ytdl-users.yaml
+- PersistentVolumeClaim_youtubedl-material_ytdl-video.yaml
+- PersistentVolume_cluster_ytdl-video.yaml
+- Service_youtubedl-material_youtubedl-material.yaml
+- Service_youtubedl-material_ytdl-mongo-db.yaml

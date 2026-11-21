@@ -1,0 +1,58 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: materialious
+  namespace: youtube-proxy
+spec:
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 80
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        - 127.0.0.0/8
+        - 169.254.0.0/16
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: traefik
+    ports:
+    - port: 3000
+      protocol: TCP
+  - from:
+    - ipBlock:
+        cidr: 10.0.0.140/32
+    - ipBlock:
+        cidr: 10.0.0.141/32
+    - ipBlock:
+        cidr: 10.0.0.142/32
+    - ipBlock:
+        cidr: 10.0.0.143/32
+    - ipBlock:
+        cidr: 10.0.0.144/32
+    ports:
+    - port: 3000
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: materialious
+  policyTypes:
+  - Ingress
+  - Egress

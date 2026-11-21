@@ -1,0 +1,25 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/part-of: agent-broker
+  name: validator-client
+  namespace: agent-validator
+spec:
+  commonName: agent-validator
+  duration: 720h
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: agent-mtls-ca
+  privateKey:
+    algorithm: ECDSA
+    rotationPolicy: Always
+    size: 256
+  renewBefore: 168h
+  secretName: validator-client-tls
+  uris:
+  - spiffe://cowlab.org/ns/agent-validator/service/validator
+  usages:
+  - client auth
+  - digital signature

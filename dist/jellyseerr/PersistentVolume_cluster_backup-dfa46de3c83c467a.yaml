@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+  name: backup-dfa46de3c83c467a
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 50Mi
+  csi:
+    driver: driver.longhorn.io
+    fsType: ext4
+    volumeAttributes:
+      numberOfReplicas: "3"
+      staleReplicaTimeout: "20"
+    volumeHandle: backup-dfa46de3c83c467a
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: longhorn
+  volumeMode: Filesystem

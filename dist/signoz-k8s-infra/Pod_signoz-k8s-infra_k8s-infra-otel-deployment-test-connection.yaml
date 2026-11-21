@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    helm.sh/hook: test
+  labels:
+    app.kubernetes.io/component: otel-deployment
+    app.kubernetes.io/instance: k8s-infra
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: k8s-infra
+    app.kubernetes.io/version: 0.139.0
+    helm.sh/chart: k8s-infra-0.17.1
+  name: k8s-infra-otel-deployment-test-connection
+  namespace: signoz-k8s-infra
+spec:
+  containers:
+  - args:
+    - k8s-infra-otel-deployment:13133
+    command:
+    - wget
+    image: docker.io/busybox:1.35
+    name: wget
+  restartPolicy: Never

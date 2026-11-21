@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ClusterRoleBinding_cluster_dex-cluster.yaml
+- ClusterRole_cluster_dex.yaml
+- Deployment_dex_dex.yaml
+- HTTPRoute_dex_dex.yaml
+- Namespace_cluster_dex.yaml
+- RoleBinding_dex_dex.yaml
+- Role_dex_dex.yaml
+- Secret_dex_dex-config-test-no-create.yaml
+- Secret_dex_dex-config.yaml
+- ServiceAccount_dex_dex.yaml
+- Service_dex_dex.yaml

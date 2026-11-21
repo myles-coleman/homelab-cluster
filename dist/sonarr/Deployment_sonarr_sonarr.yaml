@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarr
+  namespace: sonarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarr
+  template:
+    metadata:
+      labels:
+        app: sonarr
+    spec:
+      containers:
+      - env:
+        - name: TZ
+          value: Etc/UTC
+        image: lscr.io/linuxserver/sonarr:version-4.0.20.3014@sha256:c7d1df25e428da6c9ace05daea0d34e59522978a3843ea1944812f855af4086c
+        name: sonarr
+        ports:
+        - containerPort: 8989
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+        volumeMounts:
+        - mountPath: /data
+          name: data-volume
+        - mountPath: /config
+          name: config-volume
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: sonarr-data
+      - name: config-volume
+        persistentVolumeClaim:
+          claimName: sonarr-config

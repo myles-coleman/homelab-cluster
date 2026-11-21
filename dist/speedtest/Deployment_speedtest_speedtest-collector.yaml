@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: speedtest-collector
+  name: speedtest-collector
+  namespace: speedtest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: speedtest-collector
+  template:
+    metadata:
+      annotations:
+        checksum/config: placeholder
+      labels:
+        app: speedtest-collector
+    spec:
+      containers:
+      - args:
+        - --config=/conf/config.yaml
+        image: otel/opentelemetry-collector-contrib:0.139.0@sha256:faf125d656fa47cea568b2f3b4494efd2525083bc75c1e96038bc23f05cd68fd
+        livenessProbe:
+          httpGet:
+            path: /
+            port: health
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        name: collector
+        ports:
+        - containerPort: 13133
+          name: health
+        resources:
+          limits:
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /conf
+          name: config
+      volumes:
+      - configMap:
+          name: speedtest-collector
+        name: config

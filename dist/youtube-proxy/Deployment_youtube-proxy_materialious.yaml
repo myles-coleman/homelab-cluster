@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: materialious
+  namespace: youtube-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: materialious
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: materialious
+    spec:
+      containers:
+      - env:
+        - name: TZ
+          value: Etc/UTC
+        - name: COOKIE_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: COOKIE_SECRET
+              name: materialious-secrets
+        - name: DATABASE_CONNECTION_URI
+          value: sqlite:///materialious-data/materialious.db
+        - name: PUBLIC_INTERNAL_AUTH
+          value: "true"
+        - name: PUBLIC_REQUIRE_AUTH
+          value: "true"
+        - name: PUBLIC_REGISTRATION_ALLOWED
+          value: "true"
+        - name: PUBLIC_ADMIN_USERNAMES
+          value: bee
+        - name: PUBLIC_CAPTCHA_DISABLED
+          value: "false"
+        - name: HISTORY_CULLING
+          value: "30"
+        - name: PUBLIC_DEFAULT_INVIDIOUS_INSTANCE
+          value: ""
+        - name: PUBLIC_DEFAULT_RETURNYTDISLIKES_INSTANCE
+          value: https://returnyoutubedislikeapi.com
+        - name: PUBLIC_DEFAULT_SPONSERBLOCK_INSTANCE
+          value: ""
+        - name: PUBLIC_DEFAULT_DEARROW_INSTANCE
+          value: ""
+        - name: PUBLIC_DEFAULT_DEARROW_THUMBNAIL_INSTANCE
+          value: ""
+        image: wardpearce/materialious-full:1.18.26@sha256:3c4951696525c5e4c93de8e16b158be23119408e4db07d4acd45123735f2357e
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+        name: materialious
+        ports:
+        - containerPort: 3000
+          name: http
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+        volumeMounts:
+        - mountPath: /materialious-data
+          name: data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: materialious-data
