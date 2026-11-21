@@ -36,7 +36,7 @@ Kubernetes `Ingress` (provider disabled) and never the retired Traefik `IngressR
 
 - **Purpose**: Bare-metal load balancer — assigns external IPs to `LoadBalancer`-type Kubernetes services
 - **Deployment**: Helm chart rendered into `manifests/cluster/metallb/helm-chart.yaml`
-- **Namespace**: `metallb-system` (mapped from directory name `metallb` via `namespace_map` in `generate-apps.sh`)
+- **Namespace**: `metallb-system` (mapped from directory name `metallb` via `namespace_map` in `scripts/generate-apps.sh`)
 - **Sync wave**: 2
 - **Key config**: Provides the IP pool that includes 10.0.0.99 for Traefik
 

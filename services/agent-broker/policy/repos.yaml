@@ -52,7 +52,7 @@ repos:
       # FR-21 mandatory denials, verbatim.
       - "manifests/cluster/kustomization.yaml"
       - "manifests/bootstrap/**"
-      - "generate-apps.sh"
+      - "scripts/generate-apps.sh"
       - "manifests/cluster/cert-manager/**"
       - "manifests/cluster/external-secrets/**"
       - "manifests/cluster/traefik/**"
