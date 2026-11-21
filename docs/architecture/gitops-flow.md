@@ -14,7 +14,6 @@ flowchart TB
         GA_DETECT{"Detect changed paths"}
         GA_GEN["generate-apps.yml<br/>Runs scripts/generate-apps.sh"]
         GA_TG["deploy.yaml<br/>Terragrunt plan/apply"]
-        GA_DOCS["pages.yaml<br/>MkDocs build & deploy"]
         GA_REL["release.yaml<br/>Semantic release"]
     end
     
@@ -30,7 +29,6 @@ flowchart TB
     DEV --> GA_DETECT
     GA_DETECT -->|"manifests/cluster/**"| GA_GEN
     GA_DETECT -->|"modules/**"| GA_TG
-    GA_DETECT -->|"docs/**"| GA_DOCS
     GA_DETECT -->|"any push to main"| GA_REL
     
     GA_GEN -->|"Commits updated<br/>bootstrap files"| BOOT
@@ -88,7 +86,6 @@ All applications are configured with:
 |----------|---------|---------|
 | `generate-apps.yml` | Changes to `manifests/cluster/**` | Runs `scripts/generate-apps.sh` to regenerate ArgoCD Application YAMLs |
 | `deploy.yaml` | Changes to `modules/**` | Terragrunt plan (on PR) / apply (on merge to main) |
-| `pages.yaml` | Changes to `docs/**` | Builds MkDocs and deploys to GitHub Pages |
 | `release.yaml` | Any push to `main` | Semantic release (versioning + changelog) |
 
 ### Terraform/Terragrunt CI Pipeline

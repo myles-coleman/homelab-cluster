@@ -9,7 +9,7 @@ All DNS is managed through **Cloudflare**:
 | Record | Type | Value | Purpose |
 |--------|------|-------|---------|
 | `*.cowlab.org` | A | 10.0.0.99 | Wildcard — routes all subdomains to Traefik LB |
-| `docs.cowlab.org` | CNAME | GitHub Pages | Documentation site |
+| `docs.cowlab.org` | CNAME | GitHub Pages | Retired: formerly the MkDocs site, no longer deployed |
 | `pihole.cowlab.org` | A | Direct IP | Pi-hole DNS (not via Traefik) |
 | `pikvm.cowlab.org` | A | Direct IP | PiKVM (not via Traefik) |
 | `vaultwarden.cowlab.org` | A | Direct IP | Vaultwarden (not via Traefik) |
