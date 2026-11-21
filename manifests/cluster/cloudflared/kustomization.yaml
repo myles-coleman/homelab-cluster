@@ -14,3 +14,7 @@ patches:
       kind: Secret
       metadata:
         name: cloudflare-tunnel-cloudflare-tunnel-remote
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

@@ -8,3 +8,7 @@ resources:
   - service.yaml
   - network-policy.yaml
   
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

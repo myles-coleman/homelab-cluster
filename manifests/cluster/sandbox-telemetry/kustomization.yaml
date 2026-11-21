@@ -6,3 +6,7 @@ resources:
   - external-secret.yaml
   - configmap.yaml
   - deployment.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

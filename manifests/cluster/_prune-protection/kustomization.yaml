@@ -1,0 +1,49 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# Protect the objects whose deletion destroys data or removes a namespace's entire
+# contents.
+#
+# Every Application syncs with `prune: true`, so any object that is in the cluster
+# but missing from the rendered tree is DELETED. A Namespace cascades to every
+# workload inside it; a PersistentVolumeClaim or PersistentVolume bound to a
+# `reclaimPolicy: Delete` class takes the backing volume with it. Neither is
+# recoverable by re-syncing, so the object has to be marked unprunable.
+#
+# Three patches, applied per kind through `target` rather than per object. The
+# `metadata.name: ignored` placeholder is required only because kustomize refuses
+# to parse a strategic-merge patch without a name; `target` decides which objects
+# the patch actually applies to, and the placeholder is never used.
+#
+# Strategic merge rather than JSON6902 is deliberate: a merge combines the
+# `annotations` map, whereas JSON6902 `op: add` on /metadata/annotations REPLACES
+# it. Five PVCs carry `longhorn.io/volume-name`, which binds the claim to its
+# existing Longhorn volume; a replace would delete that binding silently.
+patches:
+  - patch: |
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: ignored
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false
+    target:
+      kind: Namespace
+  - patch: |
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: ignored
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false
+    target:
+      kind: PersistentVolumeClaim
+  - patch: |
+      apiVersion: v1
+      kind: PersistentVolume
+      metadata:
+        name: ignored
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false
+    target:
+      kind: PersistentVolume

@@ -9,3 +9,7 @@ resources:
   - deployment.yaml
   - service.yaml
   # policy ConfigMap is added in sub-task 2.1 when the allowlist exists.
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

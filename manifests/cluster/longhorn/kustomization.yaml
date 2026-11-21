@@ -6,3 +6,7 @@ resources:
   - httproute.yaml
   - aws-secret.yaml
   - recurring-job.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

@@ -10,3 +10,7 @@ resources:
   - config-pvc.yaml
   - tailscale-auth.yaml
   - tailscale-state-pvc.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

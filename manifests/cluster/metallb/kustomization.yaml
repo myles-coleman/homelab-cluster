@@ -7,3 +7,7 @@ resources:
   - helm-chart.yaml
   - ipaddresspool.yaml
   - l2advertisement.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection
