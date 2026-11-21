@@ -53,11 +53,11 @@ jobs:
             echo "changes=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run generate-apps.sh script
+      - name: Run scripts/generate-apps.sh
         if: steps.check_changes.outputs.changes == 'true'
         run: |
-          chmod +x ./generate-apps.sh
-          ./generate-apps.sh
+          chmod +x ./scripts/generate-apps.sh
+          ./scripts/generate-apps.sh
 
       - name: Check for changes to commit
         id: git_status

@@ -111,7 +111,7 @@ default 30-day metrics retention unless ClickHouse pressure says otherwise.
 ## Rollback
 
 1. Delete `manifests/cluster/sandbox-telemetry/` from the cluster kustomization
-   and run `./generate-apps.sh`; ArgoCD prunes the namespace.
+   and run `./scripts/generate-apps.sh`; ArgoCD prunes the namespace.
 2. Revert the `sandbox` toleration blocks in `signoz-k8s-infra/values.yaml` and
    `node-exporter/daemonset.yaml` if the extra agents on the untrusted node are
    not wanted.

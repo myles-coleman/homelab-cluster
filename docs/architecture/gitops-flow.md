@@ -12,7 +12,7 @@ flowchart TB
     
     subgraph "GitHub Actions"
         GA_DETECT{"Detect changed paths"}
-        GA_GEN["generate-apps.yml<br/>Runs generate-apps.sh"]
+        GA_GEN["generate-apps.yml<br/>Runs scripts/generate-apps.sh"]
         GA_TG["deploy.yaml<br/>Terragrunt plan/apply"]
         GA_DOCS["pages.yaml<br/>MkDocs build & deploy"]
         GA_REL["release.yaml<br/>Semantic release"]
@@ -51,7 +51,7 @@ The cluster uses a layered bootstrap approach to manage all services through Arg
 
 ### How Applications Are Generated
 
-The `generate-apps.sh` script reads `manifests/cluster/kustomization.yaml` and generates an ArgoCD Application YAML for each listed service. It handles:
+The `scripts/generate-apps.sh` script reads `manifests/cluster/kustomization.yaml` and generates an ArgoCD Application YAML for each listed service. It handles:
 
 - **Namespace mapping** — defaults to the service directory name, unless overridden in `namespace_map` (e.g., `metallb` → `metallb-system`)
 - **Sync wave assignment** — defaults to wave 10, unless overridden in `sync_wave_map`
@@ -86,7 +86,7 @@ All applications are configured with:
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `generate-apps.yml` | Changes to `manifests/cluster/**` | Runs `generate-apps.sh` to regenerate ArgoCD Application YAMLs |
+| `generate-apps.yml` | Changes to `manifests/cluster/**` | Runs `scripts/generate-apps.sh` to regenerate ArgoCD Application YAMLs |
 | `deploy.yaml` | Changes to `modules/**` | Terragrunt plan (on PR) / apply (on merge to main) |
 | `pages.yaml` | Changes to `docs/**` | Builds MkDocs and deploys to GitHub Pages |
 | `release.yaml` | Any push to `main` | Semantic release (versioning + changelog) |

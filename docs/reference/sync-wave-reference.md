@@ -38,7 +38,7 @@ Wave 10: sonarr, radarr, prowlarr, ...
 
 ## How Waves Are Assigned
 
-Wave assignments are defined in the `sync_wave_map` associative array in `generate-apps.sh`:
+Wave assignments are defined in the `sync_wave_map` associative array in `scripts/generate-apps.sh`:
 
 ```bash
 declare -A sync_wave_map
@@ -51,7 +51,7 @@ sync_wave_map["dex"]="4"
 # All other services default to wave 10
 ```
 
-The `generate-apps.sh` script applies the wave as an annotation on each ArgoCD Application:
+The `scripts/generate-apps.sh` script applies the wave as an annotation on each ArgoCD Application:
 
 ```yaml
 annotations:
@@ -64,10 +64,10 @@ If a new infrastructure service needs to deploy before wave 10:
 
 1. Determine which existing services it depends on (must be in a lower wave)
 2. Determine which services depend on it (must be in a higher wave)
-3. Add the mapping in `generate-apps.sh`:
+3. Add the mapping in `scripts/generate-apps.sh`:
    ```bash
    sync_wave_map["my-infra-service"]="<wave-number>"
    ```
-4. Run `./generate-apps.sh` or push to main to regenerate ArgoCD Applications
+4. Run `./scripts/generate-apps.sh` or push to main to regenerate ArgoCD Applications
 
 **⚠️ Warning**: Changing wave assignments can break the deployment chain. Always verify that dependencies are satisfied before modifying waves. See `AGENTS.md` Section 7 (Guardrails) for more details.

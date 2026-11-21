@@ -162,12 +162,12 @@ resources:
 
 Push your changes to `main`. The following happens automatically:
 
-1. `generate-apps.yml` runs `generate-apps.sh`, creating `manifests/bootstrap/<service-name>-app.yaml`
+1. `generate-apps.yml` runs `scripts/generate-apps.sh`, creating `manifests/bootstrap/<service-name>-app.yaml`
 2. ArgoCD's bootstrap Application detects the new Application CRD
 3. ArgoCD syncs `manifests/cluster/<service-name>/` to the cluster
 4. Your service is live at `https://<service-name>.cowlab.org`
 
-To preview the generated ArgoCD Application locally: `./generate-apps.sh`
+To preview the generated ArgoCD Application locally: `./scripts/generate-apps.sh`
 
 ## Optional: Persistent Storage
 
@@ -211,7 +211,7 @@ If your service needs secrets from Vaultwarden, see [Managing Secrets](managing-
 
 ## Optional: Custom Namespace
 
-If the Kubernetes namespace must differ from the directory name, add a mapping in `generate-apps.sh`:
+If the Kubernetes namespace must differ from the directory name, add a mapping in `scripts/generate-apps.sh`:
 
 ```bash
 namespace_map["<service-name>"]="<actual-namespace>"
@@ -221,7 +221,7 @@ Currently only `metallb` → `metallb-system` uses this.
 
 ## Optional: Custom Sync Wave
 
-If your service is infrastructure that must deploy before wave 10, add to `generate-apps.sh`:
+If your service is infrastructure that must deploy before wave 10, add to `scripts/generate-apps.sh`:
 
 ```bash
 sync_wave_map["<service-name>"]="<wave-number>"

@@ -1,4 +1,17 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Generate one ArgoCD Application per service listed in
+# manifests/cluster/kustomization.yaml.
+#
+# The script resolves the repository root from its own location and changes into
+# it, so every path below is relative to the repository rather than to whatever
+# directory the caller happened to be in. That matters now that it lives in
+# scripts/ and is invoked from CI, from Taskfile, and by hand.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${ROOT}"
 
 BOOTSTRAP_DIR="manifests/bootstrap"
 CLUSTER_KUSTOMIZATION="manifests/cluster/kustomization.yaml"
