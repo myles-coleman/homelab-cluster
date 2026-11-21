@@ -5,10 +5,10 @@ metadata:
   namespace: lidarr
 spec:
   replicas: 1
-  selector: null
-  strategy:
+  selector:
     matchLabels:
       app: lidarr
+  strategy:
     rollingUpdate:
       maxSurge: 0
       maxUnavailable: 1

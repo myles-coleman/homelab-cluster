@@ -5,10 +5,10 @@ metadata:
   namespace: youtubedl-material
 spec:
   replicas: 1
-  selector: null
-  strategy:
+  selector:
     matchLabels:
       app: ytdl-mongo-db
+  strategy:
     rollingUpdate:
       maxSurge: 0
       maxUnavailable: 1

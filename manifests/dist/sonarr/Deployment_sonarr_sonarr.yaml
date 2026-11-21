@@ -5,10 +5,10 @@ metadata:
   namespace: sonarr
 spec:
   replicas: 1
-  selector: null
-  strategy:
+  selector:
     matchLabels:
       app: sonarr
+  strategy:
     rollingUpdate:
       maxSurge: 0
       maxUnavailable: 1

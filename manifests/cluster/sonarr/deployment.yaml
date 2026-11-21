@@ -6,6 +6,8 @@ metadata:
 spec:
   replicas: 1
   selector:
+    matchLabels:
+      app: sonarr
   # The volumes this Deployment mounts are Longhorn ReadWriteOnce, so a new pod
   # cannot attach them while the old pod still holds them. maxSurge 0 terminates
   # the old pod first; maxUnavailable 1 allows that. `type: Recreate` would say
@@ -16,9 +18,6 @@ spec:
     rollingUpdate:
       maxSurge: 0
       maxUnavailable: 1
-
-    matchLabels:
-      app: sonarr
   template:
     metadata:
       labels:
