@@ -10,3 +10,7 @@ resources:
   - tailscale-state-pvc.yaml
   - nfs-pv.yaml
   - nfs-pvc.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

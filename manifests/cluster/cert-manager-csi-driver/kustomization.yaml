@@ -6,3 +6,7 @@ resources:
   # ships no namespace.yaml: a second Application owning that Namespace object
   # would fight the cert-manager Application in ArgoCD.
   - helm-chart.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

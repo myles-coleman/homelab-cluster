@@ -9,3 +9,7 @@ resources:
   - httproute.yaml
   - httproute-outpost.yaml
   - config-pvc.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

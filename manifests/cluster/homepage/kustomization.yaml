@@ -10,3 +10,7 @@ resources:
   - configmap.yaml
   - service-account.yaml
   - cluster-role.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

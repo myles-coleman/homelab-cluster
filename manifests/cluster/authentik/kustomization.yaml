@@ -139,3 +139,7 @@ patches:
                       path: password
                     - key: db-password
                       path: postgres-password
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

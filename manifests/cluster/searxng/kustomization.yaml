@@ -8,3 +8,7 @@ resources:
   - configmap.yaml
   - pvc.yaml
   - external-secret.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

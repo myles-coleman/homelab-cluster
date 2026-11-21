@@ -9,3 +9,7 @@ resources:
   - service.yaml
   # The publish endpoint, quotas and cleanup ship in the publisher binary; no
   # extra manifest is required for them.
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

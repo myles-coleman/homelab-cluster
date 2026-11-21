@@ -6,3 +6,7 @@ resources:
   - exporter.yaml
   - collector-config.yaml
   - collector.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

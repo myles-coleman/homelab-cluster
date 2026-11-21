@@ -13,3 +13,7 @@ resources:
   - sandbox.yaml
   - service.yaml
   - networkpolicy.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

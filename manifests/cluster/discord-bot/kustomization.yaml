@@ -7,3 +7,7 @@ resources:
   # The token is revoked and the workload is disabled in
   # manifests/cluster/kustomization.yaml. Wire an ExternalSecret here before
   # re-enabling, rather than committing credentials again.
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

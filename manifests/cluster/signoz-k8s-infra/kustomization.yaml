@@ -5,3 +5,7 @@ resources:
   - namespace.yaml
   - helm-chart.yaml
   - agent-heartbeat-cronjob.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection
