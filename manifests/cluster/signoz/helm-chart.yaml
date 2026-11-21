@@ -1522,7 +1522,7 @@ spec:
             name: signoz-clickhouse-operator-etc-usersd-files
       containers:
         - name: operator
-          image: docker.io/altinity/clickhouse-operator:0.21.2
+          image: docker.io/altinity/clickhouse-operator:0.21.2@sha256:cd9252644ce0a1a26feea66eb77edbfe91b10dec2634b7b8ad73fa3196551488
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: etc-clickhouse-operator-folder
@@ -1589,7 +1589,7 @@ spec:
             null
 
         - name: metrics-exporter
-          image: docker.io/altinity/metrics-exporter:0.21.2
+          image: docker.io/altinity/metrics-exporter:0.21.2@sha256:df3d57215356043a2b5bcc03a9cdb62198b907932c7077131e079fae1c01156c
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: etc-clickhouse-operator-folder
@@ -1705,7 +1705,7 @@ spec:
         {}
       initContainers:
         - name: check
-          image: docker.io/signoz/signoz-otel-collector:v0.144.15
+          image: docker.io/signoz/signoz-otel-collector:v0.144.15@sha256:3996e0ffc58bc86d433062a45ef7ff960a4768da0619944f651a17254d634daf
           imagePullPolicy: IfNotPresent
           command:
             - "/signoz-otel-collector"
@@ -1739,7 +1739,7 @@ spec:
               value: "true"
       containers:
         - name: collector
-          image: docker.io/signoz/signoz-otel-collector:v0.144.15
+          image: docker.io/signoz/signoz-otel-collector:v0.144.15@sha256:3996e0ffc58bc86d433062a45ef7ff960a4768da0619944f651a17254d634daf
           imagePullPolicy: IfNotPresent
           ports:
             - name: jaeger-grpc
@@ -1922,7 +1922,7 @@ spec:
       initContainers:
       containers:
         - name: zookeeper
-          image: signoz/zookeeper:3.7.1
+          image: signoz/zookeeper:3.7.1@sha256:fcc4a3288154ccaa3bdb5ae6dc10180c084d29a8a6a26b62ac8e30a8940dc2e6
           imagePullPolicy: "IfNotPresent"
           securityContext:
             allowPrivilegeEscalation: false
@@ -2073,7 +2073,7 @@ spec:
         - name: signoz
           securityContext:
             {}
-          image: docker.io/signoz/signoz:v0.149.0
+          image: docker.io/signoz/signoz:v0.149.0@sha256:dc31f487d69452b90da87cf7208b334963de776349b3c2b661bf88990edf9ca4
           imagePullPolicy: IfNotPresent
           args:
           ports:
@@ -2184,7 +2184,7 @@ spec:
       serviceAccountName: signoz-telemetrystore-migrator
       initContainers:
         - name: ready
-          image: docker.io/signoz/signoz-otel-collector:v0.144.15
+          image: docker.io/signoz/signoz-otel-collector:v0.144.15@sha256:3996e0ffc58bc86d433062a45ef7ff960a4768da0619944f651a17254d634daf
           imagePullPolicy: IfNotPresent
           env:
             
@@ -2214,7 +2214,7 @@ spec:
             - "migrate"
             - "ready"
         - name: bootstrap
-          image: docker.io/signoz/signoz-otel-collector:v0.144.15
+          image: docker.io/signoz/signoz-otel-collector:v0.144.15@sha256:3996e0ffc58bc86d433062a45ef7ff960a4768da0619944f651a17254d634daf
           imagePullPolicy: IfNotPresent
           env:
             
@@ -2244,7 +2244,7 @@ spec:
             - "migrate"
             - "bootstrap"
         - name: sync
-          image: docker.io/signoz/signoz-otel-collector:v0.144.15
+          image: docker.io/signoz/signoz-otel-collector:v0.144.15@sha256:3996e0ffc58bc86d433062a45ef7ff960a4768da0619944f651a17254d634daf
           imagePullPolicy: IfNotPresent
           env:
             
@@ -2276,7 +2276,7 @@ spec:
             - "up"
       containers:
         - name: async
-          image: docker.io/signoz/signoz-otel-collector:v0.144.15
+          image: docker.io/signoz/signoz-otel-collector:v0.144.15@sha256:3996e0ffc58bc86d433062a45ef7ff960a4768da0619944f651a17254d634daf
           imagePullPolicy: IfNotPresent
           env:
             
@@ -2463,7 +2463,7 @@ spec:
                 name: signoz-clickhouse-scripts
           initContainers:
             - name: signoz-clickhouse-udf-init
-              image: docker.io/alpine:3.18.2
+              image: docker.io/alpine:3.18.2@sha256:82d1e9d7ed48a7523bdebc18cf6290bdb97b82302a8a9c27d4fe885949ea94d1
               imagePullPolicy: IfNotPresent
               command:
                 - sh
@@ -2487,7 +2487,7 @@ spec:
             - name: clickhouse
               # KEEP CLICKHOUSE-SERVER VERSION IN SYNC WITH
               # https://github.com/SigNoz/signoz/blob/main/deploy/docker/clickhouse-setup/docker-compose.yaml#L5
-              image: docker.io/clickhouse/clickhouse-server:25.12.5
+              image: docker.io/clickhouse/clickhouse-server:25.12.5@sha256:cacf32d6884291dc2ff5e0156a97f46fc53ff7c929a7906d114e268a929dfd3a
               imagePullPolicy: IfNotPresent
               command:
                 - /bin/bash

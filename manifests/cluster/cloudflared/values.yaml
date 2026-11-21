@@ -21,4 +21,4 @@ resources:
 # a concrete version tag and keeps this digest.
 image:
   repository: cloudflare/cloudflared
-  tag: latest@sha256:e613aadbc2d9511785d2e67a86b0c8ac18dd63a3f9af0d06faf04cbfdcb35f2d
+  tag: 2026.11.1@sha256:e613aadbc2d9511785d2e67a86b0c8ac18dd63a3f9af0d06faf04cbfdcb35f2d

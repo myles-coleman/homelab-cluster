@@ -129,7 +129,7 @@ spec:
           mountPath: /dev/net/tun
       containers:
       - name: qbittorrent
-        image: lscr.io/linuxserver/qbittorrent:latest@sha256:3d4c4545d51a690a0df15a2ff99038823a88a9822df8e794526447b9afbd7384
+        image: lscr.io/linuxserver/qbittorrent:version-5.3.0_v2.1.2@sha256:3d4c4545d51a690a0df15a2ff99038823a88a9822df8e794526447b9afbd7384
         startupProbe:
           exec:
             command:

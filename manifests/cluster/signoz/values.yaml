@@ -4,7 +4,35 @@ global:
 clickhouse:
   persistence:
     storageClass: longhorn
+  # Digest pins (spec 06 task 2.0). The ClickHouse images reach the cluster
+  # through a ClickHouseInstallation CR, so they live in no PodSpec and a
+  # PodSpec-only scan cannot see them. The operator reads them from these
+  # values, which is why pinning here is what actually makes them immutable.
+  image:
+    tag: 25.12.5@sha256:cacf32d6884291dc2ff5e0156a97f46fc53ff7c929a7906d114e268a929dfd3a
+  zookeeper:
+    image:
+      tag: 3.7.1@sha256:fcc4a3288154ccaa3bdb5ae6dc10180c084d29a8a6a26b62ac8e30a8940dc2e6
+  initContainers:
+    init:
+      image:
+        tag: 1.35@sha256:98ad9d1a2be345201bb0709b0d38655eb1b370145c7d94ca1fe9c421f76e245a
+    udf:
+      image:
+        tag: 3.18.2@sha256:82d1e9d7ed48a7523bdebc18cf6290bdb97b82302a8a9c27d4fe885949ea94d1
+  clickhouseOperator:
+    image:
+      tag: 0.21.2@sha256:cd9252644ce0a1a26feea66eb77edbfe91b10dec2634b7b8ad73fa3196551488
+    metricsExporter:
+      image:
+        tag: 0.21.2@sha256:df3d57215356043a2b5bcc03a9cdb62198b907932c7077131e079fae1c01156c
 
 signoz:
   persistence:
     storageClass: longhorn
+  image:
+    tag: v0.149.0@sha256:dc31f487d69452b90da87cf7208b334963de776349b3c2b661bf88990edf9ca4
+
+otelCollector:
+  image:
+    tag: v0.144.15@sha256:3996e0ffc58bc86d433062a45ef7ff960a4768da0619944f651a17254d634daf

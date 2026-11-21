@@ -17,7 +17,7 @@ spec:
         kubernetes.io/hostname: node1
       containers:
       - name: searxng
-        image: searxng/searxng:latest@sha256:5b72d7ef63a3d214c2a690016ecf53a17f1ab7f02dcc4a1de1669837d9340fc9
+        image: searxng/searxng:2026.11.19-368baa340@sha256:5b72d7ef63a3d214c2a690016ecf53a17f1ab7f02dcc4a1de1669837d9340fc9
         env:
         - name: TZ
           value: "Etc/UTC"

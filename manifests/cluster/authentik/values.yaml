@@ -21,6 +21,10 @@ authentik:
 
 postgresql:
   enabled: true
+  # Digest pin (spec 06 task 2.0). Tag path, because the postgres tag is an
+  # explicit value here and the digest must sit alongside it.
+  image:
+    tag: 17.10-bookworm@sha256:9b18b78397054fce88a9552e9d5a3ad5bb7fd258c5b3cc1c5028e46373d6ea8f
   auth:
     username: "authentik"
     password: "REPLACEME"
@@ -67,3 +71,10 @@ worker:
     limits:
       cpu: "500m"
       memory: "1Gi"
+
+# Digest pin (spec 06 task 2.0). server and worker both default to
+# global.image, so one override pins both workloads.
+global:
+  image:
+    tag: 2026.5.6
+    digest: sha256:ed120caf710ccf82ef0026f0bc74e51615bc95ebff228a7a2d6fc60c441c3868
