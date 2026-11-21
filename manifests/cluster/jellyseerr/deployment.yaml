@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: jellyseerr
-        image: fallenbagel/jellyseerr:latest@sha256:91edd5620e51ed512ecdfd8b2e157c473faf385edf88c3764dc9ec32d310c0df
+        image: fallenbagel/jellyseerr:2.7.3-deprecated@sha256:91edd5620e51ed512ecdfd8b2e157c473faf385edf88c3764dc9ec32d310c0df
         resources:
           limits:
             memory: "1024Mi"

@@ -31,7 +31,7 @@ spec:
                       - node3
       containers:
         - name: exporter
-          image: ghcr.io/ishioni/speedtest-exporter:latest@sha256:8f450097781619e7ca6d4ecdf3ecc955b83dbc0ea5684fc8fdb9c23a0427b957
+          image: ghcr.io/ishioni/speedtest-exporter:0.2.7@sha256:8f450097781619e7ca6d4ecdf3ecc955b83dbc0ea5684fc8fdb9c23a0427b957
           ports:
             - name: metrics
               containerPort: 9798

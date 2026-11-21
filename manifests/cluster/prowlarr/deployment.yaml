@@ -125,7 +125,7 @@ spec:
           mountPath: /dev/net/tun
       containers:
       - name: prowlarr
-        image: lscr.io/linuxserver/prowlarr:latest@sha256:45117ba8439e2337a92ffe38a451a4dafc0be771754d05d88cdf102419d09646
+        image: lscr.io/linuxserver/prowlarr:version-3.0.2.5780@sha256:45117ba8439e2337a92ffe38a451a4dafc0be771754d05d88cdf102419d09646
         resources:
           limits:
             memory: "1024Mi"
