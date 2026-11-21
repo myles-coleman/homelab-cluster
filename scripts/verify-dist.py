@@ -277,6 +277,32 @@ def main(argv):
             if len(unpinned) > 5:
                 failures.append(f"{service}: and {len(unpinned) - 5} more unpinned references")
 
+        # Structural sanity for Deployments. There is no schema validator in this
+        # pipeline, so an invalid-but-well-formed manifest passes every other
+        # check: the source and dist renders agree, the images are pinned, and the
+        # object set matches. This caught exactly that after a misplaced
+        # `strategy:` block produced `spec.strategy.matchLabels` and a null
+        # selector, which ArgoCD reports as ComparisonError on every sync.
+        malformed = []
+        for obj in rendered:
+            if obj.get("kind") != "Deployment":
+                continue
+            spec = obj.get("spec") or {}
+            selector = spec.get("selector") or {}
+            strategy = spec.get("strategy") or {}
+            if not (selector.get("matchLabels") or selector.get("matchExpressions")):
+                malformed.append(f"{object_id(obj)} has no spec.selector.matchLabels or matchExpressions")
+            unexpected = set(strategy) - {"type", "rollingUpdate"}
+            if unexpected:
+                malformed.append(f"{object_id(obj)} has unexpected spec.strategy key(s): {sorted(unexpected)}")
+            rolling = strategy.get("rollingUpdate") or {}
+            unexpected = set(rolling) - {"maxSurge", "maxUnavailable"}
+            if unexpected:
+                malformed.append(f"{object_id(obj)} has unexpected spec.strategy.rollingUpdate key(s): {sorted(unexpected)}")
+        if malformed:
+            for entry in malformed[:5]:
+                failures.append(f"{service}: malformed Deployment: {entry}")
+
         unprotected = []
         for obj in rendered:
             if obj.get("kind") not in PROTECTED_KINDS:

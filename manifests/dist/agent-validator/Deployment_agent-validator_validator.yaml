@@ -8,10 +8,10 @@ metadata:
   namespace: agent-validator
 spec:
   replicas: 1
-  selector: null
-  strategy:
+  selector:
     matchLabels:
       app: agent-validator
+  strategy:
     rollingUpdate:
       maxSurge: 0
       maxUnavailable: 1
