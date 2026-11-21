@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    helm.sh/hook: test-success
+  labels:
+    app.kubernetes.io/component: signoz
+    app.kubernetes.io/instance: signoz
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: signoz
+    app.kubernetes.io/version: v0.149.0
+    helm.sh/chart: signoz-0.149.0
+  name: signoz-test-connection
+  namespace: signoz
+spec:
+  containers:
+  - args:
+    - http://signoz:8080/api/v1/health?live=1
+    command:
+    - wget
+    image: docker.io/busybox:1.35
+    name: wget
+  restartPolicy: Never

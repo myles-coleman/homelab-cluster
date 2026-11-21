@@ -1,0 +1,230 @@
+apiVersion: v1
+data:
+  config.yaml: |-
+    annotation:
+      exclude: []
+      include: []
+    clickhouse:
+      access:
+        password: ""
+        port: 8123
+        rootCA: ""
+        rootCASecretRef:
+          key: ""
+          name: ""
+        scheme: Auto
+        secret:
+          name: 'clickhouse-operator-altinity-clickhouse-operator'
+          namespace: ""
+        timeouts:
+          connect: 5
+          query: 4
+        username: ""
+      addons:
+        rules:
+        - spec:
+            configuration:
+              files: null
+              profiles: null
+              quotas: null
+              settings: null
+              users: null
+          version: '*'
+        - spec:
+            configuration:
+              files: null
+              profiles: null
+              quotas: null
+              settings: null
+              users:
+                '{clickhouseOperatorUser}/access_management': 1
+                '{clickhouseOperatorUser}/named_collection_control': 1
+                '{clickhouseOperatorUser}/show_named_collections': 1
+                '{clickhouseOperatorUser}/show_named_collections_secrets': 1
+          version: '>= 23.3'
+        - spec:
+            configuration:
+              files: null
+              profiles:
+                clickhouse_operator/format_display_secrets_in_show_and_select: 1
+              quotas: null
+              settings:
+                display_secrets_in_show_and_select: 1
+              users: null
+          version: '>= 23.5'
+      configuration:
+        file:
+          path:
+            common: chi/config.d
+            host: chi/conf.d
+            user: chi/users.d
+        network:
+          hostRegexpTemplate: (chi-{chi}-[^.]+\d+-\d+|clickhouse\-{chi})\.{namespace}\.svc\.cluster\.local$
+        user:
+          default:
+            networksIP:
+            - ::1
+            - 127.0.0.1
+            password: default
+            profile: default
+            quota: default
+      configurationRestartPolicy:
+        rules:
+        - rules:
+          - settings/*: "yes"
+          - settings/access_control_path: "no"
+          - settings/dictionaries_config: "no"
+          - settings/max_server_memory_*: "no"
+          - settings/max_*_to_drop: "no"
+          - settings/max_concurrent_queries: "no"
+          - settings/models_config: "no"
+          - settings/user_defined_executable_functions_config: "no"
+          - settings/logger/*: "no"
+          - settings/macros/*: "no"
+          - settings/remote_servers/*: "no"
+          - settings/user_directories/*: "no"
+          - settings/display_secrets_in_show_and_select: "no"
+          - zookeeper/*: "no"
+          - files/*.xml: "yes"
+          - files/config.d/*.xml: "yes"
+          - files/config.d/*dict*.xml: "no"
+          - files/config.d/*no_restart*: "no"
+          - profiles/default/background_*_pool_size: "yes"
+          - profiles/default/max_*_for_server: "yes"
+          version: '*'
+        - rules:
+          - settings/logger: "yes"
+          version: 21.*
+      metrics:
+        excludeRegexp:
+        - ^metric\.(OS.*CPU[0-9]+|CPUFrequencyMHz_[0-9]+)$
+        tablesRegexp: ^(metrics|custom_metrics)$
+        timeouts:
+          collect: 9
+    keeper:
+      configuration:
+        file:
+          path:
+            common: chk/keeper_config.d
+            host: chk/conf.d
+            user: chk/users.d
+    label:
+      appendScope: "no"
+      exclude: []
+      include: []
+    logger:
+      alsologtostderr: "false"
+      log_backtrace_at: ""
+      logtostderr: "true"
+      stderrthreshold: ""
+      v: "1"
+      vmodule: ""
+    metrics:
+      labels:
+        exclude: []
+    pod:
+      terminationGracePeriod: 30
+    reconcile:
+      coordination:
+        keeper:
+          readyTimeout: 120
+      host:
+        drop:
+          replicas:
+            active: false
+            onDelete: true
+            onLostVolume: true
+        wait:
+          exclude: true
+          include: false
+          probes:
+            readiness: true
+            startup: false
+          queries: true
+          replicas:
+            all: false
+            delay: 10
+            new: true
+      recovery:
+        onStatus:
+          aborted:
+            onPodReady: retry
+          completed:
+            onPodNotReady: none
+            onPodNotReadyThreshold: 5m
+      runtime:
+        reconcileCHIsThreadsNumber: 10
+        reconcileCHKsThreadsNumber: 1
+        reconcileShardsMaxConcurrencyPercent: 50
+        reconcileShardsThreadsNumber: 5
+      statefulSet:
+        create:
+          onFailure: ignore
+        recreate:
+          onDataLoss: recreate
+          onUpdateFailure: recreate
+        update:
+          onFailure: abort
+          pollInterval: 5
+          timeout: 300
+    security:
+      clickhouse:
+        tls:
+          minVersion: ""
+          rootCA: ""
+          rootCASecretRef:
+            key: ""
+            name: ""
+          serverName: ""
+          verify: ""
+      fips:
+        enforced: false
+      images:
+        policy: Permissive
+      ipc:
+        bindHost: ""
+        mode: Plain
+        tokenPath: ""
+      kubernetes:
+        tls:
+          minVersion: ""
+          verify: ""
+      policy: Permissive
+      zookeeper:
+        tls:
+          minVersion: ""
+          verify: ""
+    statefulSet:
+      revisionHistoryLimit: 0
+    status:
+      fields:
+        action: false
+        actions: false
+        error: true
+        errors: true
+    template:
+      chi:
+        path: chi/templates.d
+        policy: ApplyOnNextReconcile
+      chk:
+        path: chk/templates.d
+        policy: ApplyOnNextReconcile
+    watch:
+      configuration:
+        onChange: restart
+      namespaces:
+        exclude: []
+        include: []
+kind: ConfigMap
+metadata:
+  annotations:
+    meta.helm.sh/release-name: clickhouse-operator
+    meta.helm.sh/release-namespace: clickhouse-operator
+  labels:
+    app.kubernetes.io/instance: clickhouse-operator
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: altinity-clickhouse-operator
+    app.kubernetes.io/version: 0.27.3
+    helm.sh/chart: altinity-clickhouse-operator-0.27.3
+  name: clickhouse-operator-altinity-clickhouse-operator-files
+  namespace: clickhouse-operator

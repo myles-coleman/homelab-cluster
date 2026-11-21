@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: agent-sandbox-controller
+  name: agent-sandbox-controller
+  namespace: agent-sandbox-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-sandbox-controller
+  template:
+    metadata:
+      labels:
+        app: agent-sandbox-controller
+    spec:
+      containers:
+      - args:
+        - --leader-elect=true
+        image: registry.k8s.io/agent-sandbox/agent-sandbox-controller@sha256:f254384c24605436ce35d7077427559e24bda8f5691cff5a54a4c2e030d81083
+        name: agent-sandbox-controller
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        - containerPort: 8081
+          name: healthz
+          protocol: TCP
+      serviceAccountName: agent-sandbox-controller

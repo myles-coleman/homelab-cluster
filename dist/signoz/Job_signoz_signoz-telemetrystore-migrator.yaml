@@ -1,0 +1,201 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Force=true,Replace=true
+  labels:
+    app.kubernetes.io/component: signoz-telemetrystore-migrator
+    app.kubernetes.io/instance: signoz
+    app.kubernetes.io/name: signoz
+  name: signoz-telemetrystore-migrator
+  namespace: signoz
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: signoz-telemetrystore-migrator
+        app.kubernetes.io/instance: signoz
+        app.kubernetes.io/name: signoz
+    spec:
+      containers:
+      - args:
+        - migrate
+        - async
+        - up
+        env:
+        - name: CLICKHOUSE_HOST
+          value: signoz-clickhouse
+        - name: CLICKHOUSE_PORT
+          value: "9000"
+        - name: CLICKHOUSE_HTTP_PORT
+          value: "8123"
+        - name: CLICKHOUSE_CLUSTER
+          value: cluster
+        - name: CLICKHOUSE_USER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: signoz-clickhouse-admin
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: signoz-clickhouse-admin
+        - name: CLICKHOUSE_SECURE
+          value: "false"
+        - name: CLICKHOUSE_DATABASE
+          value: signoz_metrics
+        - name: CLICKHOUSE_TRACE_DATABASE
+          value: signoz_traces
+        - name: CLICKHOUSE_LOG_DATABASE
+          value: signoz_logs
+        - name: CLICKHOUSE_METER_DATABASE
+          value: signoz_meter
+        - name: CLICKHOUSE_VERIFY
+          value: "false"
+        - name: K8S_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: K8S_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: K8S_HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: K8S_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: K8S_POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        - name: K8S_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: LOW_CARDINAL_EXCEPTION_GROUPING
+          value: "false"
+        - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN
+          value: tcp://$(CLICKHOUSE_USER):$(CLICKHOUSE_PASSWORD)@$(CLICKHOUSE_HOST):$(CLICKHOUSE_PORT)
+        - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER
+          value: $(CLICKHOUSE_CLUSTER)
+        - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION
+          value: "false"
+        - name: SIGNOZ_OTEL_COLLECTOR_TIMEOUT
+          value: 10m
+        image: docker.io/signoz/signoz-otel-collector:v0.144.15@sha256:3996e0ffc58bc86d433062a45ef7ff960a4768da0619944f651a17254d634daf
+        imagePullPolicy: IfNotPresent
+        name: async
+      initContainers:
+      - args:
+        - migrate
+        - ready
+        env:
+        - name: CLICKHOUSE_HOST
+          value: signoz-clickhouse
+        - name: CLICKHOUSE_PORT
+          value: "9000"
+        - name: CLICKHOUSE_HTTP_PORT
+          value: "8123"
+        - name: CLICKHOUSE_CLUSTER
+          value: cluster
+        - name: CLICKHOUSE_USER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: signoz-clickhouse-admin
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: signoz-clickhouse-admin
+        - name: CLICKHOUSE_SECURE
+          value: "false"
+        - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN
+          value: tcp://$(CLICKHOUSE_USER):$(CLICKHOUSE_PASSWORD)@$(CLICKHOUSE_HOST):$(CLICKHOUSE_PORT)
+        - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER
+          value: $(CLICKHOUSE_CLUSTER)
+        - name: SIGNOZ_OTEL_COLLECTOR_TIMEOUT
+          value: 10m
+        - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION
+          value: "false"
+        image: docker.io/signoz/signoz-otel-collector:v0.144.15@sha256:3996e0ffc58bc86d433062a45ef7ff960a4768da0619944f651a17254d634daf
+        imagePullPolicy: IfNotPresent
+        name: ready
+      - args:
+        - migrate
+        - bootstrap
+        env:
+        - name: CLICKHOUSE_HOST
+          value: signoz-clickhouse
+        - name: CLICKHOUSE_PORT
+          value: "9000"
+        - name: CLICKHOUSE_HTTP_PORT
+          value: "8123"
+        - name: CLICKHOUSE_CLUSTER
+          value: cluster
+        - name: CLICKHOUSE_USER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: signoz-clickhouse-admin
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: signoz-clickhouse-admin
+        - name: CLICKHOUSE_SECURE
+          value: "false"
+        - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN
+          value: tcp://$(CLICKHOUSE_USER):$(CLICKHOUSE_PASSWORD)@$(CLICKHOUSE_HOST):$(CLICKHOUSE_PORT)
+        - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER
+          value: $(CLICKHOUSE_CLUSTER)
+        - name: SIGNOZ_OTEL_COLLECTOR_TIMEOUT
+          value: 10m
+        - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION
+          value: "false"
+        image: docker.io/signoz/signoz-otel-collector:v0.144.15@sha256:3996e0ffc58bc86d433062a45ef7ff960a4768da0619944f651a17254d634daf
+        imagePullPolicy: IfNotPresent
+        name: bootstrap
+      - args:
+        - migrate
+        - sync
+        - up
+        env:
+        - name: CLICKHOUSE_HOST
+          value: signoz-clickhouse
+        - name: CLICKHOUSE_PORT
+          value: "9000"
+        - name: CLICKHOUSE_HTTP_PORT
+          value: "8123"
+        - name: CLICKHOUSE_CLUSTER
+          value: cluster
+        - name: CLICKHOUSE_USER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: signoz-clickhouse-admin
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: signoz-clickhouse-admin
+        - name: CLICKHOUSE_SECURE
+          value: "false"
+        - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN
+          value: tcp://$(CLICKHOUSE_USER):$(CLICKHOUSE_PASSWORD)@$(CLICKHOUSE_HOST):$(CLICKHOUSE_PORT)
+        - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER
+          value: $(CLICKHOUSE_CLUSTER)
+        - name: SIGNOZ_OTEL_COLLECTOR_TIMEOUT
+          value: 10m
+        - name: SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION
+          value: "false"
+        image: docker.io/signoz/signoz-otel-collector:v0.144.15@sha256:3996e0ffc58bc86d433062a45ef7ff960a4768da0619944f651a17254d634daf
+        imagePullPolicy: IfNotPresent
+        name: sync
+      restartPolicy: OnFailure
+      serviceAccountName: signoz-telemetrystore-migrator

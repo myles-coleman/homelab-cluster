@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: agent-traces-heartbeat
+  namespace: signoz-k8s-infra
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: agent-traces-heartbeat
+        spec:
+          automountServiceAccountToken: false
+          containers:
+          - command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              start=$(( $(date +%s) * 1000000000 ))
+              end=$(( start + 1000000 ))
+              trace=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+              span=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
+              payload=$(cat <<EOF
+              {"resourceSpans":[{"resource":{"attributes":[{"key":"deployment.environment","value":{"stringValue":"agent-sandbox"}},{"key":"service.name","value":{"stringValue":"agent-heartbeat"}}]},"scopeSpans":[{"scope":{"name":"heartbeat"},"spans":[{"traceId":"$trace","spanId":"$span","name":"heartbeat","kind":1,"startTimeUnixNano":"$start","endTimeUnixNano":"$end"}]}]}]}
+              EOF
+              )
+              curl --fail-with-body --silent --show-error --max-time 10 \
+                -X POST -H 'Content-Type: application/json' \
+                --data-binary "$payload" \
+                http://k8s-infra-otel-agent.signoz-k8s-infra.svc.cluster.local:4318/v1/traces
+            image: curlimages/curl:8.10.1@sha256:d9b4541e214bcd85196d6e92e2753ac6d0ea699f0af5741f8c6cccbfcf00ef4b
+            name: heartbeat
+            resources:
+              limits:
+                cpu: 100m
+                memory: 64Mi
+              requests:
+                cpu: 25m
+                memory: 16Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+          restartPolicy: Never
+      ttlSecondsAfterFinished: 3600
+  schedule: '*/15 * * * *'
+  successfulJobsHistoryLimit: 1

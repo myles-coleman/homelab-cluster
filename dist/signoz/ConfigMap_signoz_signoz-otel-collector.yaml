@@ -1,0 +1,193 @@
+apiVersion: v1
+data:
+  otel-collector-config.yaml: |-
+    connectors:
+      signozmeter:
+        dimensions:
+        - name: service.name
+        - name: deployment.environment
+        - name: host.name
+        metrics_flush_interval: 1h
+    exporters:
+      clickhouselogsexporter:
+        dsn: tcp://${env:CLICKHOUSE_USER}:${env:CLICKHOUSE_PASSWORD}@${env:CLICKHOUSE_HOST}:${env:CLICKHOUSE_PORT}/${env:CLICKHOUSE_LOG_DATABASE}
+        timeout: 10s
+        use_new_schema: true
+      clickhousetraces:
+        datasource: tcp://${env:CLICKHOUSE_USER}:${env:CLICKHOUSE_PASSWORD}@${env:CLICKHOUSE_HOST}:${env:CLICKHOUSE_PORT}/${env:CLICKHOUSE_TRACE_DATABASE}
+        low_cardinal_exception_grouping: ${env:LOW_CARDINAL_EXCEPTION_GROUPING}
+        use_new_schema: true
+      metadataexporter:
+        cache:
+          provider: in_memory
+        dsn: tcp://${env:CLICKHOUSE_USER}:${env:CLICKHOUSE_PASSWORD}@${env:CLICKHOUSE_HOST}:${env:CLICKHOUSE_PORT}/signoz_metadata
+        enabled: true
+        tenant_id: ${env:TENANT_ID}
+        timeout: 10s
+      signozclickhousemeter:
+        dsn: tcp://${env:CLICKHOUSE_USER}:${env:CLICKHOUSE_PASSWORD}@${env:CLICKHOUSE_HOST}:${env:CLICKHOUSE_PORT}/${env:CLICKHOUSE_METER_DATABASE}
+        sending_queue:
+          enabled: false
+        timeout: 45s
+      signozclickhousemetrics:
+        dsn: tcp://${env:CLICKHOUSE_USER}:${env:CLICKHOUSE_PASSWORD}@${env:CLICKHOUSE_HOST}:${env:CLICKHOUSE_PORT}/${env:CLICKHOUSE_DATABASE}
+        timeout: 45s
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      pprof:
+        endpoint: localhost:1777
+      zpages:
+        endpoint: localhost:55679
+    processors:
+      batch:
+        send_batch_size: 50000
+        timeout: 1s
+      batch/meter:
+        send_batch_max_size: 25000
+        send_batch_size: 20000
+        timeout: 1s
+      filter/drop_stale:
+        error_mode: ignore
+        logs:
+          log_record:
+          - time_unix_nano != 0 and time < Now() - Duration("360h")
+          - time_unix_nano == 0 and observed_time_unix_nano != 0 and observed_time < Now()
+            - Duration("360h")
+        metrics:
+          datapoint:
+          - time_unix_nano != 0 and time < Now() - Duration("360h")
+        traces:
+          span:
+          - start_time_unix_nano != 0 and start_time < Now() - Duration("360h")
+      signozllmpricing:
+        attrs:
+          cache_read: gen_ai.usage.cache_read.input_tokens
+          cache_write: gen_ai.usage.cache_creation.input_tokens
+          in: gen_ai.usage.input_tokens
+          model: gen_ai.request.model
+          out: gen_ai.usage.output_tokens
+        default_pricing:
+          rules: []
+        output_attrs:
+          cache_read: signoz.gen_ai.usage.cache_read.input_tokens.cost
+          cache_write: signoz.gen_ai.usage.cache_write.input_tokens.cost
+          in: signoz.gen_ai.usage.input_tokens.cost
+          out: signoz.gen_ai.usage.output_tokens.cost
+          total: signoz.gen_ai.usage.tokens.cost
+      signozlogsnormalizer: {}
+      signozspanmapper:
+        groups: []
+      signozspanmetrics/delta:
+        aggregation_temporality: AGGREGATION_TEMPORALITY_DELTA
+        dimensions:
+        - default: default
+          name: service.namespace
+        - default: default
+          name: deployment.environment
+        - name: signoz.collector.id
+        dimensions_cache_size: 100000
+        latency_histogram_buckets:
+        - 100us
+        - 1ms
+        - 2ms
+        - 6ms
+        - 10ms
+        - 50ms
+        - 100ms
+        - 250ms
+        - 500ms
+        - 1000ms
+        - 1400ms
+        - 2000ms
+        - 5s
+        - 10s
+        - 20s
+        - 40s
+        - 60s
+        metrics_exporter: signozclickhousemetrics
+    receivers:
+      httplogreceiver/heroku:
+        endpoint: 0.0.0.0:8081
+        source: heroku
+      httplogreceiver/json:
+        endpoint: 0.0.0.0:8082
+        source: json
+      jaeger:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:14250
+          thrift_http:
+            endpoint: 0.0.0.0:14268
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+            max_recv_msg_size_mib: 16
+          http:
+            endpoint: 0.0.0.0:4318
+    service:
+      extensions:
+      - health_check
+      - zpages
+      - pprof
+      pipelines:
+        logs:
+          exporters:
+          - clickhouselogsexporter
+          - metadataexporter
+          - signozmeter
+          processors:
+          - signozlogsnormalizer
+          - filter/drop_stale
+          - batch
+          receivers:
+          - otlp
+          - httplogreceiver/heroku
+          - httplogreceiver/json
+        metrics:
+          exporters:
+          - metadataexporter
+          - signozclickhousemetrics
+          - signozmeter
+          processors:
+          - filter/drop_stale
+          - batch
+          receivers:
+          - otlp
+        metrics/meter:
+          exporters:
+          - signozclickhousemeter
+          processors:
+          - batch/meter
+          receivers:
+          - signozmeter
+        traces:
+          exporters:
+          - clickhousetraces
+          - metadataexporter
+          - signozmeter
+          processors:
+          - signozspanmetrics/delta
+          - signozspanmapper
+          - signozllmpricing
+          - filter/drop_stale
+          - batch
+          receivers:
+          - otlp
+          - jaeger
+      telemetry:
+        logs:
+          encoding: json
+  otel-collector-opamp-config.yaml: 'server_endpoint: "ws://signoz:4320/v1/opamp"'
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: otel-collector
+    app.kubernetes.io/instance: signoz
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: signoz
+    app.kubernetes.io/version: v0.149.0
+    helm.sh/chart: signoz-0.149.0
+  name: signoz-otel-collector
+  namespace: signoz

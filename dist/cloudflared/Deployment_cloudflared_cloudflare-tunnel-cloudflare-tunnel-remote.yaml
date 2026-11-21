@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: cloudflare-tunnel
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: cloudflare-tunnel-remote
+    app.kubernetes.io/version: latest
+    helm.sh/chart: cloudflare-tunnel-remote-0.1.2
+  name: cloudflare-tunnel-cloudflare-tunnel-remote
+  namespace: cloudflared
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: cloudflared
+  template:
+    metadata:
+      annotations:
+        checksum/secret: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+      creationTimestamp: null
+      labels:
+        pod: cloudflared
+    spec:
+      containers:
+      - command:
+        - cloudflared
+        - tunnel
+        - --no-autoupdate
+        - --metrics
+        - 0.0.0.0:2000
+        - run
+        env:
+        - name: TUNNEL_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: tunnelToken
+              name: cloudflare-tunnel-cloudflare-tunnel-remote
+        image: cloudflare/cloudflared:2026.11.1@sha256:e613aadbc2d9511785d2e67a86b0c8ac18dd63a3f9af0d06faf04cbfdcb35f2d
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 1
+          httpGet:
+            path: /ready
+            port: 2000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        name: cloudflared
+      serviceAccountName: cloudflare-tunnel-cloudflare-tunnel-remote

@@ -1,0 +1,20 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: allow-outpost-routes
+  namespace: authentik
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: jellyseerr
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: copyparty
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: open-webui
+  to:
+  - group: ""
+    kind: Service
+    name: authentik-outpost

@@ -4553,17 +4553,17 @@ spec:
               fieldRef:
                 fieldPath: spec.serviceAccountName
           - name: CSI_ATTACHER_IMAGE
-            value: "docker.io/longhornio/csi-attacher:v4.11.0-20260428"
+            value: "docker.io/longhornio/csi-attacher:v4.11.0-20260428@sha256:fe417c28a6b86f8e7e5d49fc223e22e9ab457f894d2c4a321932d136dc2c2530"
           - name: CSI_PROVISIONER_IMAGE
-            value: "docker.io/longhornio/csi-provisioner:v5.3.0-20260428"
+            value: "docker.io/longhornio/csi-provisioner:v5.3.0-20260428@sha256:9e519a21a77c060104716e1f98222bb46ab617778a3bfcd861c87119a8256764"
           - name: CSI_NODE_DRIVER_REGISTRAR_IMAGE
-            value: "docker.io/longhornio/csi-node-driver-registrar:v2.16.0-20260428"
+            value: "docker.io/longhornio/csi-node-driver-registrar:v2.16.0-20260428@sha256:e82a8c8f800d7fbb3c1edf3f90b557768091821a44d52280093394f7918ccb68"
           - name: CSI_RESIZER_IMAGE
-            value: "docker.io/longhornio/csi-resizer:v2.1.0-20260428"
+            value: "docker.io/longhornio/csi-resizer:v2.1.0-20260428@sha256:41cb674d1154e798aa2c20f53f72ee2a5597f1369bcad5878d1708aee47f6663"
           - name: CSI_SNAPSHOTTER_IMAGE
-            value: "docker.io/longhornio/csi-snapshotter:v8.5.0-20260428"
+            value: "docker.io/longhornio/csi-snapshotter:v8.5.0-20260428@sha256:1975fac3890f4e08b98792881cb597502112ce0eeeaaef383e52458c96db94c5"
           - name: CSI_LIVENESS_PROBE_IMAGE
-            value: "docker.io/longhornio/livenessprobe:v2.18.0-20260428"
+            value: "docker.io/longhornio/livenessprobe:v2.18.0-20260428@sha256:eae162f7e70fb981f90d9206f299dddaf590c0c896cfb67acceca12cef526a44"
           
       priorityClassName: "longhorn-critical"
       serviceAccountName: longhorn-service-account

@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng
+  namespace: searxng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: searxng
+  template:
+    metadata:
+      labels:
+        app: searxng
+    spec:
+      containers:
+      - env:
+        - name: TZ
+          value: Etc/UTC
+        - name: PORT
+          value: "8080"
+        - name: SEARXNG_PORT
+          value: "8080"
+        - name: SEARXNG_SERVER__PORT
+          value: "8080"
+        - name: SEARXNG_SERVER__SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secret-key
+              name: searxng-secrets
+        image: searxng/searxng:2026.11.19-368baa340@sha256:5b72d7ef63a3d214c2a690016ecf53a17f1ab7f02dcc4a1de1669837d9340fc9
+        name: searxng
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /etc/searxng
+          name: config-volume
+        - mountPath: /var/lib/searxng
+          name: data-volume
+      nodeSelector:
+        kubernetes.io/hostname: node1
+      volumes:
+      - configMap:
+          name: searxng-config
+        name: config-volume
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: searxng-data

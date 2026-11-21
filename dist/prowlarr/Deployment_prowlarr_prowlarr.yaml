@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prowlarr
+  namespace: prowlarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prowlarr
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: prowlarr
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - env:
+        - name: TZ
+          value: Etc/UTC
+        image: lscr.io/linuxserver/prowlarr:version-3.0.2.5780@sha256:45117ba8439e2337a92ffe38a451a4dafc0be771754d05d88cdf102419d09646
+        name: prowlarr
+        ports:
+        - containerPort: 9696
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+        volumeMounts:
+        - mountPath: /data
+          name: data-volume
+        - mountPath: /config
+          name: config-volume
+      initContainers:
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          # The image's `iptables` symlink points at the legacy backend, which
+          # the nodes' nftables-only kernel rejects. Use the nft backend.
+          IPT=iptables-nft
+          IP6T=ip6tables-nft
+          command -v "$IPT" >/dev/null 2>&1 || IPT=iptables
+          command -v "$IP6T" >/dev/null 2>&1 || IP6T=ip6tables
+          "$IPT" -A OUTPUT -o lo -j ACCEPT
+          "$IPT" -A OUTPUT -o tailscale0 -j ACCEPT
+          "$IPT" -A OUTPUT -d 10.42.0.0/16 -j ACCEPT
+          "$IPT" -A OUTPUT -d 10.43.0.0/16 -j ACCEPT
+          "$IPT" -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
+          "$IPT" -A OUTPUT -j DROP
+          if [ -d /proc/sys/net/ipv6 ]; then
+            "$IP6T" -A OUTPUT -o lo -j ACCEPT
+            "$IP6T" -A OUTPUT -o tailscale0 -j ACCEPT
+            "$IP6T" -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
+            "$IP6T" -A OUTPUT -j DROP
+          fi
+        image: tailscale/tailscale:stable@sha256:72c1e19e0aedca96b8533bbb0b4368564410ff20b17e53b804eb6c1f04a31be4
+        name: killswitch
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 25m
+            memory: 16Mi
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+      - env:
+        - name: TS_AUTHKEY
+          valueFrom:
+            secretKeyRef:
+              key: authkey
+              name: tailscale-auth
+        - name: TS_KUBE_SECRET
+          value: ""
+        - name: TS_STATE_DIR
+          value: /var/lib/tailscale
+        - name: TS_USERSPACE
+          value: "false"
+        - name: TS_ACCEPT_DNS
+          value: "true"
+        - name: TS_HOSTNAME
+          value: prowlarr-egress
+        - name: TS_EXTRA_ARGS
+          value: --exit-node=100.112.185.27 --exit-node-allow-lan-access
+        image: tailscale/tailscale:stable@sha256:72c1e19e0aedca96b8533bbb0b4368564410ff20b17e53b804eb6c1f04a31be4
+        name: tailscale
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - tailscale status --json | grep -Eq '"BackendState":[[:space:]]*"Running"'
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        restartPolicy: Always
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - tailscale status --json | grep -Eq '"BackendState":[[:space:]]*"Running"'
+          failureThreshold: 60
+          periodSeconds: 5
+        volumeMounts:
+        - mountPath: /var/lib/tailscale
+          name: tailscale-state
+        - mountPath: /dev/net/tun
+          name: dev-net-tun
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: prowlarr-data
+      - name: config-volume
+        persistentVolumeClaim:
+          claimName: prowlarr-config
+      - name: tailscale-state
+        persistentVolumeClaim:
+          claimName: prowlarr-tailscale-state
+      - hostPath:
+          path: /dev/net/tun
+          type: CharDevice
+        name: dev-net-tun

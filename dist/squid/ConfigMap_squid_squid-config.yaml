@@ -1,0 +1,44 @@
+apiVersion: v1
+data:
+  squid.conf: |
+    acl step1 at_step SslBump1
+
+    # ── no destinations are allowed (2026-11-04) ───────────────────────────────
+    # The sandbox has no internet at all. Its workspace is seeded by the operator at
+    # a pinned revision, it holds no repository write credential, and it hands work
+    # back as patch files. Its only network peers are this proxy (which now denies
+    # everything) and the model endpoint, which is reached by IP literal and does
+    # not go through the proxy at all.
+    #
+    # Denying here rather than simply removing the proxy keeps the attempt visible:
+    # squid logs every request, so a prompt-injected agent trying to phone home
+    # produces a log line instead of a silent no-op.
+    #
+    # Restoring fetch capability is a deliberate config change: re-add a
+    # `dstdomain` + `ssl::server_name` ACL pair and the matching `http_access allow`
+    # lines above the deny. Do not make it a runtime toggle — the whole point is
+    # that the sandbox cannot widen its own egress.
+    http_access deny all
+
+    # Peek at the ClientHello for SNI, then splice without decrypting.
+    ssl_bump peek step1
+    ssl_bump splice all
+
+    http_port 3128 ssl-bump cert=/etc/squid/cert.pem
+
+    # An ssl-bump port spawns squid's certificate helper even though we only peek
+    # at the SNI and splice (no certificate is ever minted), so its database has
+    # to exist and the program has to be named — squid's built-in default does not
+    # resolve in this image. The entrypoint recreates /var/spool/squid/ssl_db.
+    sslcrtd_program /usr/lib/squid/security_file_certgen -s /var/spool/squid/ssl_db -M 4MB
+
+    # squid drops to the unprivileged `proxy` user, which cannot reopen the
+    # container's stdout/stderr pipes, so it logs to files and the image's
+    # entrypoint forwards them to the container streams (`kubectl logs`).
+    access_log /var/log/squid/access.log squid
+    cache_log /var/log/squid/cache.log
+    coredump_dir /var/spool/squid
+kind: ConfigMap
+metadata:
+  name: squid-config
+  namespace: squid

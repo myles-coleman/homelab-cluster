@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: speedtest-exporter
+  name: speedtest-exporter
+  namespace: speedtest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: speedtest-exporter
+  template:
+    metadata:
+      labels:
+        app: speedtest-exporter
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - node1
+                - node2
+                - node3
+            weight: 100
+      containers:
+      - env:
+        - name: SPEEDTEST_CACHE_FOR
+          value: 6h
+        - name: SPEEDTEST_TIMEOUT
+          value: 120s
+        image: ghcr.io/ishioni/speedtest-exporter:0.2.7@sha256:8f450097781619e7ca6d4ecdf3ecc955b83dbc0ea5684fc8fdb9c23a0427b957
+        name: exporter
+        ports:
+        - containerPort: 9798
+          name: metrics
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: metrics
+          initialDelaySeconds: 5
+          periodSeconds: 15
+        resources:
+          limits:
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi

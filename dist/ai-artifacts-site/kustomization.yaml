@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- Deployment_ai-artifacts-site_ai-artifacts-site.yaml
+- ExternalSecret_ai-artifacts-site_ai-artifacts-site-ghcr.yaml
+- HTTPRoute_ai-artifacts-site_artifacts.yaml
+- Namespace_cluster_ai-artifacts-site.yaml
+- Service_ai-artifacts-site_ai-artifacts-site.yaml

@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: signoz-otel-collector-signoz
+  namespace: signoz
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: signoz-otel-collector-signoz
+subjects:
+- kind: ServiceAccount
+  name: signoz-otel-collector
+  namespace: signoz

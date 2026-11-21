@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- Certificate_cert-manager_agent-mtls-ca.yaml
+- ClusterIssuer_cluster_agent-mtls-ca.yaml
+- Issuer_cert-manager_agent-mtls-bootstrap.yaml
+- Namespace_cluster_agent-mtls.yaml

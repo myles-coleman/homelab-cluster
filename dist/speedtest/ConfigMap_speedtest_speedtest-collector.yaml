@@ -1,0 +1,58 @@
+apiVersion: v1
+data:
+  config.yaml: |
+    receivers:
+      prometheus:
+        config:
+          # Scrape often, test rarely. The exporter re-runs the Ookla CLI only
+          # when its cache expires (SPEEDTEST_CACHE_FOR), so a 5m scrape against
+          # a 6h cache republishes the last result ~288x/day while still running
+          # only 4 real tests. A 6h scrape interval meant the dashboard was blank
+          # for hours at a time (and blank entirely after the ClickHouse reset,
+          # since no scrape had happened yet).
+          global:
+            scrape_interval: 5m
+            scrape_timeout: 2m
+          scrape_configs:
+            - job_name: speedtest
+              scrape_interval: 5m
+              scrape_timeout: 2m
+              static_configs:
+                - targets: ["speedtest-exporter.speedtest.svc.cluster.local:9798"]
+              metric_relabel_configs:
+                # Drop go/process runtime noise; keep only speedtest_* metrics.
+                - source_labels: [__name__]
+                  regex: "speedtest_.*"
+                  action: keep
+    processors:
+      batch: {}
+      resourcedetection:
+        detectors: [env]
+        override: false
+      resource:
+        attributes:
+          - key: service.name
+            value: speedtest-exporter
+            action: upsert
+          - key: deployment.environment
+            value: homelab-cluster
+            action: upsert
+    exporters:
+      otlphttp:
+        endpoint: http://signoz-otel-collector.signoz.svc.cluster.local:4318
+        tls:
+          insecure: true
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+    service:
+      extensions: [health_check]
+      pipelines:
+        metrics:
+          receivers: [prometheus]
+          processors: [resourcedetection, resource, batch]
+          exporters: [otlphttp]
+kind: ConfigMap
+metadata:
+  name: speedtest-collector
+  namespace: speedtest

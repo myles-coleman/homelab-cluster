@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: opencode-sandbox-egress
+  namespace: agent-sandbox
+spec:
+  egress:
+  - ports:
+    - port: 3128
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: squid
+  - ports:
+    - port: 8080
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 100.127.170.8/32
+  - ports:
+    - port: 4318
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: signoz-k8s-infra
+  - ports:
+    - port: 8443
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: agent-validator
+      podSelector:
+        matchLabels:
+          app: agent-validator
+  podSelector:
+    matchLabels:
+      app: opencode-sandbox
+  policyTypes:
+  - Egress

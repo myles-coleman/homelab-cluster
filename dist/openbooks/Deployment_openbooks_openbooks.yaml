@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openbooks
+  namespace: openbooks
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openbooks
+  template:
+    metadata:
+      labels:
+        app: openbooks
+    spec:
+      containers:
+      - args:
+        - --name
+        - BigolBeans42
+        - --persist
+        - --searchbot
+        - searchook
+        - --log
+        - --no-browser-downloads
+        - --dir
+        - /
+        image: beebecomebigbee/openbooks:master@sha256:270c92ed679133374ad4c5bc2218b7a3f31bf4c3ec09a1e815add9f53be1c657
+        name: openbooks
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+        volumeMounts:
+        - mountPath: /books
+          name: books-volume
+      volumes:
+      - name: books-volume
+        persistentVolumeClaim:
+          claimName: openbooks-books

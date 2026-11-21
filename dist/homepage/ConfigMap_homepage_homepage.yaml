@@ -1,0 +1,122 @@
+apiVersion: v1
+data:
+  bookmarks.yaml: |
+    - Repository:
+        - Github:
+            - href: https://github.com/myles-coleman/homelab-cluster
+  custom.css: ""
+  custom.js: ""
+  docker.yaml: ""
+  kubernetes.yaml: |
+    mode: cluster
+  services.yaml: |
+    - Downloaders:
+        - Jellyseerr:
+            icon: jellyseerr.svg
+            href: https://jellyseerr.cowlab.org/
+            description: Media Library Manager
+        - Sonarr:
+            icon: sonarr.svg
+            href: https://sonarr.cowlab.org/
+            description: TV Show Collection Manager
+        - Radarr:
+            icon: radarr.svg
+            href: https://radarr.cowlab.org/
+            description: Movie Collection Manager
+        - Prowlarr:
+            icon: prowlarr.svg
+            href: https://prowlarr.cowlab.org/
+            description: Indexer Collection Manager
+        - Sportarr:
+            icon: sportarr.svg
+            href: https://sportarr.cowlab.org/
+            description: Sports Event Collection Manager
+        - Openbooks:
+            icon: readarr.svg
+            href: https://openbooks.cowlab.org/
+            description: Search and Download eBooks
+
+    - Media:
+        - Jellyfin:
+            icon: jellyfin.svg
+            href: https://jellyfin.cowlab.org/
+            description: Media Server
+        - Calibre-Web:
+            icon: calibre.svg
+            href: https://calibre.cowlab.org/
+            description: Browse and Read eBooks
+
+    - Services:
+        - Vaultwarden:
+            icon: vaultwarden.svg
+            href: https://vaultwarden.cowlab.org/
+            description: Password Manager
+        - Qbittorrent:
+            icon: qbittorrent.svg
+            href: https://qbittorrent.cowlab.org/
+            description: Torrent Client
+        - Copyparty:
+            icon: copyparty.svg
+            href: https://copyparty.cowlab.org/
+            description: File Sharing and Management
+        - YouTube:
+            icon: youtube.svg
+            href: https://youtube.cowlab.org/
+            description: Account-free YouTube Frontend
+        - ytdl-material:
+            icon: youtube.svg
+            href: https://ytdl.cowlab.org/
+            description: YouTube Downloader
+        - Llama.cpp:
+            icon: ollama.svg
+            href: https://llama.cowlab.org/
+            description: LLM Inference Server (Vulkan GPU)
+        - Open WebUI:
+            icon: open-webui.svg
+            href: https://openwebui.cowlab.org/
+            description: AI Chat Interface
+
+    - System:
+        - Pikvm:
+            icon: pikvm.svg
+            href: https://pikvm.cowlab.org/
+            description: KVM Over IP
+        - Argo CD:
+            icon: argo-cd.svg
+            href: https://argocd.cowlab.org/
+            description: GitOps tool for Kubernetes
+        - Longhorn:
+            icon: longhorn.svg
+            href: https://longhorn.cowlab.org/
+            description: Distributed block storage
+        - Nginx Proxy Manager:
+            icon: nginx-proxy-manager.svg
+            href: https://npm.cowlab.org/
+            description: Proxy Server
+  settings.yaml: ""
+  widgets.yaml: |
+    - kubernetes:
+        cluster:
+          show: true
+          cpu: true
+          memory: true
+          showLabel: true
+          label: "cluster"
+        nodes:
+          show: false
+          cpu: true
+          memory: true
+          showLabel: true
+    - datetime:
+        text_size: xl
+        format:
+          timeStyle: short
+    - search:
+        provider: brave
+        target: _blank
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: homepage
+  name: homepage
+  namespace: homepage

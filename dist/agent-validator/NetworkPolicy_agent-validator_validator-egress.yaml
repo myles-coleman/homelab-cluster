@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: validator-egress
+  namespace: agent-validator
+spec:
+  egress:
+  - ports:
+    - port: 6443
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 10.0.0.128/25
+  - ports:
+    - port: 8443
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: agent-publisher
+      podSelector:
+        matchLabels:
+          app: agent-publisher
+  - ports:
+    - port: 4318
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: signoz-k8s-infra
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/component: otel-agent
+          app.kubernetes.io/instance: k8s-infra
+          app.kubernetes.io/name: k8s-infra
+  podSelector:
+    matchLabels:
+      app: agent-validator
+  policyTypes:
+  - Egress

@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ClusterRoleBinding_cluster_homepage.yaml
+- ClusterRole_cluster_homepage.yaml
+- ConfigMap_homepage_homepage.yaml
+- Deployment_homepage_homepage.yaml
+- HTTPRoute_homepage_portal.yaml
+- Namespace_cluster_homepage.yaml
+- PodDisruptionBudget_homepage_homepage.yaml
+- Secret_homepage_homepage.yaml
+- ServiceAccount_homepage_homepage.yaml
+- Service_homepage_homepage.yaml

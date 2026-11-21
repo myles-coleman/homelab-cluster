@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+  name: ytdl-video
+spec:
+  accessModes:
+  - ReadWriteMany
+  capacity:
+    storage: 200Gi
+  nfs:
+    path: /mnt/md0/data/media/youtubeDL
+    server: 10.0.0.150
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs

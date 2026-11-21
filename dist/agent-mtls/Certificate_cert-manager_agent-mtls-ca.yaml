@@ -1,0 +1,24 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/part-of: agent-mtls
+  name: agent-mtls-ca
+  namespace: cert-manager
+spec:
+  commonName: agent-mtls-ca
+  duration: 8760h
+  isCA: true
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: agent-mtls-bootstrap
+  privateKey:
+    algorithm: ECDSA
+    rotationPolicy: Never
+    size: 384
+  renewBefore: 720h
+  secretName: agent-mtls-ca-keypair
+  usages:
+  - cert sign
+  - crl sign

@@ -1,0 +1,27 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/part-of: agent-broker
+  name: validator-server
+  namespace: agent-validator
+spec:
+  commonName: validator.agent.internal
+  dnsNames:
+  - validator.agent.internal
+  - agent-validator.agent-validator.svc
+  - agent-validator.agent-validator.svc.cluster.local
+  duration: 720h
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: agent-mtls-ca
+  privateKey:
+    algorithm: ECDSA
+    rotationPolicy: Always
+    size: 256
+  renewBefore: 168h
+  secretName: validator-server-tls
+  usages:
+  - server auth
+  - digital signature

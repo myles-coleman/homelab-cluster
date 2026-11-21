@@ -1,19 +1,16 @@
-name: Verify manifests
+name: Verify dist
 
-# Required status check for `main`: the job is named `test` so the ruleset's
-# required context exists on every pull request that touches manifests.
+# Proves the committed dist/ tree is what manifests/cluster/ renders to, that
+# every image in it is digest-pinned, and that data-bearing objects cannot be
+# pruned.
 #
-# This workflow starts small and grows with the stack. At this stage it proves
-# that every active service still renders: an image edit or an annotation edit
-# that breaks YAML is a real regression, and it is the failure mode a
-# manifest-only change can actually introduce.
-#
-# It runs on every pull request rather than a path filter: `main` requires this
-# check, and a pull request that does not produce it can never merge. A 30-second
-# run on a docs-only change is cheaper than a stack that cannot be merged.
-#
-# Read-only by design: `contents: read`, no secret, no commit step. It never
-# contacts a container registry.
+# This workflow is read-only by design. It renders into a scratch tree, compares
+# it with dist/, and fails. It never commits, so it introduces no second writer
+# to main alongside release.yaml and generate-apps.yml, and it needs no secret.
+# No job here contacts a container registry: every image is already pinned, so
+# rendering resolves nothing.
+# Runs on every pull request rather than a path filter: `main` requires this
+# check, and a pull request that does not produce it can never merge.
 on:
   pull_request:
   workflow_dispatch: {}
@@ -22,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: verify-manifests-${{ github.ref }}
+  group: dist-verify-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -37,16 +34,24 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install pinned kustomize
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned tooling
         run: |
           set -euo pipefail
           # shellcheck disable=SC1091
           source scripts/tools.env
 
+          python -m pip install --disable-pip-version-check "PyYAML==${PYAML_VERSION}"
+
           base="https://github.com/kubernetes-sigs/kustomize/releases/download"
           archive="kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
-          curl -fsSL --retry 3 -o "/tmp/${archive}" \
-            "${base}/kustomize%2Fv${KUSTOMIZE_VERSION}/${archive}"
+          url="${base}/kustomize%2Fv${KUSTOMIZE_VERSION}/${archive}"
+          curl -fsSL --retry 3 -o "/tmp/${archive}" "${url}"
+          # Verify against the release checksums rather than trusting the download.
           curl -fsSL --retry 3 -o /tmp/kustomize-checksums.txt \
             "${base}/kustomize%2Fv${KUSTOMIZE_VERSION}/checksums.txt"
           ( cd /tmp && grep " ${archive}\$" kustomize-checksums.txt | sha256sum -c - )
@@ -54,20 +59,19 @@ jobs:
           install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
           kustomize version
 
-      - name: Render every active service
+      - name: Render and compare
         run: |
           set -euo pipefail
-          # Every service listed in resources: must still build. This catches the
-          # only regression a manifest edit can introduce: invalid YAML, a broken
-          # patch, or a reference to a file that no longer exists.
-          failed=0
-          while read -r svc; do
-            if ! kustomize build "manifests/cluster/${svc}" >/dev/null; then
-              echo "::error::manifests/cluster/${svc} failed to render"
-              failed=1
-            fi
-          done < <(grep -E '^- ' manifests/cluster/kustomization.yaml | sed -E 's/^- +//')
-          if [ "${failed}" -ne 0 ]; then
-            exit 1
-          fi
-          echo "all services render"
+          ./scripts/render-dist.sh --check
+
+      - name: Assert every image is pinned and no object was lost
+        run: |
+          set -euo pipefail
+          ./scripts/verify-dist.py --report
+
+      - name: Assert data-bearing objects cannot be pruned
+        run: |
+          set -euo pipefail
+          # Explicit, separate step so a failure names the property that broke
+          # rather than surfacing as one line inside verify-dist's report.
+          ./scripts/verify-dist.py --check-protected

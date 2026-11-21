@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: agent-publisher
+    app.kubernetes.io/part-of: agent-broker
+  name: publisher
+  namespace: agent-publisher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-publisher
+  template:
+    metadata:
+      labels:
+        app: agent-publisher
+        app.kubernetes.io/part-of: agent-broker
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - --listen=:8443
+        - --cert-file=/certs/tls.crt
+        - --key-file=/certs/tls.key
+        - --client-ca-file=/certs/ca.crt
+        - --owner=myles-coleman
+        - --app-id-file=/app-secret/app-id
+        - --app-key-file=/app-secret/private-key.pem
+        - --work-dir=/tmp
+        - --audit-log-file=/var/log/agent-broker/audit.ndjson
+        - --audit-retention=96h
+        image: ghcr.io/myles-coleman/agent-broker-publisher@sha256:ea0b2cc07a99a67c619e15a860ffde6d48ed2552e79f27fdc336e21cb5e25edc
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        name: publisher
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 3
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /certs
+          name: server-tls
+          readOnly: true
+        - mountPath: /app-secret
+          name: app-secret
+          readOnly: true
+        - mountPath: /tmp
+          name: scratch
+        - mountPath: /var/log/agent-broker
+          name: audit-log
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      securityContext:
+        fsGroup: 65532
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: server-tls
+        secret:
+          defaultMode: 288
+          secretName: publisher-server-tls
+      - name: app-secret
+        secret:
+          defaultMode: 288
+          secretName: github-app
+      - emptyDir:
+          sizeLimit: 1Gi
+        name: scratch
+      - emptyDir:
+          sizeLimit: 100Mi
+        name: audit-log

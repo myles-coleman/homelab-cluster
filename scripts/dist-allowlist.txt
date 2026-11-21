@@ -1,0 +1,18 @@
+# Image references that are permitted to stay unpinned, matched by exact value.
+#
+# An entry here is a decision that a reference cannot be pinned today, with the
+# reason and the follow-up. Blank entries with no reason fail verification, and
+# growing this file past MAX_REFS (scripts/verify-dist.py) is a deliberate edit
+# rather than a side effect of fixing one service.
+#
+# MAX_REFS: 3
+#
+# Hardcoded in the chart's test template as a Helm test-hook pod
+# (`helm.sh/hook: test`, a `wget` container). No value overrides it, and the pod
+# never runs as part of normal operation.
+docker.io/busybox:1.35
+#
+# Private GHCR package. Resolution needs a token with `read:packages`, which the
+# available credential does not have. Remove this entry once the token carries
+# that scope and the digest is pinned.
+ghcr.io/myles-coleman/ai-artifacts-site:sha-734320ebe422

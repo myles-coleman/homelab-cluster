@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ClusterRoleBinding_cluster_clickhouse-operator-altinity-clickhouse-operator-crd-install.yaml
+- ClusterRoleBinding_cluster_clickhouse-operator-altinity-clickhouse-operator.yaml
+- ClusterRole_cluster_clickhouse-operator-altinity-clickhouse-operator-crd-install.yaml
+- ClusterRole_cluster_clickhouse-operator-altinity-clickhouse-operator.yaml
+- ConfigMap_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-confd-files.yaml
+- ConfigMap_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-configd-files.yaml
+- ConfigMap_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-crds-1.yaml
+- ConfigMap_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-crds-2.yaml
+- ConfigMap_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-files.yaml
+- ConfigMap_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-keeper-confd-files.yaml
+- ConfigMap_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-keeper-configd-files.yaml
+- ConfigMap_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-keeper-templatesd-files.yaml
+- ConfigMap_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-keeper-usersd-files.yaml
+- ConfigMap_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-templatesd-files.yaml
+- ConfigMap_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-usersd-files.yaml
+- Deployment_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator.yaml
+- ExternalSecret_clickhouse-operator_clickhouse-operator-secret.yaml
+- Job_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-crd-install.yaml
+- Namespace_cluster_clickhouse-operator.yaml
+- Secret_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-old.yaml
+- ServiceAccount_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-crd-install.yaml
+- ServiceAccount_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator.yaml
+- Service_clickhouse-operator_clickhouse-operator-altinity-clickhouse-operator-metrics.yaml

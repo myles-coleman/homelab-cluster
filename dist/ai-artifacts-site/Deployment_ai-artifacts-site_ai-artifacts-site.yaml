@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-artifacts-site
+  namespace: ai-artifacts-site
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-artifacts-site
+  template:
+    metadata:
+      labels:
+        app: ai-artifacts-site
+    spec:
+      containers:
+      - image: ghcr.io/myles-coleman/ai-artifacts-site:sha-734320ebe422
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        name: nginx
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 3
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+      imagePullSecrets:
+      - name: ai-artifacts-site-ghcr

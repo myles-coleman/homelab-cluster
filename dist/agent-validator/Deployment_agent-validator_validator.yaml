@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: agent-validator
+    app.kubernetes.io/part-of: agent-broker
+  name: validator
+  namespace: agent-validator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-validator
+  template:
+    metadata:
+      labels:
+        app: agent-validator
+        app.kubernetes.io/part-of: agent-broker
+    spec:
+      automountServiceAccountToken: true
+      containers:
+      - args:
+        - --listen=:8443
+        - --cert-file=/certs/tls.crt
+        - --key-file=/certs/tls.key
+        - --client-ca-file=/certs/ca.crt
+        - --namespace=agent-sandbox
+        - --publisher-url=https://publisher.agent.internal:8443
+        - --publisher-server-name=publisher.agent.internal
+        - --publisher-cert-file=/publisher-client/tls.crt
+        - --publisher-key-file=/publisher-client/tls.key
+        - --publisher-ca-file=/publisher-client/ca.crt
+        - --cache-ttl=5m
+        - --work-dir=/tmp
+        - --audit-log-file=/var/log/agent-broker/audit.ndjson
+        - --audit-retention=96h
+        - --otlp-endpoint=http://signoz-k8s-infra:4318
+        - --otlp-service=agent-validator
+        image: ghcr.io/myles-coleman/agent-broker-validator@sha256:741cdcc30db2b4d22e86f996d1b10acecc697b69a1d0edaa2ee7357ab5f6d78f
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        name: validator
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 3
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /certs
+          name: server-tls
+          readOnly: true
+        - mountPath: /publisher-client
+          name: publisher-client
+          readOnly: true
+        - mountPath: /tmp
+          name: scratch
+        - mountPath: /var/log/agent-broker
+          name: audit-log
+      dnsConfig:
+        nameservers:
+        - 127.0.0.1
+        searches: []
+      dnsPolicy: None
+      hostAliases:
+      - hostnames:
+        - publisher.agent.internal
+        ip: 10.43.30.11
+      - hostnames:
+        - signoz-k8s-infra
+        ip: 10.43.78.178
+      nodeSelector:
+        sandbox.node/runtime: gvisor
+      runtimeClassName: gvisor
+      securityContext:
+        fsGroup: 65532
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: validator
+      tolerations:
+      - effect: NoSchedule
+        key: sandbox
+        operator: Equal
+        value: gvisor
+      volumes:
+      - name: server-tls
+        secret:
+          defaultMode: 288
+          secretName: validator-server-tls
+      - name: publisher-client
+        secret:
+          defaultMode: 288
+          secretName: validator-client-tls
+      - emptyDir:
+          sizeLimit: 1Gi
+        name: scratch
+      - name: audit-log
+        persistentVolumeClaim:
+          claimName: validator-audit-log

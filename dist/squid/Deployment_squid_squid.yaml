@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: squid
+  namespace: squid
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: squid
+  template:
+    metadata:
+      labels:
+        app: squid
+    spec:
+      containers:
+      - image: ghcr.io/myles-coleman/squid@sha256:5ac591be080c24672fed88c02cee31c3bec0625c94a302c4d9fbcd28f30c9e21
+        name: squid
+        ports:
+        - containerPort: 3128
+          name: proxy
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          tcpSocket:
+            port: 3128
+        resources:
+          limits:
+            cpu: "1"
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - mountPath: /etc/squid/squid.conf
+          name: config
+          subPath: squid.conf
+        - mountPath: /etc/squid
+          name: cert
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - |
+          set -e
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout /tmp/key.pem -out /tmp/cert.pem -days 3650 \
+            -subj "/CN=agent-sandbox-egress"
+          cat /tmp/key.pem /tmp/cert.pem > /etc/squid/cert.pem
+        image: docker.io/alpine/openssl:3.3.1@sha256:d428569834003946999b6eb12e902c3c03de740fa61ddb0147233bb1bd16affe
+        name: make-bump-cert
+        volumeMounts:
+        - mountPath: /etc/squid
+          name: cert
+      volumes:
+      - configMap:
+          name: squid-config
+        name: config
+      - emptyDir: {}
+        name: cert
