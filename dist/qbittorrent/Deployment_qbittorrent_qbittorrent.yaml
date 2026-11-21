@@ -8,47 +8,18 @@ spec:
   selector:
     matchLabels:
       app: qbittorrent
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
   template:
     metadata:
       labels:
         app: qbittorrent
     spec:
+      automountServiceAccountToken: false
       containers:
-      - env:
-        - name: PUID
-          value: "1000"
-        - name: PGID
-          value: "1000"
-        - name: TZ
-          value: America/Los_Angeles
-        - name: INTERNAL_SUBNET
-          value: 10.42.0.0/16,10.43.0.0/16
-        - name: KILLSWITCH
-          value: "false"
-        image: lscr.io/linuxserver/wireguard:version-1.0.20260223-r0@sha256:10db56ad834f94541307d5dfdbe87370e26d155bb341a5bf65789f970f24ab5c
-        name: wireguard
-        ports:
-        - containerPort: 51820
-          name: wireguard
-          protocol: UDP
-        resources:
-          limits:
-            cpu: 500m
-            memory: 512Mi
-          requests:
-            cpu: 250m
-            memory: 256Mi
-        securityContext:
-          appArmorProfile:
-            type: Unconfined
-          capabilities:
-            add:
-            - NET_ADMIN
-            - SYS_MODULE
-          privileged: true
-        volumeMounts:
-        - mountPath: /config
-          name: wireguard-config-volume
       - env:
         - name: TZ
           value: America/Los_Angeles
@@ -70,6 +41,96 @@ spec:
           requests:
             cpu: 250m
             memory: 512Mi
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Wait for the sidecar to bring tailscale0 up with an address.
+              ip link show tailscale0 | grep -q "LOWER_UP" && \
+              ip addr show tailscale0 | grep -q "inet" || exit 1
+          failureThreshold: 60
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+        volumeMounts:
+        - mountPath: /config
+          name: config-volume
+        - mountPath: /data
+          name: data-nfs-volume
+      initContainers:
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          # The image's `iptables` symlink points at the legacy backend, which
+          # the nodes' nftables-only kernel rejects. Use the nft backend.
+          IPT=iptables-nft
+          IP6T=ip6tables-nft
+          command -v "$IPT" >/dev/null 2>&1 || IPT=iptables
+          command -v "$IP6T" >/dev/null 2>&1 || IP6T=ip6tables
+          "$IPT" -A OUTPUT -o lo -j ACCEPT
+          "$IPT" -A OUTPUT -o tailscale0 -j ACCEPT
+          "$IPT" -A OUTPUT -d 10.42.0.0/16 -j ACCEPT
+          "$IPT" -A OUTPUT -d 10.43.0.0/16 -j ACCEPT
+          "$IPT" -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
+          "$IPT" -A OUTPUT -j DROP
+          if [ -d /proc/sys/net/ipv6 ]; then
+            "$IP6T" -A OUTPUT -o lo -j ACCEPT
+            "$IP6T" -A OUTPUT -o tailscale0 -j ACCEPT
+            "$IP6T" -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
+            "$IP6T" -A OUTPUT -j DROP
+          fi
+        image: tailscale/tailscale:stable@sha256:72c1e19e0aedca96b8533bbb0b4368564410ff20b17e53b804eb6c1f04a31be4
+        name: killswitch
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 25m
+            memory: 16Mi
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+      - env:
+        - name: TS_AUTHKEY
+          valueFrom:
+            secretKeyRef:
+              key: authkey
+              name: tailscale-auth
+        - name: TS_KUBE_SECRET
+          value: ""
+        - name: TS_STATE_DIR
+          value: /var/lib/tailscale
+        - name: TS_USERSPACE
+          value: "false"
+        - name: TS_ACCEPT_DNS
+          value: "true"
+        - name: TS_HOSTNAME
+          value: qbittorrent-egress
+        - name: TS_EXTRA_ARGS
+          value: --exit-node=100.112.185.27 --exit-node-allow-lan-access
+        image: tailscale/tailscale:stable@sha256:72c1e19e0aedca96b8533bbb0b4368564410ff20b17e53b804eb6c1f04a31be4
+        name: tailscale
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - tailscale status --json | grep -Eq '"BackendState":[[:space:]]*"Running"'
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        restartPolicy: Always
         securityContext:
           capabilities:
             add:
@@ -79,68 +140,25 @@ spec:
             command:
             - /bin/sh
             - -c
-            - |
-              # Check if WireGuard tunnel is up and has an IP address
-              ip link show wg0 | grep -q "LOWER_UP" && \
-              ip addr show wg0 | grep -q "inet" || exit 1
-          failureThreshold: 30
-          initialDelaySeconds: 10
+            - tailscale status --json | grep -Eq '"BackendState":[[:space:]]*"Running"'
+          failureThreshold: 60
           periodSeconds: 5
-          timeoutSeconds: 5
         volumeMounts:
-        - mountPath: /config
-          name: config-volume
-        - mountPath: /data
-          name: data-nfs-volume
-      initContainers:
-      - args:
-        - |
-          echo "Creating WireGuard configuration..."
-          mkdir -p /config/wg_confs
-          mkdir -p /config/custom-cont-init.d
-
-          # Extract endpoint IP from the config and get default gateway
-          ENDPOINT_IP=$(grep 'Endpoint' /secret/wg0.conf | sed 's/.*= *//' | cut -d: -f1)
-          DEFAULT_GW=$(ip route | grep default | awk '{print $3}')
-          DEFAULT_DEV=$(ip route | grep default | awk '{print $5}')
-
-          echo "VPN Endpoint: $ENDPOINT_IP, Gateway: $DEFAULT_GW, Device: $DEFAULT_DEV"
-
-          # Copy config without PostUp/PostDown (linuxserver container doesn't support them)
-          cp /secret/wg0.conf /config/wg_confs/wg0.conf
-          chmod 600 /config/wg_confs/wg0.conf
-
-          # Create custom init script to add route before WireGuard starts
-          echo '#!/bin/bash' > /config/custom-cont-init.d/10-add-vpn-route.sh
-          echo "echo 'Adding route for VPN endpoint to prevent routing loop...'" >> /config/custom-cont-init.d/10-add-vpn-route.sh
-          echo "ip route add ${ENDPOINT_IP}/32 via ${DEFAULT_GW} dev ${DEFAULT_DEV} || true" >> /config/custom-cont-init.d/10-add-vpn-route.sh
-          echo "echo 'Route added:'" >> /config/custom-cont-init.d/10-add-vpn-route.sh
-          echo "ip route get ${ENDPOINT_IP}" >> /config/custom-cont-init.d/10-add-vpn-route.sh
-          chmod +x /config/custom-cont-init.d/10-add-vpn-route.sh
-          echo "Custom init script:"
-          cat /config/custom-cont-init.d/10-add-vpn-route.sh
-
-          echo "WireGuard configuration created successfully"
-        command:
-        - /bin/sh
-        - -c
-        image: busybox:latest@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
-        name: wireguard-config-init
-        volumeMounts:
-        - mountPath: /config
-          name: wireguard-config-volume
-        - mountPath: /secret
-          name: wireguard-secret-volume
+        - mountPath: /var/lib/tailscale
+          name: tailscale-state
+        - mountPath: /dev/net/tun
+          name: dev-net-tun
       volumes:
       - name: config-volume
         persistentVolumeClaim:
           claimName: qbittorrent-config
-      - name: wireguard-config-volume
-        persistentVolumeClaim:
-          claimName: wireguard-config
-      - name: wireguard-secret-volume
-        secret:
-          secretName: wireguard-config
       - name: data-nfs-volume
         persistentVolumeClaim:
           claimName: qbittorrent-data-nfs
+      - name: tailscale-state
+        persistentVolumeClaim:
+          claimName: qbittorrent-tailscale-state
+      - hostPath:
+          path: /dev/net/tun
+          type: CharDevice
+        name: dev-net-tun

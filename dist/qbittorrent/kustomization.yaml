@@ -2,11 +2,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - Deployment_qbittorrent_qbittorrent.yaml
-- ExternalSecret_qbittorrent_wireguard-config.yaml
+- ExternalSecret_qbittorrent_tailscale-auth.yaml
 - HTTPRoute_qbittorrent_qbittorrent.yaml
 - Namespace_cluster_qbittorrent.yaml
 - PersistentVolumeClaim_qbittorrent_qbittorrent-config.yaml
 - PersistentVolumeClaim_qbittorrent_qbittorrent-data-nfs.yaml
-- PersistentVolumeClaim_qbittorrent_wireguard-config.yaml
+- PersistentVolumeClaim_qbittorrent_qbittorrent-tailscale-state.yaml
 - PersistentVolume_qbittorrent_qbittorrent-data-nfs.yaml
 - Service_qbittorrent_qbittorrent.yaml

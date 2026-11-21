@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
 - ClusterRoleBinding_cluster_authentik-authentik.yaml
 - ClusterRole_cluster_authentik-authentik.yaml
+- ConfigMap_authentik_authentik-config.yaml
 - ConfigMap_authentik_authentik-postgresql-configuration.yaml
 - ConfigMap_authentik_authentik-postgresql-extended-configuration.yaml
 - Deployment_authentik_authentik-outpost.yaml
@@ -16,6 +17,7 @@ resources:
 - NetworkPolicy_authentik_allow-intra-namespace.yaml
 - NetworkPolicy_authentik_default-deny-ingress.yaml
 - PodDisruptionBudget_authentik_authentik-postgresql.yaml
+- ReferenceGrant_authentik_allow-outpost-routes.yaml
 - RoleBinding_authentik_authentik.yaml
 - Role_authentik_authentik.yaml
 - Secret_authentik_authentik-postgresql.yaml

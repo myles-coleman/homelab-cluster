@@ -62,6 +62,16 @@ spec:
             secretKeyRef:
               key: db-password
               name: authentik-secrets
+        - name: GOOGLE_OAUTH_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              key: google-client-id
+              name: authentik-secrets
+        - name: GOOGLE_OAUTH_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: google-client-secret
+              name: authentik-secrets
         envFrom:
         - secretRef:
             name: authentik

@@ -19,6 +19,12 @@ spec:
       name: jellyseerr
       port: 5055
       weight: 1
+    filters:
+    - extensionRef:
+        group: traefik.io
+        kind: Middleware
+        name: authentik
+      type: ExtensionRef
     matches:
     - path:
         type: PathPrefix

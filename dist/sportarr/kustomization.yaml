@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- Deployment_sportarr_sportarr.yaml
+- HTTPRoute_sportarr_sportarr.yaml
+- Namespace_cluster_sportarr.yaml
+- PersistentVolumeClaim_sportarr_sportarr-config.yaml
+- PersistentVolumeClaim_sportarr_sportarr-data.yaml
+- PersistentVolume_cluster_sportarr-data.yaml
+- Service_sportarr_sportarr.yaml

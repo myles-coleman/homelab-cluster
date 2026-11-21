@@ -7,6 +7,7 @@ resources:
 - ClusterRole_signoz-k8s-infra_k8s-infra-otel-deployment-signoz-k8s-infra.yaml
 - ConfigMap_signoz-k8s-infra_k8s-infra-otel-agent.yaml
 - ConfigMap_signoz-k8s-infra_k8s-infra-otel-deployment.yaml
+- CronJob_signoz-k8s-infra_agent-traces-heartbeat.yaml
 - DaemonSet_signoz-k8s-infra_k8s-infra-otel-agent.yaml
 - Deployment_signoz-k8s-infra_k8s-infra-otel-deployment.yaml
 - Namespace_cluster_signoz-k8s-infra.yaml

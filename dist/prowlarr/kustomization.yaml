@@ -2,9 +2,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - Deployment_prowlarr_prowlarr.yaml
+- ExternalSecret_prowlarr_tailscale-auth.yaml
 - HTTPRoute_prowlarr_prowlarr.yaml
 - Namespace_cluster_prowlarr.yaml
 - PersistentVolumeClaim_prowlarr_prowlarr-config.yaml
 - PersistentVolumeClaim_prowlarr_prowlarr-data.yaml
+- PersistentVolumeClaim_prowlarr_prowlarr-tailscale-state.yaml
 - PersistentVolume_cluster_prowlarr-data.yaml
 - Service_prowlarr_prowlarr.yaml

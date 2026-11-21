@@ -3,11 +3,13 @@ kind: PersistentVolumeClaim
 metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
-  name: wireguard-config
-  namespace: qbittorrent
+  name: sportarr-data
+  namespace: sportarr
 spec:
   accessModes:
-  - ReadWriteOnce
+  - ReadWriteMany
   resources:
     requests:
-      storage: 50Mi
+      storage: 1Ti
+  storageClassName: ""
+  volumeName: sportarr-data

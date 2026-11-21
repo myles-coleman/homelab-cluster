@@ -43,6 +43,7 @@ resources:
 - GatewayClass_traefik_traefik.yaml
 - Gateway_traefik_traefik-gateway.yaml
 - IngressClass_cluster_traefik.yaml
+- Middleware_traefik_authentik.yaml
 - Namespace_cluster_traefik.yaml
 - ServiceAccount_traefik_traefik.yaml
 - Service_traefik_traefik.yaml

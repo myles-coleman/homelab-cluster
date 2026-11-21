@@ -1,0 +1,79 @@
+apiVersion: v1
+data:
+  google-source.yaml: |
+    version: 1
+    metadata:
+      name: Homelab - Google source
+    entries:
+      # The login-page button. slug must stay "google": the redirect URI
+      # registered in Google Cloud is
+      # https://authentik.cowlab.org/source/oauth/callback/google/
+      - id: google-source
+        model: authentik_sources_oauth.oauthsource
+        identifiers:
+          slug: google
+        attrs:
+          name: Google
+          provider_type: google
+          consumer_key: !Env [GOOGLE_OAUTH_CLIENT_ID, null]
+          consumer_secret: !Env [GOOGLE_OAUTH_CLIENT_SECRET, null]
+          enabled: true
+          # Both flows are required in practice, though the provider and the API
+          # mark them optional. Without enrollment_flow a first-time Google user
+          # cannot be created and the login errors with
+          # "Source is not configured for enrollment"; without
+          # authentication_flow an existing user cannot authenticate.
+          authentication_flow: !Find [authentik_flows.flow, [slug, default-source-authentication]]
+          enrollment_flow: !Find [authentik_flows.flow, [slug, default-source-enrollment]]
+
+      # Creating the source is not enough: it appears on the login page only when
+      # the identification stage lists it. The stage is a built-in object, so it
+      # is identified by name and updated in place.
+      #
+      # user_fields is empty on purpose: the login form is rendered from
+      # user_fields (plus password_fields, which is false here because the stage
+      # has no password_stage), so an empty list leaves Google as the only way in.
+      # The trade-off is that akadmin can no longer sign in through the UI either;
+      # break-glass is `ak shell`, or restore a field here and re-apply.
+      #
+      # The remaining attributes are restated rather than only sources — the
+      # default blueprint also configures this stage, and relying on a partial
+      # merge would leave two writers disagreeing about the same object.
+      - id: default-authentication-identification
+        model: authentik_stages_identification.identificationstage
+        identifiers:
+          name: default-authentication-identification
+        attrs:
+          user_fields: []
+          pretend_user_exists: true
+          show_matched_user: true
+          enable_remember_me: false
+          case_insensitive_matching: true
+          sources:
+            - !KeyOf google-source
+
+      # Users created by a source are "external" by default, and Authentik
+      # restricts its own user interface to internal users — so a freshly
+      # enrolled Google user authenticates fine and is then refused at /if/user/
+      # with "Interface can only be accessed by internal users".
+      #
+      # Setting the type at the write stage fixes every future enrollment, which
+      # a per-user edit cannot. The stage is identified by name and the bundled
+      # blueprint sets only user_creation_mode, so this attribute is ours.
+      #
+      # Deliberately NOT set: create_users_group. The Google source accepts any
+      # Google account, so auto-adding every enrollee to homelab would grant
+      # anyone with a Gmail address access to every application bound to it.
+      # App access is therefore opt-in: membership of homelab is the allowlist,
+      # and it is assigned per user.
+      - id: default-source-enrollment-write
+        model: authentik_stages_user_write.userwritestage
+        identifiers:
+          name: default-source-enrollment-write
+        attrs:
+          user_creation_mode: always_create
+          user_type: internal
+kind: ConfigMap
+metadata:
+  name: authentik-config
+  namespace: authentik
