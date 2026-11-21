@@ -1577,7 +1577,7 @@ spec:
             name: metallb-excludel2
       containers:
       - name: speaker
-        image: quay.io/metallb/speaker:v0.14.8
+        image: quay.io/metallb/speaker:v0.14.8@sha256:fd86bfc502601d6525739d411a0045e7085a4008a732be7e271c851800952142
         args:
         - --port=7472
         - --log-level=info
@@ -1698,7 +1698,7 @@ spec:
         runAsUser: 65534
       containers:
       - name: controller
-        image: quay.io/metallb/controller:v0.14.8
+        image: quay.io/metallb/controller:v0.14.8@sha256:93b83b39d06bbcb0aedc0eb750c9e43e3c46dc08a6f88400ed96105224d784ec
         args:
         - --port=7472
         - --log-level=info

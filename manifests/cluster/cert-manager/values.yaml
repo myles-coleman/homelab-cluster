@@ -8,3 +8,18 @@ podDnsConfig:
   nameservers:
     - 1.1.1.1
     - 9.9.9.9
+
+# Digest pins (spec 06 task 2.0). The digest is appended to the tag rather than
+# set through the chart's `digest` field, because that field renders
+# `repository@digest` and drops the human-readable tag.
+image:
+  tag: v1.19.3@sha256:a07125af5e83ecaa3f48317e79c8fae08f0a36654cec45bf0a3404f651b00387
+cainjector:
+  image:
+    tag: v1.19.3@sha256:eb1df56668b6e61bd902febe816568e7e47f47276121bc0e1222890871c61e50
+webhook:
+  image:
+    tag: v1.19.3@sha256:2625754083d5e2d682a4582fd3fab41a0aa79e7c732c90491373c4f3be5e65b7
+startupapicheck:
+  image:
+    tag: v1.19.3@sha256:e51a062513381070f43be0a435b029f5d116d6a3e1340deeb8eace5ca7a8a08f

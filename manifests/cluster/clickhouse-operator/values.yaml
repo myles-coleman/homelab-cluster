@@ -1,1 +1,13 @@
 # ClickHouse Operator values
+
+# Digest pins (spec 06 task 2.0). Tags retained; digests appended by the chart's
+# `repository:tag` templating.
+operator:
+  image:
+    tag: 0.27.3@sha256:251c4fda281854c3adba6710098c637d076361282bf6ea4fc6a402dd93ef0e08
+metrics:
+  image:
+    tag: 0.27.3@sha256:6831ce244b81b9639740941a0fe8f0cfc534c4860b22ff0eb668307b6c1a3116
+crdHook:
+  image:
+    tag: latest@sha256:8919c149c2e3d6860e0143c117900e64d71395172aaef0e01e604bb98c8e7ce0
