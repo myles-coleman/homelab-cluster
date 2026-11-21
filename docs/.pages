@@ -1,6 +1,0 @@
-nav:
-  - Home: index.md
-  - Architecture: architecture
-  - Guides: guides
-  - Operator Guide: operator-guide
-  - Reference: reference

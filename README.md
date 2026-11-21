@@ -21,7 +21,7 @@ manifests/cluster/    # Per-service Kubernetes manifests (Kustomize)
 manifests/bootstrap/  # ArgoCD Application definitions (auto-generated)
 manifests/dist/       # Rendered manifests ArgoCD applies (auto-generated)
 modules/              # Terragrunt/OpenTofu infrastructure modules
-docs/                 # MkDocs documentation site
+docs/                 # Markdown documentation
 ```
 
 ## Deployment
@@ -30,7 +30,9 @@ Push to `main` → GitHub Actions → ArgoCD syncs to cluster. Services deploy i
 
 ## Documentation
 
-Full documentation is available at [docs.cowlab.org](https://docs.cowlab.org) (or [GitHub Pages](https://myles-coleman.github.io/homelab-cluster)):
+Documentation lives in [`docs/`](docs/) as plain Markdown and is browsable on
+GitHub. There is no generated site: it was removed along with the MkDocs build
+and the GitHub Pages workflow, so `docs.cowlab.org` is no longer updated.
 
 - [Architecture](docs/architecture/) — Cluster topology, GitOps flow, infrastructure components
 - [Guides](docs/guides/) — Adding services, managing secrets, DNS and ingress

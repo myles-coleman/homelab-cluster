@@ -69,7 +69,7 @@ Infrastructure changes are deployed via the `deploy.yaml` GitHub Actions workflo
 - **Purpose**: Manages DNS records and Cloudflare Zero Trust Tunnel
 - **Key resources**:
     - DNS A records: wildcard (`*.cowlab.org` → LB IP), plus specific records for chat, npm, pihole, pikvm, vaultwarden
-    - DNS CNAME record: `docs.cowlab.org` → GitHub Pages
+    - DNS CNAME record: `docs.cowlab.org` → GitHub Pages (retired; the site is no longer deployed)
     - Cloudflare Zero Trust Tunnel: catch-all 404 rule only; no service hostname is published
     - Tunnel token (used by `cloudflared` pod in-cluster)
 - **Configuration files**:

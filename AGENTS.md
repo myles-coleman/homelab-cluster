@@ -66,7 +66,7 @@ There is no dedicated GPU node. All five nodes are NVMe-backed Raspberry Pi 5 ag
 - `manifests/bootstrap/` — AUTO-GENERATED ArgoCD Application definitions. Never edit directly.
 - `manifests/dist/` — AUTO-GENERATED rendered manifests. This is what ArgoCD applies. Never edit directly.
 - `modules/` — Terragrunt/OpenTofu infrastructure modules (argocd-install, argocd-configure, cloudflare, s3-backups, authentik, bootstrap).
-- `docs/` — MkDocs documentation site (Material theme).
+- `docs/` — Plain Markdown documentation, browsable in the repository.
 - `scripts/generate-apps.sh` — Generates ArgoCD Application YAMLs from the cluster kustomization.
 - `common-inputs.yaml` — Shared Terragrunt variables.
 - `root.hcl` — Terragrunt root config (S3 backend, tofu binary).
@@ -126,7 +126,6 @@ On push to main, GitHub Actions runs these workflows based on changed paths:
 
 - **manifests/cluster/** changes → `generate-apps.yml` runs `scripts/generate-apps.sh` to regenerate `manifests/bootstrap/*-app.yaml`, commits and pushes
 - **modules/** changes → `deploy.yaml` runs Terragrunt plan (on PR) / apply (on merge). Uses Tailscale VPN for cluster access and AWS OIDC for state bucket.
-- **docs/** changes → `pages.yaml` builds MkDocs and deploys to GitHub Pages
 - **Any push to main** → `release.yaml` runs semantic release (versioning + changelog)
 
 ### ArgoCD Bootstrap Chain
