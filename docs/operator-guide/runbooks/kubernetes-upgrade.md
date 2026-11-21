@@ -17,7 +17,7 @@ control plane; some mistakes here are not fixed by re-deploying.
 | kube-vip holds `10.0.0.200` on `node0` in ARP mode | the VIP dies with k3s and returns only when k3s is schedulable; agents point at it |
 | Longhorn has 2 replicas per volume (one legacy volume has 1) | exactly **one** agent may be down at a time |
 | `node0`–`node3` run a 16K-page kernel | their closures miss upstream caches and build from source; their deploys are slow |
-| `node4` is the only GPU node and runs 4K pages | its deploys are fast; never assume `node0`–`node3` behave like it |
+| `node4` runs a 4K-page kernel (no GPU) | its deploys are fast; `node0`–`node3` run 16K pages and build from source |
 | `sandbox-node` is a microvm on `homelab` with `restartIfChanged = false` | a `homelab` deploy installs its definition but **does not restart it** |
 | The guest is not reachable from the LAN except through `homelab` | the gate needs a jump host (`K3S_GUEST_JUMP`) |
 | ArgoCD is installed by hand (helm), not by ArgoCD | its supported k8s range must be checked before a hop |

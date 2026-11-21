@@ -13,7 +13,7 @@ The cluster runs on 4x Raspberry Pi 5 single-board computers, each equipped with
 
 ## Operating System
 
-All nodes run **NixOS** (unstable channel), managed in a separate repository ([rpi5-nixos](https://github.com/myles-coleman/rpi5-nixos)). Key OS-level configuration:
+All nodes run **NixOS** (unstable channel), managed in the [nixos](https://github.com/myles-coleman/nixos) monorepo. Key OS-level configuration:
 
 - **k3s v1.33** — lightweight Kubernetes distribution
 - **open-iscsi** — required by Longhorn for distributed block storage
