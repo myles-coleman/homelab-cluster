@@ -34,7 +34,7 @@ spec:
         - .spec.target.template.engineVersion
         - .spec.target.template.mergePolicy
   source:
-    path: manifests/cluster/searxng
+    path: manifests/dist/searxng
     repoURL: "https://github.com/myles-coleman/homelab-cluster"
     targetRevision: main
   syncPolicy:

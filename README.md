@@ -19,6 +19,7 @@ A GitOps-managed Kubernetes homelab cluster running on 5x Raspberry Pi 5 nodes p
 ```
 manifests/cluster/    # Per-service Kubernetes manifests (Kustomize)
 manifests/bootstrap/  # ArgoCD Application definitions (auto-generated)
+manifests/dist/       # Rendered manifests ArgoCD applies (auto-generated)
 modules/              # Terragrunt/OpenTofu infrastructure modules
 docs/                 # MkDocs documentation site
 ```
