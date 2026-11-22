@@ -4,6 +4,9 @@ resources:
 - ClusterRoleBinding_cluster_dex-cluster.yaml
 - ClusterRole_cluster_dex.yaml
 - Deployment_dex_dex.yaml
+- ExternalSecret_dex_argocd-client-secret.yaml
+- ExternalSecret_dex_github-client-id.yaml
+- ExternalSecret_dex_github-client-secret.yaml
 - HTTPRoute_dex_dex.yaml
 - Namespace_cluster_dex.yaml
 - RoleBinding_dex_dex.yaml

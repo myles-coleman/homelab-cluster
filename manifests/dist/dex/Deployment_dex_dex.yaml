@@ -18,7 +18,6 @@ spec:
       app.kubernetes.io/name: dex
   template:
     metadata:
-      annotations: null
       labels:
         app.kubernetes.io/instance: dex
         app.kubernetes.io/name: dex
@@ -32,7 +31,22 @@ spec:
         - --telemetry-addr
         - 0.0.0.0:5558
         - /etc/dex/config.yaml
-        env: null
+        env:
+        - name: ARGOCD_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: ARGOCD_CLIENT_SECRET
+              name: argocd-client-secret
+        - name: GITHUB_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              key: GITHUB_CLIENT_ID
+              name: github-client-id
+        - name: GITHUB_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: GITHUB_CLIENT_SECRET
+              name: github-client-secret
         image: dexidp/dex:latest-distroless@sha256:6e8ebefbded0bcb409468c81f6d5cc18a582d6c25b5ac72db26a327b2936bcfb
         imagePullPolicy: IfNotPresent
         livenessProbe:

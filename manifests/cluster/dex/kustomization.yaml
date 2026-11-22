@@ -9,6 +9,8 @@ resources:
 components:
   - secrets/github
   - secrets/argocd
+  # Data-bearing objects cannot be pruned. See _prune-protection/.
+  - ../_prune-protection
 
 secretGenerator:
 - name: dex-config
@@ -16,7 +18,3 @@ secretGenerator:
     - config.yaml
   options:
     disableNameSuffixHash: true
-
-# Data-bearing objects cannot be pruned. See _prune-protection/.
-components:
-  - ../_prune-protection
