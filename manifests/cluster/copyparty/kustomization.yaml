@@ -10,6 +10,7 @@ resources:
   - service.yaml
   - middleware-authentik.yaml
   - middleware-idp-key.yaml
+  - middleware-auth-error-page.yaml
   - httproute.yaml
   - httproute-outpost.yaml
   - networkpolicy.yaml

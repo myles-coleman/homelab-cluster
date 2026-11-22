@@ -1,0 +1,30 @@
+# Temporary throwaway app for spec 07. It returns 200 at `/` and 403 at
+# `/forbidden`, so the error-page middleware can be proven without touching a
+# production host. Removed in task 5.7.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-canary
+  namespace: auth-canary
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      server_name _;
+
+      location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 'ok';
+      }
+
+      location = /forbidden {
+        default_type text/plain;
+        return 403 'forbidden by canary\n';
+      }
+
+      location / {
+        default_type text/plain;
+        return 200 'auth canary ok\n';
+      }
+    }

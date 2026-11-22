@@ -4,6 +4,7 @@ resources:
 - Deployment_jellyseerr_jellyseerr.yaml
 - HTTPRoute_jellyseerr_jellyseerr-outpost.yaml
 - HTTPRoute_jellyseerr_jellyseerr.yaml
+- Middleware_jellyseerr_authentik-error-page.yaml
 - Middleware_jellyseerr_authentik.yaml
 - Namespace_cluster_jellyseerr.yaml
 - PersistentVolumeClaim_jellyseerr_jellyseerr-config.yaml

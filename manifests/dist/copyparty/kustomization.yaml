@@ -5,6 +5,7 @@ resources:
 - Deployment_copyparty_copyparty.yaml
 - HTTPRoute_copyparty_copyparty-outpost.yaml
 - HTTPRoute_copyparty_copyparty.yaml
+- Middleware_copyparty_authentik-error-page.yaml
 - Middleware_copyparty_authentik.yaml
 - Middleware_copyparty_idp-key.yaml
 - Namespace_cluster_copyparty.yaml

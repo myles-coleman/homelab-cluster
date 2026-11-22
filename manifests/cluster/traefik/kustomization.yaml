@@ -11,6 +11,7 @@ resources:
   # Shared Authentik forward-auth gate, referenced by HTTPRoutes in other
   # namespaces through a ReferenceGrant.
   - middleware-authentik.yaml
+  - middleware-auth-error-page.yaml
 
 # Data-bearing objects cannot be pruned. See _prune-protection/.
 components:

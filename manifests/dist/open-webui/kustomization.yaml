@@ -5,6 +5,7 @@ resources:
 - ExternalSecret_open-webui_open-webui-secrets.yaml
 - HTTPRoute_open-webui_openwebui-outpost.yaml
 - HTTPRoute_open-webui_openwebui.yaml
+- Middleware_open-webui_authentik-error-page.yaml
 - Middleware_open-webui_authentik.yaml
 - Namespace_cluster_open-webui.yaml
 - NetworkPolicy_open-webui_open-webui.yaml

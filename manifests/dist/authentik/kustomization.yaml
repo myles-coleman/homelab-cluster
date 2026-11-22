@@ -4,14 +4,17 @@ resources:
 - ClusterRoleBinding_cluster_authentik-authentik.yaml
 - ClusterRole_cluster_authentik-authentik.yaml
 - ConfigMap_authentik_authentik-config.yaml
+- ConfigMap_authentik_authentik-error-page.yaml
 - ConfigMap_authentik_authentik-postgresql-configuration.yaml
 - ConfigMap_authentik_authentik-postgresql-extended-configuration.yaml
+- Deployment_authentik_authentik-error-page.yaml
 - Deployment_authentik_authentik-outpost.yaml
 - Deployment_authentik_authentik-server.yaml
 - Deployment_authentik_authentik-worker.yaml
 - ExternalSecret_authentik_authentik-secrets.yaml
 - HTTPRoute_authentik_authentik.yaml
 - Namespace_cluster_authentik.yaml
+- NetworkPolicy_authentik_allow-gateway-to-error-page.yaml
 - NetworkPolicy_authentik_allow-gateway-to-outpost.yaml
 - NetworkPolicy_authentik_allow-gateway-to-server.yaml
 - NetworkPolicy_authentik_allow-intra-namespace.yaml
@@ -24,6 +27,7 @@ resources:
 - Secret_authentik_authentik.yaml
 - ServiceAccount_authentik_authentik-postgresql.yaml
 - ServiceAccount_authentik_authentik.yaml
+- Service_authentik_authentik-error-page.yaml
 - Service_authentik_authentik-outpost.yaml
 - Service_authentik_authentik-postgresql-hl.yaml
 - Service_authentik_authentik-postgresql.yaml
