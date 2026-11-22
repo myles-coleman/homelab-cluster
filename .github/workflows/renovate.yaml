@@ -15,7 +15,9 @@ name: Renovate
 #
 # The token must not be GITHUB_TOKEN. Pull requests opened with GITHUB_TOKEN do
 # not trigger `pull_request` workflows, so dist-verify would never run on them
-# and the merge gate would silently disappear.
+# and the merge gate would silently disappear. It also needs workflow write
+# access, because Renovate bumps the `uses:` pins in this directory and GitHub
+# rejects a push that touches .github/workflows/** without it.
 on:
   schedule:
     # Weekly. A homelab does not need faster, and a slower cadence keeps the
@@ -37,6 +39,11 @@ jobs:
   renovate:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # The token is an environment secret, not a repository secret, so a
+    # pull_request job cannot read a write-capable credential. The environment's
+    # branch policy allows `main` only; it has no required reviewers on purpose,
+    # because those would stall every scheduled run.
+    environment: renovate
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
