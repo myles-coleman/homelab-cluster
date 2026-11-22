@@ -14,10 +14,16 @@ spec:
 # Upload history and resume state for /cfg/hists.
 #
 # This replaced a 1 GiB claim (`copyparty-config`) whose Longhorn volume wedged in
-# `creating`/`attaching` and would not start an engine. That volume held nothing
-# but this history, so it is abandoned in place rather than deleted: the
-# Prune=false annotation from ../_prune-protection means removing the object from
-# Git does not delete it from the cluster.
+# `creating`/`attaching` and would not start an engine for 379 days. That volume
+# held nothing but this history, so the old claim was left in place rather than
+# deleted: `Prune=false` (from ../_prune-protection) stops ArgoCD removing it, and
+# nothing here claimed the data was worth keeping.
+#
+# It was deleted by hand once this replacement had been serving uploads for a few
+# hours. Leaving it was not free: ArgoCD tracks what it has applied, so the orphan
+# showed as an extraneous OutOfSync resource on the copyparty Application for as
+# long as it existed. A future replacement of this claim should plan for that
+# deletion rather than inheriting it.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
