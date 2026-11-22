@@ -90,8 +90,11 @@ spec:
             secretKeyRef:
               name: open-webui-secrets
               key: secret-key
+        # The host Open WebUI believes it is served from. It is what share links
+        # and any callback URL are built from, so it has to match the HTTPRoute
+        # hostname rather than the host the user happened to type.
         - name: WEBUI_URL
-          value: "https://openwebui.cowlab.org"
+          value: "https://chat.cowlab.org"
         ports:
         - containerPort: 8080
         resources:
