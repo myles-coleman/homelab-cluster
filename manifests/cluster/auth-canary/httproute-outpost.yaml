@@ -1,0 +1,35 @@
+# The Authentik login callback for the canary host.
+#
+# Single-application forward auth redirects the browser to
+# `/outpost.goauthentik.io/...` on the application's own hostname, and the
+# outpost is reached through this route. It must NOT carry the forward-auth or
+# error-page filters — it is the endpoint that performs authentication.
+#
+# The cross-namespace backend is permitted by ReferenceGrant
+# `allow-outpost-routes` in the `authentik` namespace.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: auth-canary-outpost
+  namespace: auth-canary
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - auth-canary.cowlab.org
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /outpost.goauthentik.io
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: authentik-outpost
+          namespace: authentik
+          port: 9000
+          weight: 1

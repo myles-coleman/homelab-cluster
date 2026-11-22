@@ -1,7 +1,6 @@
-# Temporary canary route for spec 07. The forward-auth gate is added in task
-# 4.1 for the first post-change login; here only the error-page middleware is
-# present so the 403 replacement can be proven without touching a production
-# host.
+# Temporary canary route for spec 07. The error-page middleware wraps the
+# forward-auth gate: it catches a 403 from the gate or the backend, while a 302
+# from the gate passes through to login.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -27,6 +26,11 @@ spec:
             group: traefik.io
             kind: Middleware
             name: authentik-error-page
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: authentik
       backendRefs:
         - group: ""
           kind: Service
