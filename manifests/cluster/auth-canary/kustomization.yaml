@@ -8,7 +8,9 @@ resources:
   - deployment.yaml
   - service.yaml
   - middleware-auth-error-page.yaml
+  - middleware-authentik.yaml
   - httproute.yaml
+  - httproute-outpost.yaml
 
 # Data-bearing objects cannot be pruned. See _prune-protection/.
 components:

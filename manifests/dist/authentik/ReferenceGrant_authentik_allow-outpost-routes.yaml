@@ -14,6 +14,9 @@ spec:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
     namespace: open-webui
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: auth-canary
   to:
   - group: ""
     kind: Service

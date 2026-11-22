@@ -3,7 +3,9 @@ kind: Kustomization
 resources:
 - ConfigMap_auth-canary_auth-canary.yaml
 - Deployment_auth-canary_auth-canary.yaml
+- HTTPRoute_auth-canary_auth-canary-outpost.yaml
 - HTTPRoute_auth-canary_auth-canary.yaml
 - Middleware_auth-canary_authentik-error-page.yaml
+- Middleware_auth-canary_authentik.yaml
 - Namespace_cluster_auth-canary.yaml
 - Service_auth-canary_auth-canary.yaml
