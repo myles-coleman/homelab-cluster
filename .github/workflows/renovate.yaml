@@ -13,11 +13,14 @@ name: Renovate
 # the one pinned in scripts/tools.env re-serialises the whole rendered tree, so
 # the PR would not match what CI renders.
 #
-# The token must not be GITHUB_TOKEN. Pull requests opened with GITHUB_TOKEN do
-# not trigger `pull_request` workflows, so dist-verify would never run on them
-# and the merge gate would silently disappear. It also needs workflow write
-# access, because Renovate bumps the `uses:` pins in this directory and GitHub
-# rejects a push that touches .github/workflows/** without it.
+# Authentication is a GitHub App installation token, minted per run, rather than
+# a long-lived PAT. Two constraints it must satisfy:
+#   - pull requests it opens DO trigger workflows. GITHUB_TOKEN does not, so
+#     dist-verify would never run on a Renovate PR and the merge gate would
+#     silently disappear.
+#   - the App needs Workflows: write, because Renovate bumps the `uses:` pins in
+#     this directory and GitHub rejects a push touching .github/workflows/**
+#     without it.
 on:
   schedule:
     # Weekly. A homelab does not need faster, and a slower cadence keeps the
@@ -69,9 +72,22 @@ jobs:
           install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
           kustomize version
 
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ vars.RENOVATE_APP_ID }}
+          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+          owner: myles-coleman
+          repositories: homelab-cluster
+
       - name: Renovate
         env:
-          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+          RENOVATE_TOKEN: ${{ steps.app-token.outputs.token }}
+          # Attribute commits to the bot rather than to whatever user the token
+          # belongs to.
+          RENOVATE_USERNAME: ${{ steps.app-token.outputs.app-slug }}[bot]
+          RENOVATE_GIT_AUTHOR: ${{ steps.app-token.outputs.app-slug }}[bot] <${{ vars.RENOVATE_APP_ID }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com>
           RENOVATE_REPOSITORIES: '["myles-coleman/homelab-cluster"]'
           # postUpgradeTasks executes commands inside the repository, so the
           # only command permitted is the renderer itself.
