@@ -6,6 +6,11 @@
   "prConcurrentLimit": 3,
   "prHourlyLimit": 2,
   "rebaseWhen": "conflicted",
+  "postUpgradeTasks": {
+    "commands": ["./scripts/render-dist.sh"],
+    "fileFilters": ["manifests/dist/**"],
+    "executionMode": "update"
+  },
   "ignorePaths": [
     "manifests/dist/**",
     "manifests/bootstrap/**",

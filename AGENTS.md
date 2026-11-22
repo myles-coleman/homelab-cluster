@@ -106,10 +106,17 @@ before merge.
 - every `Namespace`, `PersistentVolumeClaim` and `PersistentVolume` carries
   `argocd.argoproj.io/sync-options: Prune=false`.
 
-**Image updates come from Renovate, and always need a re-render.** `renovate.json` bumps
+**Image updates come from Renovate, and the bot re-renders for you.** `renovate.json` bumps
 tags in `manifests/cluster/` and is deliberately blocked from `manifests/dist/`, because that
-tree is generated. A Renovate pull request therefore arrives with `dist-verify` red until the
-rendered tree catches up:
+tree is generated. Its `postUpgradeTasks` entry runs `./scripts/render-dist.sh` before it
+commits, so a Renovate PR arrives with the rendered tree already updated and `dist-verify`
+green.
+
+That only works in the self-hosted workflow (`.github/workflows/renovate.yaml`), because
+`postUpgradeTasks` is a self-hosted-only feature — so do not swap it for the Mend-hosted app
+without also accepting a manual re-render on every PR.
+
+Re-render by hand when you *amend* a Renovate PR, or when its run failed:
 
 ```bash
 git fetch origin && git switch <renovate-branch>

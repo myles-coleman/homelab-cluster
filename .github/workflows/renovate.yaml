@@ -1,0 +1,73 @@
+name: Renovate
+
+# Self-hosted Renovate, not the Mend app.
+#
+# The reason is `postUpgradeTasks` in renovate.json: Renovate runs
+# ./scripts/render-dist.sh before it commits, so a version bump arrives with
+# manifests/dist/ already regenerated and `dist-verify` green. postUpgradeTasks
+# is a self-hosted-only feature, and without it every Renovate PR would fail
+# dist-verify until a human re-rendered the tree.
+#
+# Running the CLI on the runner rather than the renovate action container is
+# deliberate: the container does not carry kustomize, and a version other than
+# the one pinned in scripts/tools.env re-serialises the whole rendered tree, so
+# the PR would not match what CI renders.
+#
+# The token must not be GITHUB_TOKEN. Pull requests opened with GITHUB_TOKEN do
+# not trigger `pull_request` workflows, so dist-verify would never run on them
+# and the merge gate would silently disappear.
+on:
+  schedule:
+    # Weekly. A homelab does not need faster, and a slower cadence keeps the
+    # review queue short enough to actually read.
+    - cron: "0 4 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: renovate
+  cancel-in-progress: false
+
+env:
+  RENOVATE_VERSION: 44.257.9
+
+jobs:
+  renovate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install pinned kustomize
+        # Must match scripts/tools.env exactly; render-dist.sh refuses to run
+        # otherwise, and a mismatch would re-serialise every file in dist/.
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          source scripts/tools.env
+
+          base="https://github.com/kubernetes-sigs/kustomize/releases/download"
+          archive="kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          url="${base}/kustomize%2Fv${KUSTOMIZE_VERSION}/${archive}"
+          curl -fsSL --retry 3 -o "/tmp/${archive}" "${url}"
+          curl -fsSL --retry 3 -o /tmp/kustomize-checksums.txt \
+            "${base}/kustomize%2Fv${KUSTOMIZE_VERSION}/checksums.txt"
+          ( cd /tmp && grep " ${archive}\$" kustomize-checksums.txt | sha256sum -c - )
+          tar -xzf "/tmp/${archive}" -C /tmp kustomize
+          install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
+          kustomize version
+
+      - name: Renovate
+        env:
+          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+          RENOVATE_REPOSITORIES: '["myles-coleman/homelab-cluster"]'
+          # postUpgradeTasks executes commands inside the repository, so the
+          # only command permitted is the renderer itself.
+          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^\\./scripts/render-dist\\.sh$"]'
+          LOG_LEVEL: info
+        run: npx --yes "renovate@${RENOVATE_VERSION}"
