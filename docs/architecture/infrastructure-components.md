@@ -96,5 +96,5 @@ See [Managing Secrets](../guides/managing-secrets.md) for usage patterns.
 - **Sync wave**: 10
 - **Key config**:
     - Tunnel ingress rules managed by the `cloudflare` unit in [`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform)
-    - Catch-all 404 rule only; no service hostname is published
-    - DNS records for tunneled services are created by the same `cloudflare` unit
+    - One `*.cowlab.org` rule routes every host to the Gateway's `websecure` listener, with `match_sn_ito_host` so the request's `Host` is the SNI the wildcard certificate covers. `jellyfin.cowlab.org` has its own rule because it does not go through the cluster, and the required `http_status:404` catch-all is last
+    - Remote access is per-host and opt-in: a proxied CNAME in `modules/cloudflare/records.tf`, created by the same `cloudflare` unit. The `*.cowlab.org` A record is LAN-only, so a host without that CNAME resolves inside the network and nowhere else
