@@ -11,7 +11,7 @@ serviceAccount:
 
 image:
   repository: dexidp/dex
-  tag: latest-distroless@sha256:6e8ebefbded0bcb409468c81f6d5cc18a582d6c25b5ac72db26a327b2936bcfb
+  tag: latest-distroless@sha256:41157e79058a0c37567406f21e0ffa3f447e9f690d46a110698fe12a97117d59
 
 rbac:
   create: true
