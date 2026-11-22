@@ -39,4 +39,3 @@ resources:
 - squid-app.yaml
 - agent-sandbox-app.yaml
 - sandbox-telemetry-app.yaml
-- auth-canary-app.yaml
