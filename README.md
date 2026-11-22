@@ -20,9 +20,13 @@ A GitOps-managed Kubernetes homelab cluster running on 5x Raspberry Pi 5 nodes p
 manifests/cluster/    # Per-service Kubernetes manifests (Kustomize)
 manifests/bootstrap/  # ArgoCD Application definitions (auto-generated)
 manifests/dist/       # Rendered manifests ArgoCD applies (auto-generated)
-modules/              # Terragrunt/OpenTofu infrastructure modules
 docs/                 # Markdown documentation
 ```
+
+Infrastructure as code does not live here. ArgoCD installation, Cloudflare DNS and
+tunnel rules, Longhorn's S3 backup buckets, Authentik configuration, SigNoz alerts and
+dashboards, and Tailscale ACLs are Terragrunt/OpenTofu units in a separate repository:
+[`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform).
 
 ## Deployment
 

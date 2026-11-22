@@ -76,38 +76,23 @@ If your service uses `<name>.cowlab.org`, **no DNS changes are needed** — the 
 
 ### For Non-Standard DNS
 
-If you need a specific DNS record (e.g., a different domain, or an A record pointing to a specific IP instead of the load balancer), add it via Terragrunt:
+If you need a specific DNS record (e.g., a different domain, or an A record pointing to a specific IP instead of the load balancer), add it to `modules/cloudflare/records.tf` in [`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform), then open a pull request there — that repository's `deploy.yaml` plans on the PR and applies on merge to `main`.
 
-1. Edit `modules/cloudflare/records.tf`
-2. Add a new `cloudflare_record` resource:
-
-```hcl
-resource "cloudflare_record" "my_service" {
-  zone_id = data.cloudflare_zone.domain.id
-  name    = "my-service"
-  content = "10.0.0.99"
-  type    = "A"
-  ttl     = 1
-  proxied = false
-}
-```
-
-3. Open a **pull request** — the `deploy.yaml` workflow runs `terragrunt plan` for review
-4. Merge to `main` — `terragrunt apply` creates the record
+DNS is managed as code, just not in this repository. Nothing in `homelab-cluster` configures Cloudflare.
 
 ## Cloudflare Zero Trust Tunnel
 
 For services that need public internet access (outside the home network), the cluster uses a Cloudflare Zero Trust Tunnel:
 
 - **Current routes**: none (catch-all 404). `jellyfin.cowlab.org` was withdrawn with the service.
-- **Configuration**: Managed via Terragrunt in `modules/cloudflare/tunnel.tf`
+- **Configuration**: Managed by the `cloudflare` unit in [`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform) (`tunnel.tf`); the cluster side is only the tunnel token in `manifests/cluster/cloudflared/values.yaml`
 - **How it works**: Cloudflare's edge network receives the request and forwards it through an encrypted tunnel to the `cloudflared` pod running in the cluster, which then routes to Traefik
 
 ### Adding a New Tunnel Route
 
-1. Edit `modules/cloudflare/tunnel.tf` to add a new ingress rule
+1. Add the ingress rule in `modules/cloudflare/tunnel.tf` in [`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform)
 2. Create a Cloudflare Access policy if authentication is needed
-3. Open a pull request for review
+3. Open a pull request in that repository — its `deploy.yaml` runs `terragrunt plan` for review
 
 ## TLS Certificates
 

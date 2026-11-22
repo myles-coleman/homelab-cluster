@@ -231,4 +231,4 @@ See [Sync Wave Reference](../reference/sync-wave-reference.md) for the current w
 
 ## Optional: DNS Records
 
-The wildcard `*.cowlab.org` handles most cases. If you need a specific DNS record (e.g., a non-cowlab.org domain), add it via Terragrunt in `modules/cloudflare/records.tf` and open a pull request.
+The wildcard `*.cowlab.org` handles most cases. If you need a specific DNS record (e.g., a non-cowlab.org domain), add it to `modules/cloudflare/records.tf` in [`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform) — DNS is managed as code, just not in this repository.
