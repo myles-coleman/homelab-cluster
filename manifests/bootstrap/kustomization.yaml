@@ -40,3 +40,4 @@ resources:
 - agent-sandbox-app.yaml
 - sandbox-telemetry-app.yaml
 - auth-canary-app.yaml
+- transcript-app.yaml
