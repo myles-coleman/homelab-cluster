@@ -44,7 +44,23 @@ data:
           slug: google
         attrs:
           name: Google
-          provider_type: google
+          # Spec 07: switch from the google provider type to openidconnect so the
+          # authorization URL can carry prompt=select_account. The google type
+          # ignores custom URLs; openidconnect uses them. Authentik builds the
+          # final redirect with urlparse -> parse_qs -> urlencode, so the query
+          # string on authorization_url is preserved. Do not set
+          # oidc_well_known_url: a discovery fetch would replace the custom
+          # authorization URL. Rollback:
+          # docs/operator-guide/runbooks/authentik-google-source-rollback.md
+          provider_type: openidconnect
+          authorization_url: https://accounts.google.com/o/oauth2/v2/auth?prompt=select_account
+          access_token_url: https://oauth2.googleapis.com/token
+          profile_url: https://openidconnect.googleapis.com/v1/userinfo
+          # The google type used post_body; keep that behavior explicit now that
+          # the source honors the stored value.
+          authorization_code_auth_method: post_body
+          pkce: S256
+          additional_scopes: "*openid email profile"
           consumer_key: !Env [GOOGLE_OAUTH_CLIENT_ID, null]
           consumer_secret: !Env [GOOGLE_OAUTH_CLIENT_SECRET, null]
           enabled: true
