@@ -10,12 +10,12 @@ data:
       # https://auth.cowlab.org/source/oauth/callback/google/
       #
       # Google matches the redirect URI string exactly, and Authentik builds it
-      # from the host the browser is on. That is why the HTTPRoute still serves
-      # both auth.cowlab.org and authentik.cowlab.org: while the old host is
-      # reachable, a login started there produces the old URI. Add the new URI in
-      # the Google console BEFORE relying on the new host, keep both registered
-      # until the old hostname is removed from the route, and only then delete the
-      # old one.
+      # from the host the browser is on. That is why the hostname in the HTTPRoute
+      # and the URI registered in the console have to move together: a login
+      # started on a host Google does not know about fails at Google, with no
+      # error anywhere in the cluster. `authentik.cowlab.org` and its URI were
+      # retired with the rename; only the auth.cowlab.org URI should be registered
+      # now.
       - id: google-source
         model: authentik_sources_oauth.oauthsource
         identifiers:

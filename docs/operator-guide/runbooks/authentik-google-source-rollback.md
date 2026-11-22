@@ -56,7 +56,7 @@ the blueprint commit, not the switch-account error page or this runbook.
    no longer contain `prompt=select_account`:
 
    ```bash
-   curl -sS -o /dev/null -D - https://authentik.cowlab.org/source/oauth/login/google/
+   curl -sS -o /dev/null -D - https://auth.cowlab.org/source/oauth/login/google/
    ```
 
 5. Sign in once and confirm the existing user and groups are unchanged.
