@@ -72,6 +72,34 @@ jobs:
           install -m 0755 /tmp/kustomize /usr/local/bin/kustomize
           kustomize version
 
+      - name: Install pinned helm and helmfile
+        # The chart render has to reproduce what `task helm` produces locally, so
+        # both tools come from scripts/tools.env and are checksum-verified. A
+        # different helm re-serialises the whole chart.
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          source scripts/tools.env
+
+          helm_archive="helm-v${HELM_VERSION}-linux-amd64.tar.gz"
+          curl -fsSL --retry 3 -o "/tmp/${helm_archive}" "https://get.helm.sh/${helm_archive}"
+          curl -fsSL --retry 3 -o /tmp/helm.sha256sum "https://get.helm.sh/${helm_archive}.sha256sum"
+          ( cd /tmp && sha256sum -c helm.sha256sum )
+          tar -xzf "/tmp/${helm_archive}" -C /tmp linux-amd64/helm
+          install -m 0755 /tmp/linux-amd64/helm /usr/local/bin/helm
+
+          hf_archive="helmfile_${HELMFILE_VERSION}_linux_amd64.tar.gz"
+          hf_base="https://github.com/helmfile/helmfile/releases/download/v${HELMFILE_VERSION}"
+          curl -fsSL --retry 3 -o "/tmp/${hf_archive}" "${hf_base}/${hf_archive}"
+          curl -fsSL --retry 3 -o /tmp/helmfile-checksums.txt \
+            "${hf_base}/helmfile_${HELMFILE_VERSION}_checksums.txt"
+          ( cd /tmp && grep " ${hf_archive}\$" helmfile-checksums.txt | sha256sum -c - )
+          tar -xzf "/tmp/${hf_archive}" -C /tmp helmfile
+          install -m 0755 /tmp/helmfile /usr/local/bin/helmfile
+
+          helm version --short
+          helmfile --version
+
       - name: Set up Node
         # Renovate's package declares `engines: node ^24.11.0 || ^26.13.0`.
         # The runner's default Node 22 is missing RegExp.escape, which Renovate
@@ -99,6 +127,6 @@ jobs:
           RENOVATE_REPOSITORIES: '["myles-coleman/homelab-cluster"]'
           # postUpgradeTasks executes commands inside the repository, so the
           # only command permitted is the renderer itself.
-          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^\\./scripts/render-dist\\.sh$"]'
+          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^\\./scripts/render-helm-charts\\.sh$","^\\./scripts/render-dist\\.sh$"]'
           LOG_LEVEL: info
         run: npx --yes "renovate@${RENOVATE_VERSION}"
