@@ -25,8 +25,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: test
+  agent-broker:
+    name: agent-broker
     runs-on: ubuntu-24.04
     # Spec 30 FR-48: the PR job reads contents only. Declared per job as well as
     # at workflow level so the audit can check every pull_request job directly.
@@ -63,7 +63,7 @@ jobs:
     # secret-free; this job runs only on main or the daily schedule and uses the
     # automatic read-only token.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    needs: test
+    needs: agent-broker
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -80,7 +80,7 @@ jobs:
     # Image pushes only happen from main; a pull_request run never gets a
     # registry credential.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: test
+    needs: agent-broker
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -131,7 +131,7 @@ jobs:
     # arm64: the publisher holds the GitHub App key and must never run on the
     # amd64 gVisor sandbox node (FR-49).
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: test
+    needs: agent-broker
     runs-on: ubuntu-24.04
     permissions:
       contents: read
