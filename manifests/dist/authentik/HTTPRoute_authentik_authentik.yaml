@@ -5,6 +5,7 @@ metadata:
   namespace: authentik
 spec:
   hostnames:
+  - auth.cowlab.org
   - authentik.cowlab.org
   parentRefs:
   - group: gateway.networking.k8s.io

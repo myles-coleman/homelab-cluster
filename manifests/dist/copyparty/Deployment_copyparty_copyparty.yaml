@@ -53,6 +53,9 @@ spec:
         - mountPath: /cfg/copyparty.conf
           name: config-volume
           subPath: copyparty.conf
+        - mountPath: /cfg/ui
+          name: ui-volume
+          readOnly: true
         - mountPath: /w
           name: data-volume
         - mountPath: /w/media
@@ -68,6 +71,9 @@ spec:
       - configMap:
           name: copyparty-config
         name: config-volume
+      - configMap:
+          name: copyparty-ui
+        name: ui-volume
       - name: data-volume
         persistentVolumeClaim:
           claimName: copyparty-data

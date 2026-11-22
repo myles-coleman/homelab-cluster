@@ -11,7 +11,7 @@ spec:
       namespace: traefik
       sectionName: websecure
   hostnames:
-    - openwebui.cowlab.org
+    - chat.cowlab.org
   rules:
     - matches:
         - path:

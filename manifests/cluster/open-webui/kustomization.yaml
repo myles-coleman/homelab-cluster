@@ -10,6 +10,8 @@ resources:
   - middleware-auth-error-page.yaml
   - httproute.yaml
   - httproute-outpost.yaml
+  # openwebui.cowlab.org -> chat.cowlab.org
+  - httproute-legacy-host.yaml
   - network-policy.yaml
 
 # Data-bearing objects cannot be pruned. See _prune-protection/.

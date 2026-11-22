@@ -7,7 +7,15 @@ data:
     entries:
       # The login-page button. slug must stay "google": the redirect URI
       # registered in Google Cloud is
-      # https://authentik.cowlab.org/source/oauth/callback/google/
+      # https://auth.cowlab.org/source/oauth/callback/google/
+      #
+      # Google matches the redirect URI string exactly, and Authentik builds it
+      # from the host the browser is on. That is why the HTTPRoute still serves
+      # both auth.cowlab.org and authentik.cowlab.org: while the old host is
+      # reachable, a login started there produces the old URI. Add the new URI in
+      # the Google console BEFORE relying on the new host, keep both registered
+      # until the old hostname is removed from the route, and only then delete the
+      # old one.
       - id: google-source
         model: authentik_sources_oauth.oauthsource
         identifiers:

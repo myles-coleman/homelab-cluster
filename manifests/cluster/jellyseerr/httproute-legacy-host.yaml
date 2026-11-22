@@ -1,0 +1,41 @@
+# Keeps the pre-rename hostname working after Jellyseerr became Seerr.
+#
+# This is a redirect rather than an extra `hostnames:` entry on the real route,
+# and that is deliberate. The Authentik outpost matches an incoming request to an
+# application by exact `X-Forwarded-Host`; an application carries one external
+# host. Serving this backend on both names would therefore 400 on whichever one
+# the Authentik application is not bound to. A redirect needs no application at
+# all, so the old URL keeps working regardless of how the provider is configured.
+#
+# RequestRedirect is a core Gateway API filter and terminal: it produces the
+# response itself, so this rule has no backendRefs and never reaches a Pod.
+#
+# Order of operations: deploy this, then repoint the Authentik application's
+# external host to https://seerr.cowlab.org. Between the two, the old host
+# redirects to a host that answers 400 - the redirect is the half that must be in
+# place first, because it is what stops the old URL from 400ing.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: seerr-legacy-host
+  namespace: jellyseerr
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - jellyseerr.cowlab.org
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            hostname: seerr.cowlab.org
+            statusCode: 301

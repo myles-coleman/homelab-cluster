@@ -1,0 +1,37 @@
+# Keeps the pre-rename hostname working: openwebui.cowlab.org -> chat.cowlab.org.
+#
+# A redirect rather than a second `hostnames:` entry on the real route, because
+# the Authentik outpost matches an application by exact `X-Forwarded-Host` and an
+# application carries one external host. A redirect needs no application, so the
+# old URL keeps working whatever the provider is bound to.
+#
+# RequestRedirect is a core Gateway API filter and terminal: it produces the
+# response itself, so this rule has no backendRefs and never reaches a Pod.
+#
+# Deploy this first, then repoint the Authentik application's external host to
+# https://chat.cowlab.org.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: openwebui-legacy-host
+  namespace: open-webui
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - openwebui.cowlab.org
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            hostname: chat.cowlab.org
+            statusCode: 301

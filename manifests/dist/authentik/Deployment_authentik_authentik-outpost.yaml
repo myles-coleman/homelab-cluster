@@ -18,7 +18,7 @@ spec:
         - name: AUTHENTIK_HOST
           value: http://authentik-server.authentik.svc.cluster.local
         - name: AUTHENTIK_HOST_BROWSER
-          value: https://authentik.cowlab.org
+          value: https://auth.cowlab.org
         - name: AUTHENTIK_INSECURE
           value: "true"
         - name: AUTHENTIK_TOKEN

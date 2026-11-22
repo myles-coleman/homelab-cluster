@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - configmap.yaml
+  - ui-configmap.yaml
   - persistent-volume-claim-longhorn.yaml
   - persistent-volume-nfs.yaml
   - persistent-volume-claim-nfs.yaml

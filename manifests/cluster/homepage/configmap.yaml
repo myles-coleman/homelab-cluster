@@ -21,9 +21,9 @@ data:
             - href: https://github.com/myles-coleman/homelab-cluster
   services.yaml: |
     - Downloaders:
-        - Jellyseerr:
-            icon: jellyseerr.svg
-            href: https://jellyseerr.cowlab.org/
+        - Seerr:
+            icon: seerr.svg
+            href: https://seerr.cowlab.org/
             description: Media Library Manager
         - Sonarr:
             icon: sonarr.svg
@@ -83,7 +83,7 @@ data:
             description: LLM Inference Server (Vulkan GPU)
         - Open WebUI:
             icon: open-webui.svg
-            href: https://openwebui.cowlab.org/
+            href: https://chat.cowlab.org/
             description: AI Chat Interface
 
     - System:

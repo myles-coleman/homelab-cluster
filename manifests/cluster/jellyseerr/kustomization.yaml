@@ -1,3 +1,21 @@
+# Seerr lives in a directory called jellyseerr, and that is not an oversight.
+#
+# The ArgoCD Application generated for a service is named after this directory
+# (scripts/generate-apps.sh), and every generated Application carries
+# `resources-finalizer.argocd.argoproj.io`. Renaming the directory therefore
+# deletes the old Application, and the finalizer cascade-deletes every object it
+# tracks - including this namespace and its PVC, which `Prune=false` does not
+# protect (Prune=false only governs sync-time pruning).
+#
+# So the rule is: rename what is safe to rename, and leave the two names that are
+# load-bearing.
+#   * Deployment, Service and the HTTPRoutes are `seerr`.
+#   * The namespace and the `jellyseerr-config` PVC keep their old names, because
+#     they are bound to each other and to Longhorn volume backup-dfa46de3c83c467a.
+#   * The directory keeps its old name because it names the ArgoCD Application.
+#
+# A true rename is a separate, planned migration: drop the finalizer, delete the
+# Application with --cascade=orphan, re-bind the volume to a new claim.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
@@ -9,6 +27,7 @@ resources:
   - middleware-auth-error-page.yaml
   - httproute.yaml
   - httproute-outpost.yaml
+  - httproute-legacy-host.yaml
   - config-pvc.yaml
 
 # Data-bearing objects cannot be pruned. See _prune-protection/.

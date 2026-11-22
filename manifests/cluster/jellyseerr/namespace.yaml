@@ -1,3 +1,13 @@
+# The namespace keeps its original name on purpose.
+#
+# It is bound to storage that cannot follow the Jellyseerr -> Seerr rename: the
+# `jellyseerr-config` claim is pinned to Longhorn volume
+# `backup-dfa46de3c83c467a`, and both the claim and the namespace carry
+# `Prune=false`. A namespace is also the unit a Longhorn volume is bound to, so
+# renaming it means deleting and re-binding the volume by hand.
+#
+# The workload identities (Deployment, Service, HTTPRoutes) do follow the rename;
+# see kustomization.yaml.
 apiVersion: v1
 kind: Namespace
 metadata:

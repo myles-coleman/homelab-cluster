@@ -1,7 +1,7 @@
 # The Authentik login callback for this host.
 #
 # Single-application forward auth does not send the browser to
-# authentik.cowlab.org for the callback: it redirects to
+# `<authentik host>` for the callback: it redirects to
 # `/outpost.goauthentik.io/...` on the application's own hostname, and the
 # outpost is reached through this route. It therefore must NOT carry the
 # forward-auth filter — it is the endpoint that performs the authentication.
@@ -11,7 +11,7 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: jellyseerr-outpost
+  name: seerr-outpost
   namespace: jellyseerr
 spec:
   parentRefs:
@@ -21,7 +21,7 @@ spec:
       namespace: traefik
       sectionName: websecure
   hostnames:
-    - jellyseerr.cowlab.org
+    - seerr.cowlab.org
   rules:
     - matches:
         - path:

@@ -50,6 +50,9 @@ spec:
         - name: config-volume
           mountPath: /cfg/copyparty.conf
           subPath: copyparty.conf
+        - name: ui-volume
+          mountPath: /cfg/ui
+          readOnly: true
         - name: data-volume
           mountPath: /w
         - name: media-volume
@@ -74,6 +77,10 @@ spec:
         configMap:
           # No credential lives in this file; see the ConfigMap's comment.
           name: copyparty-config
+      - name: ui-volume
+        configMap:
+          # Stylesheet exposed at /theme/theme.css; see ui-configmap.yaml.
+          name: copyparty-ui
       - name: data-volume
         persistentVolumeClaim:
           claimName: copyparty-data

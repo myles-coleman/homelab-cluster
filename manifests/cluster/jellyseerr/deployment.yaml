@@ -1,13 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: jellyseerr
+  # Seerr is the merged successor to Jellyseerr and Overseerr (see the directory
+  # comment in kustomization.yaml for why the namespace and this directory still
+  # say jellyseerr).
+  name: seerr
   namespace: jellyseerr
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: jellyseerr
+      app: seerr
   # The volumes this Deployment mounts are Longhorn ReadWriteOnce, so a new pod
   # cannot attach them while the old pod still holds them. maxSurge 0 terminates
   # the old pod first; maxUnavailable 1 allows that. `type: Recreate` would say
@@ -21,11 +24,37 @@ spec:
   template:
     metadata:
       labels:
-        app: jellyseerr
+        app: seerr
     spec:
+      # Since v3 the image runs as the unprivileged `node` user (uid/gid 1000)
+      # instead of root. The config volume was written by Jellyseerr as root, so
+      # fsGroup is what makes it writable at all: the kubelet rewrites group
+      # ownership on attach, and `OnRootMismatch` limits that expensive recursive
+      # pass to the first start rather than every restart. These four values are
+      # the ones the upstream Seerr chart ships.
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
       containers:
-      - name: jellyseerr
-        image: fallenbagel/jellyseerr:2.7.3-deprecated@sha256:91edd5620e51ed512ecdfd8b2e157c473faf385edf88c3764dc9ec32d310c0df
+      - name: seerr
+        # v3.5.2, digest resolved from the multi-arch index (linux/amd64 +
+        # linux/arm64). The previous image, fallenbagel/jellyseerr, is end-of-life
+        # and its last release is literally tagged `2.7.3-deprecated`.
+        image: ghcr.io/seerr-team/seerr:v3.5.2@sha256:aadee014b40e28cf9aa4928bc9d1183a6eb08f8c44d543cddc9efdcb16549be2
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          privileged: false
+          # The application writes outside /app/config (its own temp dir), so the
+          # root filesystem cannot be read-only.
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          seccompProfile:
+            type: RuntimeDefault
         resources:
           limits:
             memory: "1024Mi"
@@ -36,10 +65,28 @@ spec:
         env:
         - name: LOG_LEVEL
           value: "debug"
+        - name: TZ
+          value: "Etc/UTC"
+        ports:
+        - name: http
+          containerPort: 5055
+        # The endpoint the upstream image's own healthcheck probes: it is public,
+        # so it answers before setup is complete and needs no credentials.
+        readinessProbe:
+          httpGet:
+            path: /api/v1/settings/public
+            port: 5055
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 6
         volumeMounts:
         - name: config-volume
           mountPath: /app/config
       volumes:
       - name: config-volume
         persistentVolumeClaim:
+          # Deliberately unchanged. The claim is bound to the Longhorn volume
+          # `backup-dfa46de3c83c467a` by name and is Prune=false, so it is the one
+          # object that must not follow the rename. Seerr migrates the Jellyseerr
+          # SQLite database in this directory on first start.
           claimName: jellyseerr-config

@@ -12,11 +12,12 @@ This catalog lists all services defined in `manifests/cluster/`. The **source of
 | metallb | metallb-system | 2 | — | No | Helm | Bare-metal load balancer for external IP allocation |
 | longhorn | longhorn | 3 | longhorn.cowlab.org | Yes | Helm | Distributed block storage with S3 backup |
 | dex | dex | 4 | — | No | Helm | OIDC connector for ArgoCD authentication |
+| authentik | authentik | 4 | auth.cowlab.org | Yes | Helm | Identity provider; forward-auth gate for every gated host |
 | sonarr | sonarr | 10 | sonarr.cowlab.org | Yes | Raw | TV show management and download automation |
 | radarr | radarr | 10 | radarr.cowlab.org | Yes | Raw | Movie management and download automation |
 | lidarr | lidarr | 10 | lidarr.cowlab.org | Yes | Raw | Music management and download automation |
 | prowlarr | prowlarr | 10 | prowlarr.cowlab.org | Yes | Raw | Indexer manager for *arr applications |
-| jellyseerr | jellyseerr | 10 | jellyseerr.cowlab.org | Yes | Raw | Media request management for Jellyfin |
+| seerr | jellyseerr | 10 | seerr.cowlab.org | Yes | Raw | Media requests for Jellyfin/Plex/Emby (formerly Jellyseerr; directory and namespace keep the old name) |
 | discord-bot | discord-bot | 10 | — | No | Raw | Custom Discord bot |
 | qbittorrent | qbittorrent | 10 | qbittorrent.cowlab.org | Yes | Raw | BitTorrent client |
 | openbooks | openbooks | 10 | openbooks.cowlab.org | Yes | Raw | eBook search and download |
@@ -24,6 +25,7 @@ This catalog lists all services defined in `manifests/cluster/`. The **source of
 | youtubedl-material | youtubedl-material | 10 | ytdl.cowlab.org | Yes | Raw | YouTube video downloader with web UI |
 | homepage | homepage | 10 | portal.cowlab.org | No | Raw | Dashboard/homepage for cluster services |
 | copyparty | copyparty | 10 | copyparty.cowlab.org | Yes | Raw | File sharing and upload server |
+| open-webui | open-webui | 10 | chat.cowlab.org | Yes | Raw | AI chat interface backed by Strata |
 | cloudflared | cloudflared | 10 | — | No | Helm | Cloudflare Zero Trust Tunnel agent |
 | argocd-secret | argocd-secret | 10 | — | No | Raw | ArgoCD secret configuration |
 | node-exporter | node-exporter | 10 | — | No | Raw | Host thermal and CPU-frequency metrics for the Pi 5 nodes |
