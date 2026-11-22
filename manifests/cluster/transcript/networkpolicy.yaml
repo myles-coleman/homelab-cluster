@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: transcript-proxy
+  namespace: transcript
+spec:
+  podSelector:
+    matchLabels:
+      app: transcript-proxy
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Traefik is the only client. The pod is not reachable from other
+    # namespaces or from the LAN.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # DNS resolution
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # The transcriber on bee-gpu-server, by its tailnet address (an external
+    # address, so this is an ipBlock rather than a selector). Scoped to the one
+    # host and port the proxy is for.
+    - to:
+        - ipBlock:
+            cidr: 100.127.170.8/32
+      ports:
+        - protocol: TCP
+          port: 8090

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: transcript
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
+  annotations:
+    # A pruned Namespace would take the transcripts' only route with it, and
+    # ArgoCD pruning a namespace is never what a manifest edit means.
+    argocd.argoproj.io/sync-options: Prune=false

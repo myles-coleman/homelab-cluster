@@ -65,3 +65,6 @@ resources:
 # spec 07 — TEMPORARY throwaway host for the Authentik error-page proof.
 # Removed in task 5.7; do not leave this entry in the final tree.
 - auth-canary
+# YouTube URL -> English transcript. The pod is only a proxy: the transcriber
+# itself runs on bee-gpu-server's GPU and is reachable from `sandbox-node` only.
+- transcript

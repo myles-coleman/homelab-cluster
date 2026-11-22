@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transcript-proxy
+  namespace: transcript
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transcript-proxy
+  template:
+    metadata:
+      labels:
+        app: transcript-proxy
+    spec:
+      containers:
+      - image: docker.io/nginxinc/nginx-unprivileged:alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /nginx-health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 3
+        name: nginx
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 3
+          periodSeconds: 15
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 64Mi
+          requests:
+            cpu: 10m
+            memory: 16Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /etc/nginx/conf.d
+          name: config
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /var/cache/nginx
+          name: cache
+      nodeSelector:
+        kubernetes.io/hostname: sandbox-node
+      securityContext:
+        fsGroup: 101
+        runAsGroup: 101
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+      tolerations:
+      - effect: NoSchedule
+        key: sandbox
+        operator: Equal
+        value: gvisor
+      volumes:
+      - configMap:
+          name: transcript-proxy-config
+        name: config
+      - emptyDir: {}
+        name: tmp
+      - emptyDir: {}
+        name: cache

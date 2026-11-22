@@ -1,0 +1,51 @@
+# Reverse proxy to the transcriber on bee-gpu-server.
+#
+# Why a proxy exists at all: the service listens only on that host's tailnet
+# address (100.127.170.8:8090), and of the cluster nodes only `sandbox-node`
+# has a route to it. Traefik runs on every node, so it cannot reach the
+# upstream directly and an ExternalName Service would resolve to an address
+# most nodes cannot route. This pod lives on `sandbox-node` and bridges the
+# two networks.
+#
+# The upstream is NOT exposed to the LAN: the host publishes 8090 on its
+# tailscale interface only.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: transcript-proxy-config
+  namespace: transcript
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name _;
+
+        # Local liveness endpoint. It must not depend on the GPU host, or a
+        # stopped transcriber would get the proxy restarted.
+        location = /nginx-health {
+            access_log off;
+            add_header Content-Type text/plain;
+            return 200 "ok\n";
+        }
+
+        location / {
+            proxy_pass http://100.127.170.8:8090;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # A queued job can keep the submit request open while the worker
+            # drains, and a long video keeps the client polling. Generous
+            # timeouts, no buffering, so the UI sees state changes immediately.
+            proxy_connect_timeout 10s;
+            proxy_send_timeout   300s;
+            proxy_read_timeout   300s;
+            proxy_buffering off;
+
+            # The service streams a plain-text log tail; keep it uncompressed
+            # so it renders while it arrives.
+            gzip off;
+        }
+    }
