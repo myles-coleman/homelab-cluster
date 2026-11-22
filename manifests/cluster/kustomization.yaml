@@ -62,3 +62,6 @@ resources:
 - agent-sandbox
 # issue #74 — pull-based sandbox + Strata telemetry, pinned to the sandbox node
 - sandbox-telemetry
+# YouTube URL -> English transcript. The pod is only a proxy: the transcriber
+# itself runs on bee-gpu-server's GPU and is reachable from `sandbox-node` only.
+- transcript

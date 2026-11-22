@@ -28,6 +28,7 @@ This catalog lists all services defined in `manifests/cluster/`. The **source of
 | argocd-secret | argocd-secret | 10 | — | No | Raw | ArgoCD secret configuration |
 | node-exporter | node-exporter | 10 | — | No | Raw | Host thermal and CPU-frequency metrics for the Pi 5 nodes |
 | sandbox-telemetry | sandbox-telemetry | 10 | — | No | Raw | Pull-based sandbox pod/guest metrics and Strata `/metrics` for SigNoz |
+| transcript | transcript | 10 | transcript.cowlab.org | No | Raw | YouTube → English transcript; proxy to the whisper.cpp transcriber on bee-gpu-server (Authentik-protected) |
 
 ## Disabled Services
 

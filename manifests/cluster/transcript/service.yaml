@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: transcript-proxy
+  namespace: transcript
+spec:
+  selector:
+    app: transcript-proxy
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: http

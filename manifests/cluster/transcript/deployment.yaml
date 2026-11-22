@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transcript-proxy
+  namespace: transcript
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transcript-proxy
+  template:
+    metadata:
+      labels:
+        app: transcript-proxy
+    spec:
+      # The only node that can reach the upstream's tailnet address. Do not
+      # replace this with a topologySpread or a preferred affinity: on any
+      # other node the proxy starts, serves 502, and looks healthy.
+      nodeSelector:
+        kubernetes.io/hostname: sandbox-node
+      tolerations:
+        - key: sandbox
+          operator: Equal
+          value: gvisor
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          # Unprivileged variant: listens on 8080 as uid 101, so the pod can run
+          # non-root with a read-only root filesystem. Digest-pinned.
+          image: docker.io/nginxinc/nginx-unprivileged:alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          # Readiness follows the upstream: if the GPU host is down the pod
+          # leaves the Service endpoints, and Traefik answers 503 instead of
+          # proxying into a timeout.
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /nginx-health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/conf.d
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /var/cache/nginx
+      volumes:
+        - name: config
+          configMap:
+            name: transcript-proxy-config
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
