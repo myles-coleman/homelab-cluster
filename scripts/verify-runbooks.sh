@@ -9,8 +9,9 @@
 #          with the command, the observed result, and — when it is not enabled —
 #          the accepted risk and a fixed rotation cadence.
 #
-# The docs site uses the awesome-pages plugin, so mkdocs nav is intentionally
-# NOT required: reachability is proved through the .pages files instead.
+# The MkDocs site and its awesome-pages navigation were removed in #173, so the
+# .pages reachability assertions are gone: a runbook is reachable when it exists
+# under docs/, which the file checks below already prove.
 #
 # Usage:
 #   scripts/verify-runbooks.sh
@@ -30,8 +31,6 @@ Checks:
   * docs/operator-guide/runbooks/agent-secret-encryption.md exists and contains
     Observed result, Command, Accepted risk, an enabled/not-enabled answer, and
     Rotation cadence.
-  * Both runbooks are listed in docs/operator-guide/runbooks/.pages and the
-    rotation runbook is reachable through the awesome-pages tree.
   * The repository AGENTS.md links agent-mtls-rotation.md.
   * The rotation runbook mentions GitHub App key rotation, the CA key, leaf
     expiry, and a SigNoz query containing a filter.
@@ -64,10 +63,9 @@ ROOT="${VERIFY_RUNBOOKS_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 RUNBOOKS="$ROOT/docs/operator-guide/runbooks"
 ROTATION="$RUNBOOKS/agent-mtls-rotation.md"
 ENCRYPTION="$RUNBOOKS/agent-secret-encryption.md"
-PAGES="$RUNBOOKS/.pages"
 
 PASS=0
-TOTAL=23
+TOTAL=20
 
 pass() { PASS=$((PASS + 1)); printf 'PASS %2d/%d  %s\n' "$PASS" "$TOTAL" "$*"; }
 fail() { printf 'FAIL %2d/%d  %s\n' "$((PASS + 1))" "$TOTAL" "$*" >&2; exit 1; }
@@ -84,10 +82,6 @@ require_heading() {
   has_prefix "$file" "$prefix" \
     || fail "$label: missing heading line starting with '$prefix'"
   pass "$label: heading '$prefix'"
-}
-
-pages_has() {
-  [ -f "$1" ] && grep -qF -- "$2" "$1"
 }
 
 # 1. FR-58 — the rotation runbook exists.
@@ -129,26 +123,6 @@ grep -qF -- '--secrets-encryption' "$ENCRYPTION" \
 pass "at-rest record: command checks the --secrets-encryption flag"
 
 require_heading "$ENCRYPTION" "at-rest record" "## Rotation cadence"
-
-# 16-17. Both runbooks are listed in the runbooks .pages file.
-[ -f "$PAGES" ] \
-  || fail "runbooks .pages missing: docs/operator-guide/runbooks/.pages"
-
-grep -qF 'agent-mtls-rotation.md' "$PAGES" \
-  || fail ".pages does not list agent-mtls-rotation.md"
-pass ".pages lists agent-mtls-rotation.md"
-
-grep -qF 'agent-secret-encryption.md' "$PAGES" \
-  || fail ".pages does not list agent-secret-encryption.md"
-pass ".pages lists agent-secret-encryption.md"
-
-# 18. Awesome-pages reachability. mkdocs.yaml nav is not required because the
-#     site uses the awesome-pages plugin; prove the path instead.
-pages_has "$PAGES" 'agent-mtls-rotation.md' \
-  && pages_has "$ROOT/docs/operator-guide/.pages" 'runbooks' \
-  && pages_has "$ROOT/docs/.pages" 'operator-guide' \
-  || fail "agent-mtls-rotation.md is not reachable through the .pages tree (awesome-pages)"
-pass "rotation runbook is reachable from the .pages tree (awesome-pages; mkdocs nav not required)"
 
 # 19. The repository AGENTS.md links the runbook.
 grep -qF 'agent-mtls-rotation.md' "$ROOT/AGENTS.md" \

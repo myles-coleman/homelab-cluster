@@ -108,9 +108,20 @@ before merge.
 
 **Image updates come from Renovate, and the bot re-renders for you.** `renovate.json` bumps
 tags in `manifests/cluster/` and is deliberately blocked from `manifests/dist/`, because that
-tree is generated. Its `postUpgradeTasks` entry runs `./scripts/render-dist.sh` before it
-commits, so a Renovate PR arrives with the rendered tree already updated and `dist-verify`
-green.
+tree is generated. Its `postUpgradeTasks` runs two scripts before it commits, in this order:
+
+1. `./scripts/render-helm-charts.sh` — re-renders `helm-chart.yaml` for any service whose
+   `values.yaml` changed.
+2. `./scripts/render-dist.sh` — re-renders `manifests/dist/`.
+
+so a Renovate PR arrives with the rendered tree already updated and `dist-verify` green.
+
+**Helm-based services have two layers, and only the lower one is deployed.** The chart's
+`values.yaml` is the source of truth; `helm-chart.yaml` is its render; `manifests/dist/` is
+the render of *that*. Editing `values.yaml` alone changes nothing until `helmfile template`
+runs — and `dist-verify` cannot catch the disagreement, because it renders from
+`helm-chart.yaml` and sees no change. Use `task helm SERVICE=<name>`, which
+`render-helm-charts.sh` wraps.
 
 That only works in the self-hosted workflow (`.github/workflows/renovate.yaml`), because
 `postUpgradeTasks` is a self-hosted-only feature — so do not swap it for the Mend-hosted app
