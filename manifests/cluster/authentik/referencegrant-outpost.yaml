@@ -24,9 +24,6 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       namespace: open-webui
-    - group: gateway.networking.k8s.io
-      kind: HTTPRoute
-      namespace: transcript
   to:
     - group: ""
       kind: Service
