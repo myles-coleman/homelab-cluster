@@ -3,6 +3,9 @@
   "extends": ["config:recommended"],
   "automerge": false,
   "pinDigests": true,
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "rebaseWhen": "conflicted",
   "ignorePaths": [
     "manifests/dist/**",
     "manifests/bootstrap/**",
