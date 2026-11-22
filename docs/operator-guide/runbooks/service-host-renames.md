@@ -39,8 +39,9 @@ So `manifests/cluster/*/httproute-legacy-host.yaml` issues a `301` to the new ho
 instead. A `RequestRedirect` filter needs no application and never reaches a Pod,
 so it keeps working regardless of what Authentik is bound to.
 
-`auth.cowlab.org` is the exception: Authentik answers on any `Host`, so its route
-lists both names and both really do serve.
+`auth.cowlab.org` was the exception: Authentik answers on any `Host`, so its route
+listed both names and both really did serve. That name has since been retired —
+route, tunnel CNAME and Google URI — so only `auth.cowlab.org` remains.
 
 ## Why DNS has two layers
 
@@ -181,11 +182,18 @@ than reused.
 
 ## Removing the old hostnames later
 
-Once the new names have been live for a while:
+The identity provider's old name is already gone: `authentik.cowlab.org` was
+dropped from the route, from its tunnel CNAME, and from the Google console — in
+that order, so nothing was ever pointing at a host that no longer answered.
+
+What remains are the two application hostnames, still serving their 301s. Once the
+new names have been live for a while:
 
 1. Delete `httproute-legacy-host.yaml` from `open-webui` and `jellyseerr` in this
    repo, and remove them from each `kustomization.yaml`.
-2. Drop `authentik.cowlab.org` from `manifests/cluster/authentik/httproute.yaml`.
-3. In `homelab-terraform`, delete the `tunnel_jellyseerr` and `tunnel_openwebui`
+2. In `homelab-terraform`, delete the `tunnel_jellyseerr` and `tunnel_openwebui`
    records (marked as transition aliases in `records.tf`).
-4. Delete the old redirect URI in Google Cloud Console.
+
+Neither needs a Google console change: only the `auth.cowlab.org` redirect URI is
+registered now. Both old names still resolve inside the LAN through the
+`*.cowlab.org` wildcard, and will answer 404 once their routes are gone.
