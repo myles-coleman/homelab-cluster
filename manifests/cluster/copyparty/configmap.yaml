@@ -22,6 +22,10 @@ data:
       xff-hdr: cf-connecting-ip
       xff-src: 10.42.0.0/16
       u2sz: 1,64,96
+      # One extra <link rel="stylesheet"> on the file browser, served from the
+      # read-only [/theme] volume below. This is copyparty's own --css-browser
+      # hook; remove this line to get the unmodified UI back.
+      css-browser: /theme/theme.css
 
     [/]
       /w
@@ -36,6 +40,14 @@ data:
       accs:
         r: @copyparty-admins
         rw: @copyparty-admins
+
+    # Static assets the browser loads for the UI. Read-only, and readable by the
+    # same group as everything else: the stylesheet request arrives through the
+    # same Authentik gate as the page that references it.
+    [/theme]
+      /cfg/ui
+      accs:
+        r: @homelab
 
     [/uploads]
       /w/uploads

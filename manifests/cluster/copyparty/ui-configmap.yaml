@@ -1,0 +1,82 @@
+# The stylesheet copyparty loads on top of its own UI.
+#
+# Loaded through the official hook --css-browser (`css-browser` in the [global]
+# block of copyparty-config), which appends one <link rel="stylesheet"> after
+# copyparty's own ui.css/browser.css. Nothing here replaces a copyparty file, so
+# deleting the `css-browser:` line in the main ConfigMap restores the stock UI
+# exactly.
+#
+# Deliberately self-authored rather than a vendored third-party theme: the
+# community overlays that exist today (e.g. copyparty-ng) ship no licence, and
+# this repository is public. Upstream's own UI rework is an unmerged PR, so the
+# stock UI is what this has to theme.
+#
+# Everything below is limited to what copyparty 1.18.x actually emits, and it
+# only restyles - no layout changes, no hidden controls, no behaviour. Colours
+# come from copyparty's own custom properties, so the built-in light/dark switch
+# keeps working.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: copyparty-ui
+  namespace: copyparty
+data:
+  theme.css: |
+    /* System font stack instead of the stock face; no size change, so nothing
+       reflows beyond what a different typeface implies. */
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+    }
+
+    /* The file table is the main working surface. Give rows room to breathe and
+       a hover that reads as "this row" rather than "this is a link". */
+    #files tbody td {
+      padding-top: 0.55em;
+      padding-bottom: 0.55em;
+    }
+
+    #files tbody tr:hover td {
+      background: var(--bg-u2);
+    }
+
+    #files tbody tr td:first-child {
+      border-top-left-radius: 8px;
+      border-bottom-left-radius: 8px;
+    }
+
+    #files tbody tr td:last-child {
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    /* The menu-bar controls are unlabelled icons; a shape on hover makes it
+       obvious they are buttons. */
+    #ops a {
+      border-radius: 8px;
+      padding: 0.15em 0.35em;
+      transition: background-color 120ms ease-out;
+    }
+
+    #ops a:hover,
+    #ops a.act {
+      background: var(--bg-u2);
+    }
+
+    /* Breadcrumbs get the same treatment, because they are the only way back up. */
+    #path a {
+      border-radius: 6px;
+      padding: 0 0.25em;
+    }
+
+    #path a:hover {
+      background: var(--bg-u2);
+    }
+
+    /* On a phone the rows are the only thing that matters; make them easier to
+       hit without hiding any column. */
+    @media (max-width: 720px) {
+      #files tbody td {
+        padding-top: 0.8em;
+        padding-bottom: 0.8em;
+      }
+    }
