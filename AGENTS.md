@@ -68,6 +68,7 @@ There is no dedicated GPU node. The five Raspberry Pi 5 nodes (`node0`–`node4`
 - `manifests/dist/` — AUTO-GENERATED rendered manifests. This is what ArgoCD applies. Never edit directly.
 - `docs/` — Plain Markdown documentation, browsable in the repository.
 - `scripts/generate-apps.sh` — Generates ArgoCD Application YAMLs from the cluster kustomization.
+- `renovate.json` — Renovate config. It bumps image tags in `manifests/cluster/` and is blocked from `manifests/dist/`, so a Renovate PR always needs a re-render (see below).
 
 ---
 
@@ -104,6 +105,28 @@ before merge.
 - `manifests/dist/` matches a fresh render;
 - every `Namespace`, `PersistentVolumeClaim` and `PersistentVolume` carries
   `argocd.argoproj.io/sync-options: Prune=false`.
+
+**Image updates come from Renovate, and the bot re-renders for you.** `renovate.json` bumps
+tags in `manifests/cluster/` and is deliberately blocked from `manifests/dist/`, because that
+tree is generated. Its `postUpgradeTasks` entry runs `./scripts/render-dist.sh` before it
+commits, so a Renovate PR arrives with the rendered tree already updated and `dist-verify`
+green.
+
+That only works in the self-hosted workflow (`.github/workflows/renovate.yaml`), because
+`postUpgradeTasks` is a self-hosted-only feature — so do not swap it for the Mend-hosted app
+without also accepting a manual re-render on every PR.
+
+Re-render by hand when you *amend* a Renovate PR, or when its run failed:
+
+```bash
+git fetch origin && git switch <renovate-branch>
+./scripts/render-dist.sh
+git commit -am "chore(dist): re-render after image bump"
+git push
+```
+
+Every image is pinned as `tag@sha256:…`, so Renovate only has to move the tag and the render
+recomputes the digest. Never hand-edit a digest in either tree.
 
 Never delete a `Prune=false` annotation to "clean up" a manifest. Those annotations
 are what stops a short render from deleting a namespace or a Longhorn volume.
