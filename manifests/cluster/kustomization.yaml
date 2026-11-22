@@ -64,4 +64,3 @@ resources:
 - sandbox-telemetry
 # spec 07 — TEMPORARY throwaway host for the Authentik error-page proof.
 # Removed in task 5.7; do not leave this entry in the final tree.
-- auth-canary
