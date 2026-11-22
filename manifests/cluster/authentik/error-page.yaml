@@ -1,0 +1,227 @@
+# The page the user sees instead of a bare 403.
+#
+# Traefik's `errors` middleware intercepts a 403 from the forward-auth gate or
+# from the application and requests this Service instead of returning the
+# application's body. The response keeps the original 403 status.
+#
+# The page is served on whichever application host the user requested, so the
+# switch action is a relative link: `/outpost.goauthentik.io/sign_out` resolves
+# against that host and reaches the Authentik outpost route that already exists
+# there. No hostname, no JavaScript, and no per-application change are needed.
+#
+# The image is the unprivileged nginx variant: it runs as UID 101 and listens on
+# 8080, so the Deployment can set runAsNonRoot and a read-only root filesystem
+# without granting NET_BIND_SERVICE.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-error-page
+  namespace: authentik
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      server_name _;
+
+      root /usr/share/nginx/html;
+      index index.html;
+
+      location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 'ok';
+      }
+
+      location / {
+        try_files $uri /index.html;
+      }
+    }
+  index.html: |
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Access denied</title>
+        <style>
+          :root {
+            color-scheme: light dark;
+            --bg: #f6f7f9;
+            --card: #ffffff;
+            --text: #1d2430;
+            --muted: #5a6474;
+            --accent: #1f6feb;
+            --accent-text: #ffffff;
+            --border: #d8dee8;
+          }
+          @media (prefers-color-scheme: dark) {
+            :root {
+              --bg: #11151c;
+              --card: #1a2029;
+              --text: #eef2f8;
+              --muted: #a9b4c4;
+              --accent: #4c8dff;
+              --accent-text: #08111f;
+              --border: #2a3341;
+            }
+          }
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 1.5rem;
+            background: var(--bg);
+            color: var(--text);
+            font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+          }
+          main {
+            width: min(100%, 34rem);
+            padding: 2rem;
+            border: 1px solid var(--border);
+            border-radius: 0.9rem;
+            background: var(--card);
+            box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.08);
+          }
+          h1 {
+            margin: 0 0 0.75rem;
+            font-size: 1.6rem;
+            line-height: 1.2;
+          }
+          p { margin: 0 0 1rem; color: var(--muted); }
+          p:last-child { margin-bottom: 0; }
+          a.button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2.75rem;
+            padding: 0 1.1rem;
+            border-radius: 0.55rem;
+            background: var(--accent);
+            color: var(--accent-text);
+            font-weight: 600;
+            text-decoration: none;
+          }
+          a.button:focus-visible {
+            outline: 0.2rem solid var(--accent);
+            outline-offset: 0.2rem;
+          }
+        </style>
+      </head>
+      <body>
+        <main>
+          <h1>Access denied</h1>
+          <p>You are signed in, but this application did not allow the request.</p>
+          <p>If you are using the wrong Google account, switch to the account that has access. Switching signs you out of this homelab session, not out of Google.</p>
+          <p><a class="button" href="/outpost.goauthentik.io/sign_out">Switch Google account</a></p>
+        </main>
+      </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authentik-error-page
+  namespace: authentik
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authentik-error-page
+  template:
+    metadata:
+      labels:
+        app: authentik-error-page
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.29-alpine@sha256:0c79d56aee561a1d81c63f00eee5fb5fe29279560cdc55e91425133104c7fbe6
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+              readOnly: true
+            - name: html
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+            - name: logs
+              mountPath: /var/log/nginx
+      volumes:
+        - name: config
+          configMap:
+            name: authentik-error-page
+            items:
+              - key: default.conf
+                path: default.conf
+        - name: html
+          configMap:
+            name: authentik-error-page
+            items:
+              - key: index.html
+                path: index.html
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authentik-error-page
+  namespace: authentik
+spec:
+  selector:
+    app: authentik-error-page
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: http

@@ -62,3 +62,6 @@ resources:
 - agent-sandbox
 # issue #74 — pull-based sandbox + Strata telemetry, pinned to the sandbox node
 - sandbox-telemetry
+# spec 07 — TEMPORARY throwaway host for the Authentik error-page proof.
+# Removed in task 5.7; do not leave this entry in the final tree.
+- auth-canary
