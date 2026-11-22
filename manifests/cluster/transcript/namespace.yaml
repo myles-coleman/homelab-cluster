@@ -3,7 +3,11 @@ kind: Namespace
 metadata:
   name: transcript
   labels:
-    pod-security.kubernetes.io/enforce: baseline
+    # privileged, not baseline: the proxy is hostNetwork (see deployment.yaml),
+    # which baseline forbids. This mirrors sandbox-telemetry, the other
+    # hostNetwork workload in the cluster. warn/audit stay at restricted so a
+    # future deviation is still reported.
+    pod-security.kubernetes.io/enforce: privileged
     pod-security.kubernetes.io/warn: restricted
     pod-security.kubernetes.io/audit: restricted
   annotations:
