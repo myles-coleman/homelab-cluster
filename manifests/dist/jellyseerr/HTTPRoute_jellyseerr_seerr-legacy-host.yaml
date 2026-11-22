@@ -1,0 +1,25 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: seerr-legacy-host
+  namespace: jellyseerr
+spec:
+  hostnames:
+  - jellyseerr.cowlab.org
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: traefik-gateway
+    namespace: traefik
+    sectionName: websecure
+  rules:
+  - filters:
+    - requestRedirect:
+        hostname: seerr.cowlab.org
+        scheme: https
+        statusCode: 301
+      type: RequestRedirect
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
