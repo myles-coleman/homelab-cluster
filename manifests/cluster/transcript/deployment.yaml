@@ -18,6 +18,20 @@ spec:
       # other node the proxy starts, serves 502, and looks healthy.
       nodeSelector:
         kubernetes.io/hostname: sandbox-node
+      # hostNetwork is load-bearing, not a shortcut. tailscaled routes the
+      # tailnet through a marked socket (`ip rule ... fwmark`), so a pod on the
+      # pod network never reaches 100.64.0.0/10 — it times out, which is why the
+      # sandbox-telemetry collector is hostNetwork too. Verified on the live
+      # pod: on the pod network the proxy cannot connect to
+      # 100.127.170.8:8090 at all, while /nginx-health answers fine.
+      #
+      # The trade-off is that NetworkPolicy does not apply to hostNetwork pods,
+      # which is why this service has none. Isolation comes from the node's own
+      # firewall instead: it accepts the pod CIDRs (so Traefik's pods can reach
+      # the port) and the kubelet/VXLAN ports from cluster nodes, and rejects
+      # everything else, so the port is not reachable from the LAN.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       tolerations:
         - key: sandbox
           operator: Equal

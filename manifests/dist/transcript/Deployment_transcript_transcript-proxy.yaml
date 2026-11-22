@@ -55,6 +55,8 @@ spec:
           name: tmp
         - mountPath: /var/cache/nginx
           name: cache
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
       nodeSelector:
         kubernetes.io/hostname: sandbox-node
       securityContext:

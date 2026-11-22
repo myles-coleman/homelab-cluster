@@ -7,5 +7,4 @@ resources:
 - HTTPRoute_transcript_transcript.yaml
 - Middleware_transcript_authentik.yaml
 - Namespace_cluster_transcript.yaml
-- NetworkPolicy_transcript_transcript-proxy.yaml
 - Service_transcript_transcript-proxy.yaml
