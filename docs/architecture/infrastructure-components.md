@@ -5,13 +5,13 @@ This page documents the key infrastructure services that support the cluster. Th
 ## ArgoCD
 
 - **Purpose**: GitOps continuous delivery — syncs Kubernetes manifests from this repository to the cluster
-- **Deployment**: Helm chart installed via Terragrunt module (`modules/argocd-install/`)
+- **Deployment**: Installed outside this repository by the `argocd-install` unit in [`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform); ArgoCD is not GitOps-managed and has no manifests or Application in this repo
 - **Namespace**: `argocd`
 - **URL**: [argocd.cowlab.org](https://argocd.cowlab.org)
 - **Authentication**: Dex OIDC connector (integrated with Authentik)
 - **Key config**: RBAC policies, metrics enabled, automated sync with prune and self-heal
 
-The bootstrap Application is created by the `modules/argocd-configure/` Terragrunt module, which points ArgoCD at `manifests/bootstrap/`.
+The bootstrap Application is created by the `argocd-configure` unit in [`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform) and points ArgoCD at `manifests/bootstrap/`.
 
 ## Traefik
 
@@ -48,7 +48,7 @@ Kubernetes `Ingress` (provider disabled) and never the retired Traefik `IngressR
 - **Sync wave**: 3
 - **Key config**:
     - Default StorageClass for the cluster
-    - S3 backup configured via Terragrunt module (`modules/s3-backups/`)
+    - S3 backup bucket provisioned by the `s3-backups` unit in [`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform); the target is set in `manifests/cluster/longhorn/values.yaml` (`backupTarget`)
     - Requires `open-iscsi` on all nodes (configured in NixOS)
 
 See [Backup and Restore Runbook](../operator-guide/runbooks/backup-and-restore.md) for Longhorn backup procedures.
@@ -84,7 +84,7 @@ See [Managing Secrets](../guides/managing-secrets.md) for usage patterns.
 ## Authentik
 
 - **Purpose**: Identity provider — centralized authentication and SSO
-- **Deployment**: Helm chart rendered into `manifests/cluster/authentik/helm-chart.yaml`, with configuration managed via Terragrunt (`modules/authentik/`)
+- **Deployment**: Helm chart rendered into `manifests/cluster/authentik/helm-chart.yaml`, with providers and applications configured by the `authentik` unit in [`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform)
 - **Namespace**: `authentik`
 - **Sync wave**: 10
 
@@ -95,6 +95,6 @@ See [Managing Secrets](../guides/managing-secrets.md) for usage patterns.
 - **Namespace**: `cloudflared`
 - **Sync wave**: 10
 - **Key config**:
-    - Tunnel configuration managed via Terragrunt (`modules/cloudflare/tunnel.tf`)
+    - Tunnel ingress rules managed by the `cloudflare` unit in [`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform)
     - Catch-all 404 rule only; no service hostname is published
-    - DNS CNAME record for tunneled services created automatically by the Cloudflare module
+    - DNS records for tunneled services are created by the same `cloudflare` unit

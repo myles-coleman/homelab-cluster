@@ -1,7 +1,9 @@
 # SigNoz Dashboard API Key
 
 Bootstrap and rotation procedure for the SigNoz service-account API key used by
-the `signoz-dashboards` Terragrunt module and the CI dashboard smoke check.
+the `signoz-dashboards` Terragrunt unit in
+[`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform)
+and the CI dashboard smoke check.
 
 ## Overview
 

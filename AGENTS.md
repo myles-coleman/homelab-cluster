@@ -10,7 +10,7 @@ This file provides guidance to AI coding agents working in this repository. Read
 
 ### Cluster Purpose
 
-This is a personal homelab Kubernetes cluster running media management, home automation, and infrastructure services on bare-metal Raspberry Pi 5 hardware.
+This is a personal homelab Kubernetes cluster running media management, home automation, and infrastructure services on bare-metal Raspberry Pi 5 hardware, plus one x86_64 gVisor microVM (`sandbox-node`) for sandboxed AI workloads.
 
 ### Hardware & Nodes
 
@@ -21,12 +21,13 @@ This is a personal homelab Kubernetes cluster running media management, home aut
 | node2 | k3s agent (worker) | 10.0.0.142 | Raspberry Pi 5, aarch64, NVMe SSD |
 | node3 | k3s agent (worker) | 10.0.0.143 | Raspberry Pi 5, aarch64, NVMe SSD |
 | node4 | k3s agent (worker) | 10.0.0.144 | Raspberry Pi 5, aarch64, NVMe SSD |
+| sandbox-node | AI workload sandbox | — | x86_64 gVisor microVM on the `homelab` host |
 
 ### Operating System & Kubernetes
 
 - **OS**: NixOS (unstable channel) — managed in the `nixos` monorepo
 - **Kubernetes**: k3s v1.36 (lightweight K8s distribution)
-- **Architecture**: aarch64 (ARM64) — all container images must support this architecture
+- **Architecture**: aarch64 (ARM64) for every Raspberry Pi 5 node — images destined for them must support aarch64. `sandbox-node` is x86_64, so sandbox workloads need amd64 images.
 - **Disabled k3s defaults**: servicelb and traefik are disabled in favor of MetalLB and a custom Traefik deployment
 
 ### Networking
@@ -49,12 +50,12 @@ This is a personal homelab Kubernetes cluster running media management, home aut
 - **External Secrets Operator (ESO)** — Syncs secrets from Vaultwarden/Bitwarden into Kubernetes (Helm chart)
 - **cert-manager** — TLS certificate management (Helm chart)
 - **Dex** — OIDC connector for ArgoCD authentication
-- **Authentik** — Identity provider (Helm chart, Terragrunt-managed config)
+- **Authentik** — Identity provider (Helm chart)
 - **Cloudflare Tunnel** — Secure tunnel for public-facing services without exposing ports
 
 ### GPU Workloads
 
-There is no dedicated GPU node. All five nodes are NVMe-backed Raspberry Pi 5 agents. `generic-device-plugin` and `llama-cpp` are disabled in the cluster manifests.
+There is no dedicated GPU node. The five Raspberry Pi 5 nodes (`node0`–`node4`) are NVMe-backed aarch64 agents. `sandbox-node` is a separate x86_64 gVisor microVM running on the `homelab` host for AI workloads; it is intended to contain a workload escape to that VM rather than letting it reach the host or the rest of the cluster. `generic-device-plugin` and `llama-cpp` are disabled in the cluster manifests.
 
 ---
 
@@ -65,11 +66,8 @@ There is no dedicated GPU node. All five nodes are NVMe-backed Raspberry Pi 5 ag
 - `manifests/cluster/kustomization.yaml` — Source of truth for all active services.
 - `manifests/bootstrap/` — AUTO-GENERATED ArgoCD Application definitions. Never edit directly.
 - `manifests/dist/` — AUTO-GENERATED rendered manifests. This is what ArgoCD applies. Never edit directly.
-- `modules/` — Terragrunt/OpenTofu infrastructure modules (argocd-install, argocd-configure, cloudflare, s3-backups, authentik, bootstrap).
 - `docs/` — Plain Markdown documentation, browsable in the repository.
 - `scripts/generate-apps.sh` — Generates ArgoCD Application YAMLs from the cluster kustomization.
-- `common-inputs.yaml` — Shared Terragrunt variables.
-- `root.hcl` — Terragrunt root config (S3 backend, tofu binary).
 
 ---
 
@@ -82,7 +80,7 @@ it claims to represent.
 | Tree | Produced by | What it is |
 |------|-------------|------------|
 | `manifests/dist/` | `scripts/render-dist.sh` | The rendered manifests ArgoCD actually applies: one file per object, named `<Kind>_<namespace>_<name>.yaml`, plus a generated `kustomization.yaml` per service. |
-| `manifests/bootstrap/` | `generate-apps.sh` | One ArgoCD `Application` per active service. |
+| `manifests/bootstrap/` | `scripts/generate-apps.sh` | One ArgoCD `Application` per active service. |
 | `manifests/cluster/*/helm-chart.yaml` and `manifests/cluster/cloudflared/helmchart.yaml` | `helmfile template --skip-deps` | Pre-rendered Helm output. Never edit the file; change `values.yaml` and re-render. |
 
 **Why `manifests/dist/` exists.** ArgoCD used to build `manifests/cluster/<service>/` at sync
@@ -125,17 +123,15 @@ are what stops a short render from deleting a namespace or a Longhorn volume.
 On push to main, GitHub Actions runs these workflows based on changed paths:
 
 - **manifests/cluster/** changes → `generate-apps.yml` runs `scripts/generate-apps.sh` to regenerate `manifests/bootstrap/*-app.yaml`, commits and pushes
-- **modules/** changes → `deploy.yaml` runs Terragrunt plan (on PR) / apply (on merge). Uses Tailscale VPN for cluster access and AWS OIDC for state bucket.
 - **Any push to main** → `release.yaml` runs semantic release (versioning + changelog)
 
 ### ArgoCD Bootstrap Chain
 
 This is the core deployment mechanism:
 
-1. **`argocd-install`** (Terragrunt module) — Installs ArgoCD via Helm chart into the `argocd` namespace
-2. **`argocd-configure`** (Terragrunt module) — Creates a "bootstrap" Application resource pointing to `manifests/bootstrap/`
-3. **Bootstrap Application** — ArgoCD reads `manifests/bootstrap/kustomization.yaml`, which lists all individual `*-app.yaml` files
-4. **Per-service Applications** — Each `*-app.yaml` is an ArgoCD Application that syncs `manifests/cluster/<service>/` to the cluster
+1. **ArgoCD install** — ArgoCD itself is installed outside this repository and is **not** GitOps-managed: there is no `argocd` directory under `manifests/cluster/` and no Application for it. Rebuilding a cluster means installing ArgoCD first, then applying the bootstrap Application below.
+2. **Bootstrap Application** — An ArgoCD Application pointing at `manifests/bootstrap/`, which lists all individual `*-app.yaml` files
+3. **Per-service Applications** — Each `*-app.yaml` is an ArgoCD Application that syncs `manifests/dist/<service>/` to the cluster
 
 ### Sync Wave Ordering
 
@@ -193,7 +189,7 @@ Either:
 
 ### Step 6: Custom Namespace (if needed)
 
-If the Kubernetes namespace differs from the directory name, add a mapping to the `namespace_map` in `scripts/generate-apps.sh`. Currently only `metallb` → `metallb-system` uses this.
+If the Kubernetes namespace differs from the directory name, add a mapping to the `namespace_map` in `scripts/generate-apps.sh`. Current mappings: `metallb` → `metallb-system`, `generic-device-plugin` → `device-system`, `cert-manager-csi-driver` → `cert-manager`.
 
 ### Step 7: Custom Sync Wave (if needed)
 
@@ -253,17 +249,7 @@ enabled only for `Middleware` as `ExtensionRef`).
 
 ---
 
-## 6. Terragrunt Modules Reference
-
-All modules use OpenTofu (`terraform_binary = "tofu"` in `root.hcl`) with S3 remote state backend. Common variables are loaded from `common-inputs.yaml`.
-
-**Modules**: `bootstrap` (AWS OIDC + S3 state bucket, must apply first), `argocd-install` (Helm chart), `argocd-configure` (bootstrap Application, depends on argocd-install), `cloudflare` (DNS records + Zero Trust Tunnel), `s3-backups` (Longhorn backup buckets), `authentik` (identity provider).
-
-**Shared patterns**: `root.hcl` defines the S3 backend and tofu binary. `common-inputs.yaml` holds shared variables (domain, cluster name, AWS region, etc.). Each module's `terragrunt.hcl` uses `generate` blocks to create provider configs from kubeconfig.
-
----
-
-## 7. Debugging
+## 6. Debugging
 
 When diagnosing cluster issues, always gather information yourself using kubectl rather than asking the user to paste logs. The kubeconfig is available on the local machine. Useful commands:
 
@@ -278,7 +264,7 @@ For ArgoCD sync issues: `kubectl get applications -n argocd` and check sync stat
 
 ---
 
-## 8. Guardrails
+## 7. Guardrails
 
 ### ⛔ NEVER Do These
 
@@ -286,15 +272,11 @@ For ArgoCD sync issues: `kubectl get applications -n argocd` and check sync stat
 
 2. **Never hardcode secrets, API keys, or tokens** in any file. Use External Secrets Operator for cluster secrets and GitHub Actions secrets for CI/CD.
 
-3. **Never modify `root.hcl` or `_backend.tf` files** without explicit user instruction. These control the Terraform state backend and misconfiguration can cause state loss.
+3. **Never delete or modify PersistentVolume/PersistentVolumeClaim manifests** without explicit user instruction. This risks permanent data loss for stateful applications.
 
-4. **Never delete or modify PersistentVolume/PersistentVolumeClaim manifests** without explicit user instruction. This risks permanent data loss for stateful applications.
+4. **Never change sync wave assignments** in `scripts/generate-apps.sh` without understanding the dependency chain. Incorrect ordering can cause deployment failures (e.g., deploying an app before its secret store is ready).
 
-5. **Never change sync wave assignments** in `scripts/generate-apps.sh` without understanding the dependency chain. Incorrect ordering can cause deployment failures (e.g., deploying an app before its secret store is ready).
-
-6. **Never modify `scripts/generate-apps.sh` namespace_map or sync_wave_map** without understanding the impact on all services. Changes affect every ArgoCD Application.
-
-7. **Always use pull requests for Terragrunt module changes** — The `deploy.yaml` workflow runs `terragrunt plan` on PRs for review. Never push Terragrunt changes directly to main.
+5. **Never modify `scripts/generate-apps.sh` namespace_map or sync_wave_map** without understanding the impact on all services. Changes affect every ArgoCD Application.
 
 ### ✅ Safe Operations
 
@@ -307,14 +289,14 @@ For ArgoCD sync issues: `kubectl get applications -n argocd` and check sync stat
 
 ---
 
-## 9. Sensitive Information
+## 8. Sensitive Information
 
 ### ✅ Safe to Reference (Non-Secret)
 
 These values appear in committed files and are safe to use:
 
 - **Domain**: `cowlab.org`
-- **Node IPs**: 10.0.0.140, 10.0.0.141, 10.0.0.142, 10.0.0.143
+- **Node IPs**: 10.0.0.140, 10.0.0.141, 10.0.0.142, 10.0.0.143, 10.0.0.144
 - **kube-vip VIP**: 10.0.0.200
 - **Traefik LB IP**: 10.0.0.99
 - **Service names and namespaces**: All visible in `manifests/cluster/kustomization.yaml`
@@ -340,7 +322,6 @@ These values must NEVER appear in any committed file:
 
 - **CI/CD secrets**: Stored in GitHub Actions secrets (`Settings → Secrets and variables → Actions`). Referenced in workflow files as `${{ secrets.NAME }}`.
 - **Cluster workload secrets**: Flow through External Secrets Operator: Vaultwarden (source) → bitwarden-cli (webhook) → ESO → Kubernetes Secret.
-- **Terragrunt secrets**: Passed via environment variables in CI or from GitHub Actions secrets. The `.gitignore` excludes `manifests/cluster/external-secrets/secret.yaml`.
 
 ### Agent broker key rotation
 

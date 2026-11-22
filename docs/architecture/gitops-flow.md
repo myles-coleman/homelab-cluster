@@ -13,7 +13,6 @@ flowchart TB
     subgraph "GitHub Actions"
         GA_DETECT{"Detect changed paths"}
         GA_GEN["generate-apps.yml<br/>Runs scripts/generate-apps.sh"]
-        GA_TG["deploy.yaml<br/>Terragrunt plan/apply"]
         GA_REL["release.yaml<br/>Semantic release"]
     end
     
@@ -23,29 +22,26 @@ flowchart TB
     end
     
     subgraph "Kubernetes Cluster"
-        NS["Namespaces & Resources<br/>synced from manifests/cluster/"]
+        NS["Namespaces & Resources<br/>synced from manifests/dist/"]
     end
 
     DEV --> GA_DETECT
     GA_DETECT -->|"manifests/cluster/**"| GA_GEN
-    GA_DETECT -->|"modules/**"| GA_TG
     GA_DETECT -->|"any push to main"| GA_REL
     
     GA_GEN -->|"Commits updated<br/>bootstrap files"| BOOT
-    GA_TG -->|"Applies infra<br/>changes"| NS
     
     BOOT -->|"Syncs Application CRDs"| APPS
-    APPS -->|"Syncs manifests/cluster/<br/>to namespaces"| NS
+    APPS -->|"Syncs manifests/dist/<br/>to namespaces"| NS
 ```
 
 ## ArgoCD Bootstrap Chain
 
 The cluster uses a layered bootstrap approach to manage all services through ArgoCD:
 
-1. **`argocd-install`** (Terragrunt module) — Installs ArgoCD via Helm chart into the `argocd` namespace
-2. **`argocd-configure`** (Terragrunt module) — Creates a "bootstrap" ArgoCD Application resource that points to `manifests/bootstrap/`
-3. **Bootstrap Application** — ArgoCD reads `manifests/bootstrap/kustomization.yaml`, which lists all individual `*-app.yaml` files
-4. **Per-service Applications** — Each `*-app.yaml` is an ArgoCD Application that syncs the corresponding `manifests/cluster/<service>/` directory to the cluster
+1. **ArgoCD install** — ArgoCD itself is installed outside this repository and is **not** GitOps-managed: there is no `argocd` directory under `manifests/cluster/` and no Application for it. Rebuilding a cluster means installing ArgoCD first, then applying the bootstrap Application.
+2. **Bootstrap Application** — An ArgoCD Application pointing at `manifests/bootstrap/`, which lists all individual `*-app.yaml` files
+3. **Per-service Applications** — Each `*-app.yaml` is an ArgoCD Application that syncs the corresponding `manifests/dist/<service>/` directory to the cluster
 
 ### How Applications Are Generated
 
@@ -85,14 +81,8 @@ All applications are configured with:
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | `generate-apps.yml` | Changes to `manifests/cluster/**` | Runs `scripts/generate-apps.sh` to regenerate ArgoCD Application YAMLs |
-| `deploy.yaml` | Changes to `modules/**` | Terragrunt plan (on PR) / apply (on merge to main) |
 | `release.yaml` | Any push to `main` | Semantic release (versioning + changelog) |
 
-### Terraform/Terragrunt CI Pipeline
-
-The `deploy.yaml` workflow handles infrastructure-as-code changes:
-
-- **On pull request** — Runs `terragrunt plan` for review (no changes applied)
-- **On merge to main** — Runs `terragrunt apply` to make changes
-- **Network access** — Uses Tailscale VPN to reach the cluster from CI
-- **State management** — Uses AWS OIDC for S3 state bucket access (no static credentials)
+Infrastructure changes do not flow through this repository. ArgoCD installation, Cloudflare
+DNS and tunnel rules, Longhorn backup buckets, Authentik configuration and Tailscale ACLs are
+Terragrunt units in [`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform), which has its own `deploy.yaml` (plan on PR, apply on merge to `main`).

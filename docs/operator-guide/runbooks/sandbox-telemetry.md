@@ -115,4 +115,4 @@ default 30-day metrics retention unless ClickHouse pressure says otherwise.
 2. Revert the `sandbox` toleration blocks in `signoz-k8s-infra/values.yaml` and
    `node-exporter/daemonset.yaml` if the extra agents on the untrusted node are
    not wanted.
-3. `terragrunt destroy` the `signoz-alerts` unit to remove the rules.
+3. Remove the rules from the `signoz-alerts` unit in [`myles-coleman/homelab-terraform`](https://github.com/myles-coleman/homelab-terraform) and merge; that repository's `deploy.yaml` applies the removal.
