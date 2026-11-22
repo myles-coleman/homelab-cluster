@@ -6,6 +6,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - middleware-authentik.yaml
+  - middleware-auth-error-page.yaml
   - httproute.yaml
   - httproute-outpost.yaml
   - config-pvc.yaml

@@ -1,0 +1,20 @@
+# Namespace-local copy of `manifests/cluster/traefik/middleware-auth-error-page.yaml`.
+#
+# Traefik resolves an HTTPRoute's `ExtensionRef` in the route's own namespace,
+# so this file must stay identical to the canonical middleware apart from
+# `metadata.namespace`.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: authentik-error-page
+  namespace: jellyseerr
+spec:
+  errors:
+    status:
+      - "403"
+    query: "/"
+    service:
+      name: authentik-error-page
+      namespace: authentik
+      port: 80
+    errorRequestHeaders: []

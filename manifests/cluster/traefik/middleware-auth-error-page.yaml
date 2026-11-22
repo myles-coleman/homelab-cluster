@@ -1,0 +1,29 @@
+# Canonical switch-account page definition.
+#
+# This object is NOT what Traefik applies to a route: Traefik's Gateway API
+# provider resolves an HTTPRoute's `ExtensionRef` in the route's own namespace,
+# so each protected namespace needs its own copy. This file is the reference
+# those copies are kept identical to; edit here first, then mirror the change.
+#
+# The middleware is placed first in the route's filter chain, before the
+# forward-auth gate. The chain wraps the gate, so it catches both a 403 returned
+# by the outpost and a 403 returned by the application. It only intercepts 403:
+# an unauthenticated 302 redirect passes through unchanged.
+#
+# `errorRequestHeaders: []` keeps the original Cookie, Authorization, and
+# forwarded identity headers away from the static page service.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: authentik-error-page
+  namespace: traefik
+spec:
+  errors:
+    status:
+      - "403"
+    query: "/"
+    service:
+      name: authentik-error-page
+      namespace: authentik
+      port: 80
+    errorRequestHeaders: []

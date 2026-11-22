@@ -1,0 +1,106 @@
+apiVersion: v1
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      server_name _;
+
+      root /usr/share/nginx/html;
+      index index.html;
+
+      location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 'ok';
+      }
+
+      location / {
+        try_files $uri /index.html;
+      }
+    }
+  index.html: |
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Access denied</title>
+        <style>
+          :root {
+            color-scheme: light dark;
+            --bg: #f6f7f9;
+            --card: #ffffff;
+            --text: #1d2430;
+            --muted: #5a6474;
+            --accent: #1f6feb;
+            --accent-text: #ffffff;
+            --border: #d8dee8;
+          }
+          @media (prefers-color-scheme: dark) {
+            :root {
+              --bg: #11151c;
+              --card: #1a2029;
+              --text: #eef2f8;
+              --muted: #a9b4c4;
+              --accent: #4c8dff;
+              --accent-text: #08111f;
+              --border: #2a3341;
+            }
+          }
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 1.5rem;
+            background: var(--bg);
+            color: var(--text);
+            font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+          }
+          main {
+            width: min(100%, 34rem);
+            padding: 2rem;
+            border: 1px solid var(--border);
+            border-radius: 0.9rem;
+            background: var(--card);
+            box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.08);
+          }
+          h1 {
+            margin: 0 0 0.75rem;
+            font-size: 1.6rem;
+            line-height: 1.2;
+          }
+          p { margin: 0 0 1rem; color: var(--muted); }
+          p:last-child { margin-bottom: 0; }
+          a.button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2.75rem;
+            padding: 0 1.1rem;
+            border-radius: 0.55rem;
+            background: var(--accent);
+            color: var(--accent-text);
+            font-weight: 600;
+            text-decoration: none;
+          }
+          a.button:focus-visible {
+            outline: 0.2rem solid var(--accent);
+            outline-offset: 0.2rem;
+          }
+        </style>
+      </head>
+      <body>
+        <main>
+          <h1>Access denied</h1>
+          <p>You are signed in, but this application did not allow the request.</p>
+          <p>If you are using the wrong Google account, switch to the account that has access. Switching signs you out of this homelab session, not out of Google.</p>
+          <p><a class="button" href="/outpost.goauthentik.io/sign_out">Switch Google account</a></p>
+        </main>
+      </body>
+    </html>
+kind: ConfigMap
+metadata:
+  name: authentik-error-page
+  namespace: authentik

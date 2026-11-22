@@ -9,6 +9,7 @@ resources:
   - helm-chart.yaml
   - httproute.yaml
   - networkpolicy.yaml
+  - error-page.yaml
   - outpost-deployment.yaml
   # Cross-namespace backend reference for the login callback routes on
   # protected hosts.
