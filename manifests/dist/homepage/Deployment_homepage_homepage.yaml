@@ -72,7 +72,7 @@ spec:
         whenUnsatisfiable: ScheduleAnyway
       volumes:
       - configMap:
-          name: homepage
+          name: homepage-m554ckd4hg
         name: homepage-config
       - emptyDir: {}
         name: logs

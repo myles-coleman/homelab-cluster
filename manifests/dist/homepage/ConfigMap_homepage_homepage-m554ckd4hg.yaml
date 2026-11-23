@@ -1,11 +1,12 @@
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: homepage
-  namespace: homepage
-  labels:
-    app.kubernetes.io/name: homepage
 data:
+  bookmarks.yaml: |
+    - Repository:
+        - Github:
+            - href: https://github.com/myles-coleman/homelab-cluster
+  custom.css: ""
+  custom.js: ""
+  docker.yaml: ""
   kubernetes.yaml: |
     mode: cluster
     # Discovery is limited to the one provider this cluster uses. Traefik's
@@ -15,45 +16,6 @@ data:
     ingress: false
     traefik: false
     gateway: true
-  settings.yaml: |
-    title: Cowlab
-
-    # `layout` keys are group names, and their order is the group order on the
-    # page. Every group a service is filed under must appear here — including the
-    # groups that exist only as HTTPRoute annotations. A group that is missing
-    # still renders, but untabbed and after these ones.
-    layout:
-      Downloaders:
-        style: row
-        columns: 4
-        tab: Media
-      Media:
-        style: row
-        columns: 2
-        tab: Media
-      Services:
-        style: row
-        columns: 4
-        tab: Apps
-      System:
-        style: row
-        columns: 4
-        tab: Infra
-
-    # No `theme:` on purpose: setting it locks the light/dark switcher.
-    headerStyle: clean
-    color: slate
-    # Dots rather than the default badge, because discovered services inherit
-    # Kubernetes pod state and a wall of green badges drowns that signal out.
-    statusStyle: dot
-    quicklaunch:
-      searchDescriptions: true
-  custom.css: ""
-  custom.js: ""
-  bookmarks.yaml: |
-    - Repository:
-        - Github:
-            - href: https://github.com/myles-coleman/homelab-cluster
   services.yaml: |
     # Only services that are NOT in this cluster belong here. Everything this
     # repository deploys is discovered from its HTTPRoute's gethomepage.dev/*
@@ -88,7 +50,39 @@ data:
             href: https://npm.cowlab.org/
             description: Proxy Server
             weight: 40
+  settings.yaml: |
+    title: Cowlab
 
+    # `layout` keys are group names, and their order is the group order on the
+    # page. Every group a service is filed under must appear here — including the
+    # groups that exist only as HTTPRoute annotations. A group that is missing
+    # still renders, but untabbed and after these ones.
+    layout:
+      Downloaders:
+        style: row
+        columns: 4
+        tab: Media
+      Media:
+        style: row
+        columns: 2
+        tab: Media
+      Services:
+        style: row
+        columns: 4
+        tab: Apps
+      System:
+        style: row
+        columns: 4
+        tab: Infra
+
+    # No `theme:` on purpose: setting it locks the light/dark switcher.
+    headerStyle: clean
+    color: slate
+    # Dots rather than the default badge, because discovered services inherit
+    # Kubernetes pod state and a wall of green badges drowns that signal out.
+    statusStyle: dot
+    quicklaunch:
+      searchDescriptions: true
   widgets.yaml: |
     - kubernetes:
         cluster:
@@ -109,4 +103,7 @@ data:
     - search:
         provider: brave
         target: _blank
-  docker.yaml: ""
+kind: ConfigMap
+metadata:
+  name: homepage-m554ckd4hg
+  namespace: homepage

@@ -1,0 +1,19 @@
+- kubernetes:
+    cluster:
+      show: true
+      cpu: true
+      memory: true
+      showLabel: true
+      label: "cluster"
+    nodes:
+      show: false
+      cpu: true
+      memory: true
+      showLabel: true
+- datetime:
+    text_size: xl
+    format:
+      timeStyle: short
+- search:
+    provider: brave
+    target: _blank

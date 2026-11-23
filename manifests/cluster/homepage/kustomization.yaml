@@ -1,5 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+# Every object here already states `namespace: homepage`, but the generated
+# ConfigMap cannot: configMapGenerator has no per-entry namespace, and a generated
+# object with no namespace will not have its references rewritten (kustomize matches
+# the Deployment's volume by name *and* namespace). Without this the ConfigMap lands
+# outside the namespace and the Deployment keeps pointing at `homepage`.
+namespace: homepage
 resources:
   - namespace.yaml
   - deployment.yaml
@@ -7,9 +13,31 @@ resources:
   - service.yaml
   - httproute.yaml
   - secret.yaml
-  - configmap.yaml
   - service-account.yaml
   - cluster-role.yaml
+
+# Config is generated rather than applied as a fixed ConfigMap.
+#
+# A static ConfigMap updates in the cluster and leaves the running pods serving the
+# old files: the mounts are `subPath`, which never receives kubelet's ConfigMap
+# update, and Homepage reads its YAML at startup anyway. So a config-only edit used
+# to need a manual `rollout restart`, and silently looked applied until someone did.
+#
+# The generator puts a hash of the content in the ConfigMap's name, and kustomize
+# rewrites the Deployment's volume reference to match. Editing any file here
+# therefore changes the pod template, which rolls the pods — ArgoCD needs no extra
+# component, and nothing has to remember to restart anything.
+configMapGenerator:
+  - name: homepage
+    files:
+      - config/bookmarks.yaml
+      - config/custom.css
+      - config/custom.js
+      - config/docker.yaml
+      - config/kubernetes.yaml
+      - config/services.yaml
+      - config/settings.yaml
+      - config/widgets.yaml
 
 # Data-bearing objects cannot be pruned. See _prune-protection/.
 components:

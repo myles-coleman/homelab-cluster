@@ -1,0 +1,8 @@
+mode: cluster
+# Discovery is limited to the one provider this cluster uses. Traefik's
+# IngressRoute is retired here and networking.k8s.io/Ingress is forbidden
+# (AGENTS.md), so those scanners would only cost an API-server list on every
+# render — cluster-role.yaml no longer grants the verbs they need.
+ingress: false
+traefik: false
+gateway: true
