@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# Re-render the Helm chart for every service whose values.yaml changed.
+# Re-render the Helm chart for every service whose chart inputs changed:
+# values.yaml (an image bump) or helmfile.yaml (a chart-version bump).
 #
 # Renovate edits values.yaml, but ArgoCD serves manifests/dist/, and dist/ is
 # rendered from helm-chart.yaml. Without this step a version bump changes the
@@ -14,7 +15,7 @@
 # request would stop matching what a local `task helm` produces.
 #
 # Usage:
-#   ./scripts/render-helm-charts.sh                # services whose values.yaml changed
+#   ./scripts/render-helm-charts.sh                # services whose chart inputs changed
 #   ./scripts/render-helm-charts.sh <service> ...  # render these explicitly
 
 set -euo pipefail
@@ -57,11 +58,20 @@ else
   while IFS= read -r path; do
     [ -n "${path}" ] || continue
     services+=("$(basename "$(dirname "${path}")")")
-  done < <(git -C "${ROOT}" diff --name-only HEAD -- 'manifests/cluster/*/values.yaml' 2>/dev/null || true)
+  # Both files feed `helmfile template`: values.yaml carries an image or setting
+  # bump, helmfile.yaml carries a chart-version bump. Keying on values.yaml alone
+  # missed every "update helm release X to vY" update, which is half of what
+  # Renovate proposes for these services.
+  #
+  # If a service ever gains a second values file, add its pattern here too.
+  done < <(git -C "${ROOT}" diff --name-only HEAD -- \
+             'manifests/cluster/*/values.yaml' \
+             'manifests/cluster/*/helmfile.yaml' \
+             2>/dev/null | sort -u)
 fi
 
 if [ "${#services[@]}" -eq 0 ]; then
-  echo "render-helm-charts: no values.yaml changed, nothing to render"
+  echo "render-helm-charts: no chart inputs changed, nothing to render"
   exit 0
 fi
 
