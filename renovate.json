@@ -29,6 +29,10 @@
   ],
   "packageRules": [
     {
+      "matchManagers": ["github-actions"],
+      "pinDigests": false
+    },
+    {
       "matchFileNames": [
         "manifests/cluster/**/values.yaml",
         "manifests/cluster/**/deployment.yaml",

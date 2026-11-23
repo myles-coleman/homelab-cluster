@@ -69,6 +69,8 @@ There is no dedicated GPU node. The five Raspberry Pi 5 nodes (`node0`–`node4`
 - `docs/` — Plain Markdown documentation, browsable in the repository.
 - `scripts/generate-apps.sh` — Generates ArgoCD Application YAMLs from the cluster kustomization.
 - `renovate.json` — Renovate config. It bumps image tags in `manifests/cluster/` and is blocked from `manifests/dist/`, so a Renovate PR always needs a re-render (see below).
+- `.github/workflows/actions.lock` — machine-generated: the commit every action used by these workflows resolves to.
+- `.github/workflows/verify-lockfile.yml` — fails CI when the lockfile is stale.
 
 ---
 
@@ -141,6 +143,27 @@ recomputes the digest. Never hand-edit a digest in either tree.
 
 Never delete a `Prune=false` annotation to "clean up" a manifest. Those annotations
 are what stops a short render from deleting a namespace or a Longhorn volume.
+
+### Workflow dependencies — the lockfile, not inline SHAs
+
+Workflow `uses:` references name readable tags (`actions/checkout@v7.0.1`). What pins them
+is `.github/workflows/actions.lock`, which records the commit each reference resolves to,
+including the actions a composite action calls itself, plus the source repository's numeric
+identity. It replaces pinning by hand inside the workflow files.
+
+- After adding or changing any `uses:`, run `gh actions-lock` from the repository root and
+  commit the regenerated lockfile in the same change. `.github/workflows/verify-lockfile.yml`
+  runs `gh actions-lock --verify` on every pull request, so an un-locked reference fails CI.
+- Never edit `actions.lock` by hand; it is machine-generated and the next run overwrites it.
+- Keep tags in workflows. A SHA written into a `uses:` is locked as a SHA, which adds nothing
+  over the lockfile entry and makes the workflow harder to read.
+- Renovate regenerates the lockfile in the same pull request as an action bump. Its lockfile
+  support is marked experimental, so review an actions PR as two files: the workflow and
+  `actions.lock`. `pinDigests` is disabled for the `github-actions` manager because the
+  lockfile is the pin now.
+- An action bump does not touch `manifests/`, so the `postUpgradeTasks` render is a no-op for
+  it: `render-helm-charts.sh` and `render-dist.sh` still run, find nothing to change, and
+  `dist-verify`'s `test` job stays green.
 
 ---
 
@@ -311,6 +334,8 @@ For ArgoCD sync issues: `kubectl get applications -n argocd` and check sync stat
 4. **Never change sync wave assignments** in `scripts/generate-apps.sh` without understanding the dependency chain. Incorrect ordering can cause deployment failures (e.g., deploying an app before its secret store is ready).
 
 5. **Never modify `scripts/generate-apps.sh` namespace_map or sync_wave_map** without understanding the impact on all services. Changes affect every ArgoCD Application.
+
+6. **Never hand-edit `.github/workflows/actions.lock`**, and never merge a `uses:` change without the lockfile update `gh actions-lock` produces. CI fails on a stale lockfile.
 
 ### ✅ Safe Operations
 
