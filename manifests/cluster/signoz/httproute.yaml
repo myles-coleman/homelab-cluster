@@ -3,6 +3,13 @@ kind: HTTPRoute
 metadata:
   name: signoz
   namespace: signoz
+  annotations:
+    gethomepage.dev/description: Traces, metrics and logs
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: System
+    gethomepage.dev/icon: signoz.svg
+    gethomepage.dev/name: SigNoz
+    gethomepage.dev/weight: "70"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

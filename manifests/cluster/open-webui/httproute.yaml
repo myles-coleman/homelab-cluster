@@ -3,6 +3,14 @@ kind: HTTPRoute
 metadata:
   name: openwebui
   namespace: open-webui
+  annotations:
+    gethomepage.dev/description: AI Chat Interface
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Services
+    gethomepage.dev/icon: open-webui.svg
+    gethomepage.dev/name: Open WebUI
+    gethomepage.dev/pod-selector: "app=open-webui"
+    gethomepage.dev/weight: "30"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

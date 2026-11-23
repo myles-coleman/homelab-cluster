@@ -1,6 +1,13 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: GitOps tool for Kubernetes
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: System
+    gethomepage.dev/icon: argo-cd.svg
+    gethomepage.dev/name: Argo CD
+    gethomepage.dev/weight: "20"
   name: argocd-server
   namespace: argocd
 spec:

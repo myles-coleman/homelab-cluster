@@ -1,6 +1,14 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: Published research and design notes
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Services
+    gethomepage.dev/icon: obsidian.svg
+    gethomepage.dev/name: AI Artifacts
+    gethomepage.dev/pod-selector: app=ai-artifacts-site
+    gethomepage.dev/weight: "70"
   name: artifacts
   namespace: ai-artifacts-site
 spec:

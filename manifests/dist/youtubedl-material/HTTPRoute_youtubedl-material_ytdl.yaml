@@ -1,6 +1,14 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: YouTube Downloader
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Services
+    gethomepage.dev/icon: youtube.svg
+    gethomepage.dev/name: ytdl-material
+    gethomepage.dev/pod-selector: app=youtubedl-material
+    gethomepage.dev/weight: "50"
   name: ytdl
   namespace: youtubedl-material
 spec:

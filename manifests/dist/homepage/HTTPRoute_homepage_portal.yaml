@@ -2,11 +2,13 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   annotations:
-    gethomepage.dev/description: Dynamically Detected Homepage
+    gethomepage.dev/description: This dashboard
     gethomepage.dev/enabled: "true"
-    gethomepage.dev/group: Cluster Management
+    gethomepage.dev/group: System
     gethomepage.dev/icon: homepage.png
     gethomepage.dev/name: Homepage
+    gethomepage.dev/pod-selector: app.kubernetes.io/name=homepage
+    gethomepage.dev/weight: "90"
   labels:
     app.kubernetes.io/name: homepage
   name: portal

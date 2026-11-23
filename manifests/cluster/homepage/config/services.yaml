@@ -1,0 +1,33 @@
+# Only services that are NOT in this cluster belong here. Everything this
+# repository deploys is discovered from its HTTPRoute's gethomepage.dev/*
+# annotations, so adding a service no longer means editing this file, and
+# deleting one no longer leaves a dead card behind.
+#
+# These groups merge by name with the discovered ones. `weight` is required
+# where position matters: discovered services default to weight 0 and would
+# otherwise always sort above anything listed here.
+- Media:
+    - Jellyfin:
+        icon: jellyfin.svg
+        href: https://jellyfin.cowlab.org/
+        description: Media Server
+        weight: 10
+
+- Services:
+    - Vaultwarden:
+        icon: vaultwarden.svg
+        href: https://vaultwarden.cowlab.org/
+        description: Password Manager
+        weight: 5
+
+- System:
+    - Pikvm:
+        icon: pikvm.svg
+        href: https://pikvm.cowlab.org/
+        description: KVM Over IP
+        weight: 10
+    - Nginx Proxy Manager:
+        icon: nginx-proxy-manager.svg
+        href: https://npm.cowlab.org/
+        description: Proxy Server
+        weight: 40

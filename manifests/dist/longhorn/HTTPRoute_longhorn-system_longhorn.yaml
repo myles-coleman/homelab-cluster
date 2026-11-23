@@ -1,6 +1,14 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: Distributed block storage
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: System
+    gethomepage.dev/icon: longhorn.svg
+    gethomepage.dev/name: Longhorn
+    gethomepage.dev/pod-selector: app.kubernetes.io/name=longhorn
+    gethomepage.dev/weight: "30"
   name: longhorn
   namespace: longhorn-system
 spec:

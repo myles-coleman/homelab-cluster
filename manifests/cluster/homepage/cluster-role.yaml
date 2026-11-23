@@ -5,27 +5,21 @@ metadata:
   labels:
     app.kubernetes.io/name: homepage
 rules:
+  # Read-only, and scoped to what the two features actually read: the Kubernetes
+  # info widget (nodes, pods, metrics) and Gateway API service discovery
+  # (httproutes, gateways).
+  #
+  # Ingress and IngressRoute grants were removed alongside `ingress: false` and
+  # `traefik: false` in kubernetes.yaml. This repository forbids
+  # networking.k8s.io/Ingress and keeps the Traefik CRD provider alive only for
+  # Middleware, so those verbs were dead privilege that would have surfaced as a
+  # permanent "forbidden" log line once the scanners were disabled.
   - apiGroups:
       - ""
     resources:
       - namespaces
       - pods
       - nodes
-    verbs:
-      - get
-      - list
-  - apiGroups:
-      - extensions
-      - networking.k8s.io
-    resources:
-      - ingresses
-    verbs:
-      - get
-      - list
-  - apiGroups:
-      - traefik.io
-    resources:
-      - ingressroutes
     verbs:
       - get
       - list

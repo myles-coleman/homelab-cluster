@@ -3,6 +3,14 @@ kind: HTTPRoute
 metadata:
   name: searxng
   namespace: searxng
+  annotations:
+    gethomepage.dev/description: Private metasearch engine
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Services
+    gethomepage.dev/icon: searxng.svg
+    gethomepage.dev/name: SearXNG
+    gethomepage.dev/pod-selector: "app=searxng"
+    gethomepage.dev/weight: "60"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

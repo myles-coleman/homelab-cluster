@@ -1,6 +1,14 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: Sports Event Collection Manager
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Downloaders
+    gethomepage.dev/icon: sportarr.svg
+    gethomepage.dev/name: Sportarr
+    gethomepage.dev/pod-selector: app=sportarr
+    gethomepage.dev/weight: "60"
   name: sportarr
   namespace: sportarr
 spec:

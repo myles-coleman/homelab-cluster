@@ -3,6 +3,14 @@ kind: HTTPRoute
 metadata:
   name: radarr
   namespace: radarr
+  annotations:
+    gethomepage.dev/description: Movie Collection Manager
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Downloaders
+    gethomepage.dev/icon: radarr.svg
+    gethomepage.dev/name: Radarr
+    gethomepage.dev/pod-selector: "app=radarr"
+    gethomepage.dev/weight: "30"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

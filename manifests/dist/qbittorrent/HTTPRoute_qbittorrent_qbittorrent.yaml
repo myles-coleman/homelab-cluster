@@ -1,6 +1,14 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: Torrent Client
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Services
+    gethomepage.dev/icon: qbittorrent.svg
+    gethomepage.dev/name: Qbittorrent
+    gethomepage.dev/pod-selector: app=qbittorrent
+    gethomepage.dev/weight: "10"
   name: qbittorrent
   namespace: qbittorrent
 spec:

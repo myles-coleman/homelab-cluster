@@ -1,0 +1,109 @@
+apiVersion: v1
+data:
+  bookmarks.yaml: |
+    - Repository:
+        - Github:
+            - href: https://github.com/myles-coleman/homelab-cluster
+  custom.css: ""
+  custom.js: ""
+  docker.yaml: ""
+  kubernetes.yaml: |
+    mode: cluster
+    # Discovery is limited to the one provider this cluster uses. Traefik's
+    # IngressRoute is retired here and networking.k8s.io/Ingress is forbidden
+    # (AGENTS.md), so those scanners would only cost an API-server list on every
+    # render — cluster-role.yaml no longer grants the verbs they need.
+    ingress: false
+    traefik: false
+    gateway: true
+  services.yaml: |
+    # Only services that are NOT in this cluster belong here. Everything this
+    # repository deploys is discovered from its HTTPRoute's gethomepage.dev/*
+    # annotations, so adding a service no longer means editing this file, and
+    # deleting one no longer leaves a dead card behind.
+    #
+    # These groups merge by name with the discovered ones. `weight` is required
+    # where position matters: discovered services default to weight 0 and would
+    # otherwise always sort above anything listed here.
+    - Media:
+        - Jellyfin:
+            icon: jellyfin.svg
+            href: https://jellyfin.cowlab.org/
+            description: Media Server
+            weight: 10
+
+    - Services:
+        - Vaultwarden:
+            icon: vaultwarden.svg
+            href: https://vaultwarden.cowlab.org/
+            description: Password Manager
+            weight: 5
+
+    - System:
+        - Pikvm:
+            icon: pikvm.svg
+            href: https://pikvm.cowlab.org/
+            description: KVM Over IP
+            weight: 10
+        - Nginx Proxy Manager:
+            icon: nginx-proxy-manager.svg
+            href: https://npm.cowlab.org/
+            description: Proxy Server
+            weight: 40
+  settings.yaml: |
+    title: Cowlab
+
+    # `layout` keys are group names, and their order is the group order on the
+    # page. Every group a service is filed under must appear here — including the
+    # groups that exist only as HTTPRoute annotations. A group that is missing
+    # still renders, but untabbed and after these ones.
+    layout:
+      Downloaders:
+        style: row
+        columns: 4
+        tab: Media
+      Media:
+        style: row
+        columns: 2
+        tab: Media
+      Services:
+        style: row
+        columns: 4
+        tab: Apps
+      System:
+        style: row
+        columns: 4
+        tab: Infra
+
+    # No `theme:` on purpose: setting it locks the light/dark switcher.
+    headerStyle: clean
+    color: slate
+    # Dots rather than the default badge, because discovered services inherit
+    # Kubernetes pod state and a wall of green badges drowns that signal out.
+    statusStyle: dot
+    quicklaunch:
+      searchDescriptions: true
+  widgets.yaml: |
+    - kubernetes:
+        cluster:
+          show: true
+          cpu: true
+          memory: true
+          showLabel: true
+          label: "cluster"
+        nodes:
+          show: false
+          cpu: true
+          memory: true
+          showLabel: true
+    - datetime:
+        text_size: xl
+        format:
+          timeStyle: short
+    - search:
+        provider: brave
+        target: _blank
+kind: ConfigMap
+metadata:
+  name: homepage-m554ckd4hg
+  namespace: homepage

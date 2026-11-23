@@ -1,6 +1,14 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: Private metasearch engine
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Services
+    gethomepage.dev/icon: searxng.svg
+    gethomepage.dev/name: SearXNG
+    gethomepage.dev/pod-selector: app=searxng
+    gethomepage.dev/weight: "60"
   name: searxng
   namespace: searxng
 spec:

@@ -6,11 +6,19 @@ metadata:
   labels:
     app.kubernetes.io/name: homepage
   annotations:
-    gethomepage.dev/description: Dynamically Detected Homepage
+    gethomepage.dev/description: This dashboard
     gethomepage.dev/enabled: "true"
-    gethomepage.dev/group: Cluster Management
+    # Filed under System, not a group of its own: the layout in settings.yaml lists
+    # four groups, and a fifth name here would render untabbed and after all of
+    # them.
+    gethomepage.dev/group: System
     gethomepage.dev/icon: homepage.png
     gethomepage.dev/name: Homepage
+    # The route is named `portal` but the pods are labelled
+    # app.kubernetes.io/name=homepage, and discovery would otherwise select
+    # nothing.
+    gethomepage.dev/pod-selector: "app.kubernetes.io/name=homepage"
+    gethomepage.dev/weight: "90"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

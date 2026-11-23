@@ -3,6 +3,14 @@ kind: HTTPRoute
 metadata:
   name: ytdl
   namespace: youtubedl-material
+  annotations:
+    gethomepage.dev/description: YouTube Downloader
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Services
+    gethomepage.dev/icon: youtube.svg
+    gethomepage.dev/name: ytdl-material
+    gethomepage.dev/pod-selector: "app=youtubedl-material"
+    gethomepage.dev/weight: "50"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

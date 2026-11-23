@@ -15,6 +15,13 @@ kind: HTTPRoute
 metadata:
   name: authentik
   namespace: authentik
+  annotations:
+    gethomepage.dev/description: Identity provider and forward-auth
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: System
+    gethomepage.dev/icon: authentik.svg
+    gethomepage.dev/name: Authentik
+    gethomepage.dev/weight: "50"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

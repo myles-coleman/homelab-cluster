@@ -1,6 +1,14 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: Search and Download eBooks
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Downloaders
+    gethomepage.dev/icon: readarr.svg
+    gethomepage.dev/name: Openbooks
+    gethomepage.dev/pod-selector: app=openbooks
+    gethomepage.dev/weight: "70"
   name: openbooks
   namespace: openbooks
 spec:

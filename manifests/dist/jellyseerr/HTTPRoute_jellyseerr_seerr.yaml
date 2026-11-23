@@ -1,6 +1,14 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: Media Library Manager
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Downloaders
+    gethomepage.dev/icon: seerr.svg
+    gethomepage.dev/name: Seerr
+    gethomepage.dev/pod-selector: app=seerr
+    gethomepage.dev/weight: "10"
   name: seerr
   namespace: jellyseerr
 spec:
