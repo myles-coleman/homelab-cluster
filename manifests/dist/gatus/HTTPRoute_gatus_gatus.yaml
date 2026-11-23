@@ -2,15 +2,17 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   annotations:
-    gethomepage.dev/description: Uptime monitoring and status page
+    gethomepage.dev/description: Uptime checks for services outside the cluster
     gethomepage.dev/enabled: "true"
     gethomepage.dev/group: System
-    gethomepage.dev/icon: uptime-kuma.svg
-    gethomepage.dev/name: Uptime Kuma
-    gethomepage.dev/pod-selector: app=uptime-kuma
+    gethomepage.dev/icon: gatus.svg
+    gethomepage.dev/name: Gatus
+    gethomepage.dev/pod-selector: app=gatus
     gethomepage.dev/weight: "85"
-  name: uptime-kuma
-  namespace: uptime-kuma
+    gethomepage.dev/widget.type: gatus
+    gethomepage.dev/widget.url: http://gatus.gatus.svc.cluster.local:8080
+  name: gatus
+  namespace: gatus
 spec:
   hostnames:
   - status.cowlab.org
@@ -24,8 +26,8 @@ spec:
   - backendRefs:
     - group: ""
       kind: Service
-      name: uptime-kuma
-      port: 3001
+      name: gatus
+      port: 8080
       weight: 1
     matches:
     - path:

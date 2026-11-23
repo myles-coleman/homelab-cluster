@@ -1,0 +1,41 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: gatus
+  namespace: gatus
+  annotations:
+    gethomepage.dev/description: Uptime checks for services outside the cluster
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: System
+    gethomepage.dev/icon: gatus.svg
+    gethomepage.dev/name: Gatus
+    gethomepage.dev/pod-selector: "app=gatus"
+    gethomepage.dev/weight: "85"
+    # Uptime is the point of this service, so the card reports the aggregate
+    # rather than being a link to a status page. `url` is the in-cluster Service,
+    # which is what the widget proxy talks to.
+    gethomepage.dev/widget.type: gatus
+    gethomepage.dev/widget.url: http://gatus.gatus.svc.cluster.local:8080
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - status.cowlab.org
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      # LAN-only, like the portal. Gating it means the `authentik` Middleware here,
+      # a ReferenceGrant entry for this namespace, and an application in the
+      # Authentik Terraform unit — all three, or the login round trip loops.
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: gatus
+          port: 8080
+          weight: 1

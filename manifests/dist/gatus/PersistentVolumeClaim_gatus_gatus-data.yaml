@@ -3,8 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
-  name: uptime-kuma-data
-  namespace: uptime-kuma
+  name: gatus-data
+  namespace: gatus
 spec:
   accessModes:
   - ReadWriteOnce

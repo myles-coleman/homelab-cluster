@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: uptime-kuma
-  namespace: uptime-kuma
+  name: gatus
+  namespace: gatus
 spec:
   replicas: 1
   revisionHistoryLimit: 3
   selector:
     matchLabels:
-      app: uptime-kuma
+      app: gatus
   strategy:
     rollingUpdate:
       maxSurge: 0
@@ -17,50 +17,56 @@ spec:
   template:
     metadata:
       labels:
-        app: uptime-kuma
+        app: gatus
     spec:
       containers:
       - env:
+        - name: GATUS_CONFIG_PATH
+          value: /config/config.yaml
         - name: TZ
           value: America/Los_Angeles
-        - name: UPTIME_KUMA_DISABLE_STATS
-          value: "true"
-        image: louislam/uptime-kuma:2@sha256:8e4b6bef96417ec98a35dc103c99cc64fc229a01e584e56d95d9004d2003c02a
+        image: ghcr.io/twin/gatus:stable@sha256:085ed63da963728965d00a3c78aa6167e3bf135218485b893201758e079e8415
         imagePullPolicy: IfNotPresent
         livenessProbe:
-          failureThreshold: 5
+          failureThreshold: 4
           httpGet:
-            path: /
+            path: /health
             port: http
-          initialDelaySeconds: 90
+          initialDelaySeconds: 30
           periodSeconds: 30
-          timeoutSeconds: 5
-        name: uptime-kuma
+          timeoutSeconds: 3
+        name: gatus
         ports:
-        - containerPort: 3001
+        - containerPort: 8080
           name: http
           protocol: TCP
         readinessProbe:
           failureThreshold: 3
           httpGet:
-            path: /
+            path: /health
             port: http
-          initialDelaySeconds: 20
-          periodSeconds: 20
-          timeoutSeconds: 5
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          timeoutSeconds: 3
         resources:
           limits:
-            cpu: 500m
-            memory: 512Mi
-          requests:
-            cpu: 25m
+            cpu: 200m
             memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
         volumeMounts:
-        - mountPath: /app/data
+        - mountPath: /config
+          name: config
+          readOnly: true
+        - mountPath: /data
           name: data
       securityContext:
         fsGroup: 1000
       volumes:
+      - configMap:
+          name: gatus-config-54cmc46gfk
+        name: config
       - name: data
         persistentVolumeClaim:
-          claimName: uptime-kuma-data
+          claimName: gatus-data

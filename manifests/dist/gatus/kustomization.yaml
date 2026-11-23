@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ConfigMap_gatus_gatus-config-54cmc46gfk.yaml
+- Deployment_gatus_gatus.yaml
+- HTTPRoute_gatus_gatus.yaml
+- Namespace_cluster_gatus.yaml
+- PersistentVolumeClaim_gatus_gatus-data.yaml
+- Service_gatus_gatus.yaml
