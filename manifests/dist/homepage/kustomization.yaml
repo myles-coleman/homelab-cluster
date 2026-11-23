@@ -5,6 +5,7 @@ resources:
 - ClusterRole_cluster_homepage.yaml
 - ConfigMap_homepage_homepage-mkcg7c8c62.yaml
 - Deployment_homepage_homepage.yaml
+- ExternalSecret_homepage_homepage-widgets.yaml
 - HTTPRoute_homepage_portal.yaml
 - Namespace_cluster_homepage.yaml
 - PodDisruptionBudget_homepage_homepage.yaml

@@ -11,6 +11,10 @@ metadata:
     gethomepage.dev/name: Radarr
     gethomepage.dev/pod-selector: "app=radarr"
     gethomepage.dev/weight: "30"
+    gethomepage.dev/widget.type: radarr
+    gethomepage.dev/widget.url: http://radarr.radarr.svc.cluster.local:7878
+    gethomepage.dev/widget.key: "{{HOMEPAGE_VAR_RADARR_KEY}}"
+    gethomepage.dev/widget.enableQueue: "true"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
