@@ -3,6 +3,14 @@ kind: HTTPRoute
 metadata:
   name: artifacts
   namespace: ai-artifacts-site
+  annotations:
+    gethomepage.dev/description: Published research and design notes
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Services
+    gethomepage.dev/icon: obsidian.svg
+    gethomepage.dev/name: AI Artifacts
+    gethomepage.dev/pod-selector: "app=ai-artifacts-site"
+    gethomepage.dev/weight: "70"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

@@ -1,6 +1,14 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: Music Collection Manager
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Downloaders
+    gethomepage.dev/icon: lidarr.svg
+    gethomepage.dev/name: Lidarr
+    gethomepage.dev/pod-selector: app=lidarr
+    gethomepage.dev/weight: "40"
   name: lidarr
   namespace: lidarr
 spec:

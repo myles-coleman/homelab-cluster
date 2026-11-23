@@ -1,6 +1,13 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: Identity provider and forward-auth
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: System
+    gethomepage.dev/icon: authentik.svg
+    gethomepage.dev/name: Authentik
+    gethomepage.dev/weight: "50"
   name: authentik
   namespace: authentik
 spec:

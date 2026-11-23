@@ -3,6 +3,13 @@ kind: HTTPRoute
 metadata:
   name: dex
   namespace: dex
+  annotations:
+    gethomepage.dev/description: OIDC connector for Argo CD
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: System
+    gethomepage.dev/icon: mdi-shield-key
+    gethomepage.dev/name: Dex
+    gethomepage.dev/weight: "60"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

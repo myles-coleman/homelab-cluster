@@ -3,6 +3,14 @@ kind: HTTPRoute
 metadata:
   name: calibre
   namespace: calibre
+  annotations:
+    gethomepage.dev/description: Browse and Read eBooks
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Media
+    gethomepage.dev/icon: calibre.svg
+    gethomepage.dev/name: Calibre-Web
+    gethomepage.dev/pod-selector: "app=calibre"
+    gethomepage.dev/weight: "20"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

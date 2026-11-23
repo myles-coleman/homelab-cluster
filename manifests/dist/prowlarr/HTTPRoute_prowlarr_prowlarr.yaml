@@ -1,6 +1,14 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: Indexer Collection Manager
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Downloaders
+    gethomepage.dev/icon: prowlarr.svg
+    gethomepage.dev/name: Prowlarr
+    gethomepage.dev/pod-selector: app=prowlarr
+    gethomepage.dev/weight: "50"
   name: prowlarr
   namespace: prowlarr
 spec:

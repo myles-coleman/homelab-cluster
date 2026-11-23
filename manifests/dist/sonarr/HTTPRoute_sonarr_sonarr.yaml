@@ -1,6 +1,14 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: TV Show Collection Manager
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Downloaders
+    gethomepage.dev/icon: sonarr.svg
+    gethomepage.dev/name: Sonarr
+    gethomepage.dev/pod-selector: app=sonarr
+    gethomepage.dev/weight: "20"
   name: sonarr
   namespace: sonarr
 spec:

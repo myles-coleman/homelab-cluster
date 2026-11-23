@@ -26,7 +26,7 @@ spec:
       - env:
         - name: HOMEPAGE_ALLOWED_HOSTS
           value: portal.cowlab.org
-        image: ghcr.io/gethomepage/homepage:v1.3.2@sha256:4f923bf0e9391b3a8bc5527e539b022e92dcc8a3a13e6ab66122ea9ed030e196
+        image: ghcr.io/gethomepage/homepage:v2.8.0@sha256:019d8f063a7299e7c1c51ee4a70b692291809af3244894fbec2c2ac7d1f71b18
         imagePullPolicy: Always
         name: homepage
         ports:

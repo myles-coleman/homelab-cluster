@@ -3,6 +3,14 @@ kind: HTTPRoute
 metadata:
   name: qbittorrent
   namespace: qbittorrent
+  annotations:
+    gethomepage.dev/description: Torrent Client
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Services
+    gethomepage.dev/icon: qbittorrent.svg
+    gethomepage.dev/name: Qbittorrent
+    gethomepage.dev/pod-selector: "app=qbittorrent"
+    gethomepage.dev/weight: "10"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

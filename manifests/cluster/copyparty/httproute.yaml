@@ -3,6 +3,14 @@ kind: HTTPRoute
 metadata:
   name: copyparty
   namespace: copyparty
+  annotations:
+    gethomepage.dev/description: File Sharing and Management
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Services
+    gethomepage.dev/icon: copyparty.svg
+    gethomepage.dev/name: Copyparty
+    gethomepage.dev/pod-selector: "app=copyparty"
+    gethomepage.dev/weight: "20"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

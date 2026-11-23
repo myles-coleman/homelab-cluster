@@ -3,6 +3,14 @@ kind: HTTPRoute
 metadata:
   name: argocd-mcp
   namespace: argocd-mcp
+  annotations:
+    gethomepage.dev/description: MCP server for Argo CD
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: System
+    gethomepage.dev/icon: argo-cd.svg
+    gethomepage.dev/name: Argo CD MCP
+    gethomepage.dev/pod-selector: "app=argocd-mcp"
+    gethomepage.dev/weight: "80"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

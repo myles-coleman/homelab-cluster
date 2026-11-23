@@ -1,6 +1,14 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  annotations:
+    gethomepage.dev/description: Account-free YouTube Frontend
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Services
+    gethomepage.dev/icon: youtube.svg
+    gethomepage.dev/name: YouTube
+    gethomepage.dev/pod-selector: app=materialious
+    gethomepage.dev/weight: "40"
   name: youtube
   namespace: youtube-proxy
 spec:
