@@ -51,6 +51,41 @@ spec:
             - name: http
               containerPort: 3000
               protocol: TCP
+          # /api/healthcheck is on Homepage's public path list, so it answers 200
+          # even with HOMEPAGE_AUTH_ENABLED set — the probe does not depend on the
+          # auth work that has not been switched on yet.
+          #
+          # A readiness gate matters more here than usual: the pod previously ran
+          # without one, so a replica that had started but could not yet render was
+          # still handed traffic, and a rolled node left a 503 until the endpoint
+          # controller caught up.
+          readinessProbe:
+            httpGet:
+              path: /api/healthcheck
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/healthcheck
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 4
+          # Sized from observed usage: ~100-150Mi resident per replica at idle on
+          # this dashboard, so 192Mi request leaves headroom without reserving a
+          # fifth of a node. The limit is 384Mi — a Next.js render spike fits, and
+          # an OOM kill here is a single stateless replica, not data loss.
+          resources:
+            requests:
+              cpu: 25m
+              memory: 192Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
           volumeMounts:
             - mountPath: /app/config/custom.js
               name: homepage-config

@@ -94,6 +94,15 @@ data:
     statusStyle: dot
     quicklaunch:
       searchDescriptions: true
+
+    # Longhorn is an *info* widget, not a service widget, so its credentials live here
+    # rather than on an HTTPRoute annotation. In-cluster and unauthenticated: this
+    # Longhorn install exposes its frontend API without auth, so the URL is the only
+    # input and no Secret is involved. Verified reachable at this address from the
+    # homepage pod before wiring it up.
+    providers:
+      longhorn:
+        url: http://longhorn-frontend.longhorn-system.svc.cluster.local
   widgets.yaml: |
     - kubernetes:
         cluster:
@@ -107,6 +116,14 @@ data:
           cpu: true
           memory: true
           showLabel: true
+    # Storage health. `total` gives the aggregate bar; `nodes` stays false because
+    # Longhorn already spreads replicas per node and five per-node bars say less than
+    # the one number that matters, which is how much of the pool is in use.
+    - longhorn:
+        expanded: true
+        total: true
+        labels: true
+        nodes: false
     - datetime:
         text_size: xl
         format:
@@ -116,5 +133,5 @@ data:
         target: _blank
 kind: ConfigMap
 metadata:
-  name: homepage-m89t28c6kf
+  name: homepage-mkcg7c8c62
   namespace: homepage
