@@ -120,10 +120,19 @@ jobs:
       - name: Renovate
         env:
           RENOVATE_TOKEN: ${{ steps.app-token.outputs.token }}
-          # Attribute commits to the bot rather than to whatever user the token
-          # belongs to.
-          RENOVATE_USERNAME: ${{ steps.app-token.outputs.app-slug }}[bot]
-          RENOVATE_GIT_AUTHOR: ${{ steps.app-token.outputs.app-slug }}[bot] <${{ vars.RENOVATE_APP_ID }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com>
+          # No RENOVATE_USERNAME or RENOVATE_GIT_AUTHOR on purpose.
+          #
+          # With a GitHub App token Renovate uses platformCommit, where GitHub
+          # itself sets the commit author. Setting gitAuthor made Renovate
+          # disagree with the author GitHub actually wrote: the App ID is 5871444
+          # but the bot user ID that appears in the commit is 359768212. Renovate
+          # then stopped recognising its own commits, refused to rebase its own
+          # PRs ("does not recognize the last commit author"), and postUpgradeTasks
+          # never re-ran.
+          #
+          # Renovate's own docs: with a GitHub App and platformCommit you should
+          # not configure gitAuthor. Leave both unset and it discovers the
+          # identity from the token.
           RENOVATE_REPOSITORIES: '["myles-coleman/homelab-cluster"]'
           # postUpgradeTasks executes commands inside the repository, so the
           # only command permitted is the renderer itself.
