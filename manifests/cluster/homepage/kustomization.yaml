@@ -13,7 +13,6 @@ resources:
   - service.yaml
   - httproute.yaml
   - secret.yaml
-  - external-secret.yaml
   - service-account.yaml
   - cluster-role.yaml
   - traefik-service.yaml

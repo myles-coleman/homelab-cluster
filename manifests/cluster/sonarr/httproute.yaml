@@ -11,12 +11,6 @@ metadata:
     gethomepage.dev/name: Sonarr
     gethomepage.dev/pod-selector: "app=sonarr"
     gethomepage.dev/weight: "20"
-    # In-cluster URL, not the public hostname: the widget talks to the pod
-    # directly, so a broken Traefik route cannot also break the card's metrics.
-    gethomepage.dev/widget.type: sonarr
-    gethomepage.dev/widget.url: http://sonarr.sonarr.svc.cluster.local:8989
-    gethomepage.dev/widget.key: "{{HOMEPAGE_VAR_SONARR_KEY}}"
-    gethomepage.dev/widget.enableQueue: "true"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
