@@ -30,3 +30,12 @@ color: slate
 statusStyle: dot
 quicklaunch:
   searchDescriptions: true
+
+# Longhorn is an *info* widget, not a service widget, so its credentials live here
+# rather than on an HTTPRoute annotation. In-cluster and unauthenticated: this
+# Longhorn install exposes its frontend API without auth, so the URL is the only
+# input and no Secret is involved. Verified reachable at this address from the
+# homepage pod before wiring it up.
+providers:
+  longhorn:
+    url: http://longhorn-frontend.longhorn-system.svc.cluster.local

@@ -10,6 +10,14 @@
       cpu: true
       memory: true
       showLabel: true
+# Storage health. `total` gives the aggregate bar; `nodes` stays false because
+# Longhorn already spreads replicas per node and five per-node bars say less than
+# the one number that matters, which is how much of the pool is in use.
+- longhorn:
+    expanded: true
+    total: true
+    labels: true
+    nodes: false
 - datetime:
     text_size: xl
     format:

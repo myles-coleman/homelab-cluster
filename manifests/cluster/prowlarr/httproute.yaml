@@ -11,6 +11,9 @@ metadata:
     gethomepage.dev/name: Prowlarr
     gethomepage.dev/pod-selector: "app=prowlarr"
     gethomepage.dev/weight: "50"
+    gethomepage.dev/widget.type: prowlarr
+    gethomepage.dev/widget.url: http://prowlarr.prowlarr.svc.cluster.local:9696
+    gethomepage.dev/widget.key: "{{HOMEPAGE_VAR_PROWLARR_KEY}}"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
