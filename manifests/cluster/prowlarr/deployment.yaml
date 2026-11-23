@@ -56,6 +56,27 @@ spec:
             "$IP6T" -A OUTPUT -m owner --uid-owner 0 -j ACCEPT
             "$IP6T" -A OUTPUT -j DROP
           fi
+
+          # Keep cluster traffic off the exit node.
+          #
+          # With `--exit-node` set, tailscaled installs `5270: from all lookup 52`
+          # and puts `default dev tailscale0` in table 52. The only exemption it
+          # adds is the pod's own /24 (`throw 10.42.1.0/24`), so a reply to a
+          # client on any OTHER node is routed into the tunnel and never arrives.
+          # That is the whole symptom: this app answers on its own subnet and
+          # times out from Traefik, which runs on node2.
+          #
+          # These rules sit before tailscaled's 5270 and send cluster
+          # destinations to the main table instead. Internet egress is untouched:
+          # the OUTPUT chain above still DROPs everything that is not loopback,
+          # tailscale0, or one of these two CIDRs, so the leak protection is
+          # exactly as strict as before — only the path to in-cluster clients
+          # changed.
+          #
+          # `|| true` because a rule that already exists makes `ip` exit non-zero,
+          # and `set -eu` would turn that into a failed init container.
+          ip rule add to 10.42.0.0/16 lookup main priority 5255 || true
+          ip rule add to 10.43.0.0/16 lookup main priority 5256 || true
         securityContext:
           capabilities:
             add: ["NET_ADMIN"]
