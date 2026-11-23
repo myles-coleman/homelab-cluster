@@ -1,0 +1,15 @@
+# SQLite history. Gatus defaults to in-memory storage, which keeps the current
+# status but loses uptime history and past events on every rollout — and this
+# service rolls whenever its config changes.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gatus-data
+  namespace: gatus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi

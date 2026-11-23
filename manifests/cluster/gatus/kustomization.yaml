@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# The generated ConfigMap carries no namespace of its own, and kustomize matches a
+# volume reference by name *and* namespace — without this the Deployment keeps
+# pointing at the unhashed name and resolves to nothing.
+namespace: gatus
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+  - httproute.yaml
+  - pvc.yaml
+
+# Generated rather than a fixed ConfigMap so the content hash lands in the name and
+# a monitor edit changes the pod template. Otherwise a config change would update
+# the ConfigMap and leave the running pod checking the old endpoint list.
+configMapGenerator:
+  - name: gatus-config
+    files:
+      - config/config.yaml
+
+# Data-bearing objects cannot be pruned. See _prune-protection/.
+components:
+  - ../_prune-protection

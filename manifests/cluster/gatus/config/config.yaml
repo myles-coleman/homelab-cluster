@@ -1,0 +1,56 @@
+# Checks for the services that do not run in this cluster.
+#
+# Everything this repository deploys already reports Kubernetes pod state into the
+# dashboard. These four live outside it — Jellyfin, Vaultwarden and Nginx Proxy
+# Manager as containers on the homelab host, PiKVM on its own box — so nothing in
+# the cluster knows whether they are up.
+#
+# The whole monitor set is this file. Adding a check is a reviewed diff, not a
+# click, and `configMapGenerator` in kustomization.yaml rolls the pod when it
+# changes.
+#
+# Path is a file, not a directory: Gatus opens the SQLite database itself.
+storage:
+  type: sqlite
+  path: /data/data.db
+  maximum-number-of-results: 100
+  maximum-number-of-events: 50
+
+endpoints:
+  # `[STATUS] < 400` throughout rather than a list of accepted codes. Gatus has no
+  # list-membership operator — `any()` exists but applies to `==`/`!=` — and its own
+  # docs recommend comparison over pattern matching on [STATUS] for cost. It also
+  # matches what these checks mean: "answered without error". Jellyfin and PiKVM
+  # return 302 at `/` by design, so a strict `== 200` would call a healthy server
+  # down, while a 404 or 502 still fails, which is the signal worth having.
+  - name: Jellyfin
+    group: Media
+    url: "https://jellyfin.cowlab.org/"
+    interval: 60s
+    conditions:
+      - "[STATUS] < 400"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+
+  - name: Vaultwarden
+    group: Services
+    url: "https://vaultwarden.cowlab.org/"
+    interval: 60s
+    conditions:
+      - "[STATUS] < 400"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+
+  - name: Nginx Proxy Manager
+    group: System
+    url: "https://npm.cowlab.org/"
+    interval: 60s
+    conditions:
+      - "[STATUS] < 400"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
+
+  - name: PiKVM
+    group: System
+    url: "https://pikvm.cowlab.org/"
+    interval: 60s
+    conditions:
+      - "[STATUS] < 400"
+      - "[CERTIFICATE_EXPIRATION] > 48h"
