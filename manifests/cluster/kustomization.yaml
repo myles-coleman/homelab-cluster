@@ -37,6 +37,7 @@ resources:
 - calibre-web
 - youtubedl-material
 - homepage
+- uptime-kuma
 - copyparty
 # - fittrackee
 - metallb

@@ -1,0 +1,38 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: uptime-kuma
+  namespace: uptime-kuma
+  annotations:
+    gethomepage.dev/description: Uptime monitoring and status page
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: System
+    gethomepage.dev/icon: uptime-kuma.svg
+    gethomepage.dev/name: Uptime Kuma
+    gethomepage.dev/pod-selector: "app=uptime-kuma"
+    gethomepage.dev/weight: "85"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: traefik-gateway
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - status.cowlab.org
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      # No forward-auth gate yet, matching the portal: both are LAN-only and
+      # unpublishing the tunnel record is what bounds exposure. Gating this host
+      # means adding the `authentik` Middleware here, a ReferenceGrant entry for
+      # this namespace, and an application in the Authentik Terraform unit --
+      # doing only the first of those produces a redirect loop.
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: uptime-kuma
+          port: 3001
+          weight: 1

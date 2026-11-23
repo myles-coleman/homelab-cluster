@@ -6,12 +6,20 @@
 # These groups merge by name with the discovered ones. `weight` is required
 # where position matters: discovered services default to weight 0 and would
 # otherwise always sort above anything listed here.
+#
+# `siteMonitor: true` on each entry is what gives these cards an up/down dot:
+# discovered services inherit Kubernetes pod state, but nothing in this cluster
+# runs these four, so Homepage has to probe them. It issues an unauthenticated
+# HEAD and then GET, which is why it works here — these hosts sit behind Traefik
+# only, and would need an internal URL if they were ever put behind forward-auth.
+# Uptime Kuma keeps the history and alerting; this is just the at-a-glance dot.
 - Media:
     - Jellyfin:
         icon: jellyfin.svg
         href: https://jellyfin.cowlab.org/
         description: Media Server
         weight: 10
+        siteMonitor: https://jellyfin.cowlab.org/
 
 - Services:
     - Vaultwarden:
@@ -19,6 +27,7 @@
         href: https://vaultwarden.cowlab.org/
         description: Password Manager
         weight: 5
+        siteMonitor: https://vaultwarden.cowlab.org/
 
 - System:
     - Pikvm:
@@ -26,8 +35,10 @@
         href: https://pikvm.cowlab.org/
         description: KVM Over IP
         weight: 10
+        siteMonitor: https://pikvm.cowlab.org/
     - Nginx Proxy Manager:
         icon: nginx-proxy-manager.svg
         href: https://npm.cowlab.org/
         description: Proxy Server
         weight: 40
+        siteMonitor: https://npm.cowlab.org/
