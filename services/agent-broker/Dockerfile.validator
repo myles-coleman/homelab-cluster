@@ -3,7 +3,7 @@
 # The validator now applies patches, so it needs a real git binary and CA roots;
 # distroless cannot provide git. It still runs non-root with a read-only root
 # filesystem, and all scratch work happens on the /tmp emptyDir.
-FROM golang:1.26-bookworm AS build
+FROM golang:1.26-bookworm@sha256:dc40a13b61304647ed7e5d581d246b86413dfc29d63c6d018310feb93cd98fc0 AS build
 
 WORKDIR /src
 COPY go.mod go.sum ./
@@ -12,7 +12,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" \
     -o /out/validator ./cmd/validator
 
-FROM alpine:3.21
+FROM alpine:3.21@sha256:bc21487101ae47172509130ee1092cc273a831968d64b617776d1f69c81e42ab
 
 RUN apk add --no-cache git ca-certificates \
     && adduser -D -u 65532 -h /tmp nonroot
