@@ -24,10 +24,9 @@ spec:
     sectionName: websecure
   rules:
   - backendRefs:
-    - group: ""
-      kind: Service
-      name: homepage
-      port: 3000
+    - group: traefik.io
+      kind: TraefikService
+      name: homepage-sticky
       weight: 1
     matches:
     - path:

@@ -15,6 +15,7 @@ resources:
   - secret.yaml
   - service-account.yaml
   - cluster-role.yaml
+  - traefik-service.yaml
 
 # Config is generated rather than applied as a fixed ConfigMap.
 #

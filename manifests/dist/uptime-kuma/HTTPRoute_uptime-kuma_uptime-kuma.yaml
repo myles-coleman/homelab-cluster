@@ -1,0 +1,33 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  annotations:
+    gethomepage.dev/description: Uptime monitoring and status page
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: System
+    gethomepage.dev/icon: uptime-kuma.svg
+    gethomepage.dev/name: Uptime Kuma
+    gethomepage.dev/pod-selector: app=uptime-kuma
+    gethomepage.dev/weight: "85"
+  name: uptime-kuma
+  namespace: uptime-kuma
+spec:
+  hostnames:
+  - status.cowlab.org
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: traefik-gateway
+    namespace: traefik
+    sectionName: websecure
+  rules:
+  - backendRefs:
+    - group: ""
+      kind: Service
+      name: uptime-kuma
+      port: 3001
+      weight: 1
+    matches:
+    - path:
+        type: PathPrefix
+        value: /

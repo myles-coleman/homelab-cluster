@@ -1,0 +1,35 @@
+# Cookie-pinned session affinity for the dashboard.
+#
+# The Deployment runs two replicas behind plain round-robin, so successive
+# requests from one browser land on different pods. Homepage revalidates its data
+# when the window regains focus, and each pod answers from its own render — which
+# is what makes the page visibly reload several times when returning to the tab.
+# Pinning a browser to one pod removes that churn without giving up the second
+# replica, which exists so a single node loss is not a 503.
+#
+# This is a TraefikService rather than a Service-level `sessionAffinity: ClientIP`
+# on purpose: ClientIP would key affinity on the *Traefik* pod's address, so every
+# browser would share one bucket and a Traefik restart would reshuffle everyone.
+# A cookie is per-browser and survives that.
+#
+# `secure: true` because the route is served on the websecure listener; the cookie
+# is intentionally a session cookie with no maxAge, so closing the browser
+# re-picks a pod rather than sticking to one that may since have been rolled.
+apiVersion: traefik.io/v1alpha1
+kind: TraefikService
+metadata:
+  name: homepage-sticky
+  namespace: homepage
+  labels:
+    app.kubernetes.io/name: homepage
+spec:
+  weighted:
+    services:
+      - name: homepage
+        port: 3000
+        weight: 1
+        sticky:
+          cookie:
+            name: homepage_affinity
+            httpOnly: true
+            secure: true

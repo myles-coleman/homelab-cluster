@@ -21,6 +21,7 @@ resources:
 - calibre-web-app.yaml
 - youtubedl-material-app.yaml
 - homepage-app.yaml
+- uptime-kuma-app.yaml
 - copyparty-app.yaml
 - metallb-app.yaml
 - traefik-app.yaml
