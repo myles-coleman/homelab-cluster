@@ -6,7 +6,7 @@
   "automerge": false,
   "pinDigests": true,
   "prConcurrentLimit": 3,
-  "prHourlyLimit": 2,
+  "prHourlyLimit": 5,
   "rebaseWhen": "conflicted",
   "postUpgradeTasks": {
     "commands": [
