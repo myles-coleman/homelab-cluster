@@ -33,9 +33,11 @@ spec:
         - path:
             type: PathPrefix
             value: /
+      # Routed through the sticky TraefikService, not the Service directly: the
+      # Traefik Gateway provider accepts a TraefikService as a backend and the
+      # `port` is stated there, so it is deliberately omitted here.
       backendRefs:
-        - group: ""
-          kind: Service
-          name: homepage
-          port: 3000
+        - group: traefik.io
+          kind: TraefikService
+          name: homepage-sticky
           weight: 1

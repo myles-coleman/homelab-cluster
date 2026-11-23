@@ -1,0 +1,18 @@
+apiVersion: traefik.io/v1alpha1
+kind: TraefikService
+metadata:
+  labels:
+    app.kubernetes.io/name: homepage
+  name: homepage-sticky
+  namespace: homepage
+spec:
+  weighted:
+    services:
+    - name: homepage
+      port: 3000
+      sticky:
+        cookie:
+          httpOnly: true
+          name: homepage_affinity
+          secure: true
+      weight: 1
