@@ -45,8 +45,22 @@ spec:
           image: "ghcr.io/gethomepage/homepage:v2.8.0@sha256:019d8f063a7299e7c1c51ee4a70b692291809af3244894fbec2c2ac7d1f71b18"
           imagePullPolicy: Always
           env:
+            # The kubelet probes `http://<podIP>:3000/...`, so the Host header it
+            # sends is the pod IP, which Homepage's host validation rejects with a
+            # 400. A 400 is not a dead process, but liveness cannot tell the
+            # difference: it restarted the container every ~2.5 minutes, and
+            # `maxUnavailable: 0` then kept the previous replicas serving — which is
+            # why the dashboard ran on stale config with widget keys missing.
+            #
+            # This mirrors the upstream Kubernetes example, which sets
+            # `HOMEPAGE_ALLOWED_HOSTS=$(MY_POD_IP):3000,gethomepage.dev` for exactly
+            # this reason.
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
             - name: HOMEPAGE_ALLOWED_HOSTS
-              value: portal.cowlab.org # required, may need port. See gethomepage.dev/installation/#homepage_allowed_hosts
+              value: "$(POD_IP):3000,portal.cowlab.org" # required, may need port. See gethomepage.dev/installation/#homepage_allowed_hosts
           # Widget API keys. The card definitions reference them as
           # {{HOMEPAGE_VAR_*}}, which Homepage substitutes at read time, so the
           # Committed ConfigMap never holds a secret and only this Secret does.
