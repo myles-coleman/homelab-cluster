@@ -11,11 +11,6 @@ metadata:
     gethomepage.dev/name: Gatus
     gethomepage.dev/pod-selector: "app=gatus"
     gethomepage.dev/weight: "85"
-    # Uptime is the point of this service, so the card reports the aggregate
-    # rather than being a link to a status page. `url` is the in-cluster Service,
-    # which is what the widget proxy talks to.
-    gethomepage.dev/widget.type: gatus
-    gethomepage.dev/widget.url: http://gatus.gatus.svc.cluster.local:8080
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
