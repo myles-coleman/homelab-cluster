@@ -30,9 +30,6 @@ spec:
               fieldPath: status.podIP
         - name: HOMEPAGE_ALLOWED_HOSTS
           value: $(POD_IP):3000,portal.cowlab.org
-        envFrom:
-        - secretRef:
-            name: homepage-widgets
         image: ghcr.io/gethomepage/homepage:v2.8.0@sha256:019d8f063a7299e7c1c51ee4a70b692291809af3244894fbec2c2ac7d1f71b18
         imagePullPolicy: Always
         livenessProbe:

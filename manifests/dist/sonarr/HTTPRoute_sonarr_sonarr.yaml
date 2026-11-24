@@ -9,10 +9,6 @@ metadata:
     gethomepage.dev/name: Sonarr
     gethomepage.dev/pod-selector: app=sonarr
     gethomepage.dev/weight: "20"
-    gethomepage.dev/widget.enableQueue: "true"
-    gethomepage.dev/widget.key: '{{HOMEPAGE_VAR_SONARR_KEY}}'
-    gethomepage.dev/widget.type: sonarr
-    gethomepage.dev/widget.url: http://sonarr.sonarr.svc.cluster.local:8989
   name: sonarr
   namespace: sonarr
 spec:
