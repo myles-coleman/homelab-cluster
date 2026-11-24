@@ -61,6 +61,17 @@ data:
             description: Proxy Server
             weight: 40
             siteMonitor: https://npm.cowlab.org/
+        - Pi-hole:
+            icon: pi-hole.svg
+            # Not the bare host: Pi-hole answers 403 at `/` and serves the UI under
+            # /admin/, so linking the root would land the card on a Forbidden page.
+            href: https://pihole.cowlab.org/admin/
+            description: DNS and ad blocking
+            weight: 45
+            # `/admin/` redirects to the login form, which is a 200 — measured from
+            # this pod, since a monitor pointed at a 403 would report a healthy
+            # Pi-hole as down.
+            siteMonitor: https://pihole.cowlab.org/admin/login
   settings.yaml: |
     title: Cowlab
 
@@ -133,5 +144,5 @@ data:
         target: _blank
 kind: ConfigMap
 metadata:
-  name: homepage-mkcg7c8c62
+  name: homepage-btdbm7kf75
   namespace: homepage
