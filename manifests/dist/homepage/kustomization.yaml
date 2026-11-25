@@ -3,7 +3,7 @@ kind: Kustomization
 resources:
 - ClusterRoleBinding_cluster_homepage.yaml
 - ClusterRole_cluster_homepage.yaml
-- ConfigMap_homepage_homepage-btdbm7kf75.yaml
+- ConfigMap_homepage_homepage-925thf878m.yaml
 - Deployment_homepage_homepage.yaml
 - HTTPRoute_homepage_portal.yaml
 - Namespace_cluster_homepage.yaml
