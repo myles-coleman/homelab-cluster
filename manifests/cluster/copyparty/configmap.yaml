@@ -18,7 +18,12 @@ data:
       idp-h-usr: X-Authentik-Username
       idp-h-grp: X-Authentik-Groups
       idp-h-key: X-Idp-Key
-      idp-gsep: ,
+      # Authentik joins the user's groups into one header value with a pipe
+      # ("homelab|copyparty-admins"); copyparty splits that value on every
+      # character listed here. With "," alone the entire value parses as a
+      # single group name, matches no @group below, and every authenticated
+      # user gets "welcome back" instead of the file browser.
+      idp-gsep: |,
       xff-hdr: cf-connecting-ip
       xff-src: 10.42.0.0/16
       u2sz: 1,64,96
