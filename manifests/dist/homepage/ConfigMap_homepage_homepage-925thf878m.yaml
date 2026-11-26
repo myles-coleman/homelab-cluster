@@ -46,6 +46,14 @@ data:
             href: https://vaultwarden.cowlab.org/
             description: Password Manager
             weight: 5
+        # Tailnet-only by design: no cluster route, no tunnel record. The card is a
+        # plain link, so it works from a browser on the tailnet; Homepage itself
+        # cannot reach it and deliberately has no widget for it.
+        - Transcript:
+            icon: youtube.svg
+            href: https://bee-gpu-server.tail6d2e9b.ts.net/
+            description: YouTube to English transcript (GPU)
+            weight: 15
             siteMonitor: https://vaultwarden.cowlab.org/
 
     - System:
@@ -144,5 +152,5 @@ data:
         target: _blank
 kind: ConfigMap
 metadata:
-  name: homepage-btdbm7kf75
+  name: homepage-925thf878m
   namespace: homepage
