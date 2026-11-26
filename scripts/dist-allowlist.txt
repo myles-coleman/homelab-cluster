@@ -15,4 +15,4 @@ docker.io/busybox:1.35
 # Private GHCR package. Resolution needs a token with `read:packages`, which the
 # available credential does not have. Remove this entry once the token carries
 # that scope and the digest is pinned.
-ghcr.io/myles-coleman/ai-artifacts-site:sha-734320ebe422
+ghcr.io/myles-coleman/ai-artifacts-site:sha-bf1a91d5a1b8

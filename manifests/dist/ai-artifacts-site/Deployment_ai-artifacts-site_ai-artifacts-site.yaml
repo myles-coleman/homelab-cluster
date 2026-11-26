@@ -14,7 +14,7 @@ spec:
         app: ai-artifacts-site
     spec:
       containers:
-      - image: ghcr.io/myles-coleman/ai-artifacts-site:sha-734320ebe422
+      - image: ghcr.io/myles-coleman/ai-artifacts-site:sha-bf1a91d5a1b8
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
