@@ -5,5 +5,4 @@ metadata:
 spec:
   policyName: deny-host-namespaces
   validationActions:
-  - Audit
-  - Warn
+  - Deny

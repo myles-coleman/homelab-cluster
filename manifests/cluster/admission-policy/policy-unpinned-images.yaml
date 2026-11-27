@@ -44,4 +44,8 @@ metadata:
   name: deny-unpinned-images
 spec:
   policyName: deny-unpinned-images
+  # Audit + Warn, not Deny: the signoz and signoz-k8s-infra charts hardcode
+  # busybox:1.35 in their Helm test-hook Pods, and no chart value overrides it
+  # (see scripts/dist-allowlist.txt). Denying would break `helm test` there. The
+  # rendered-Pod sweep in scripts/verify-admission-policy.sh is what surfaced it.
   validationActions: [Audit, Warn]

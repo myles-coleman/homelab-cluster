@@ -5,5 +5,4 @@ metadata:
 spec:
   policyName: require-nonroot
   validationActions:
-  - Audit
-  - Warn
+  - Deny
