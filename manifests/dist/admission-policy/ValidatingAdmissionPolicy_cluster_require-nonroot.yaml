@@ -1,0 +1,62 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: require-nonroot
+spec:
+  failurePolicy: Ignore
+  matchConditions:
+  - expression: |-
+      !(request.namespace in [
+
+        "kube-system",
+        "longhorn-system",
+        "cert-manager"
+      ])
+    name: not-exempt
+  matchConstraints:
+    resourceRules:
+    - apiGroups:
+      - ""
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - pods
+      scope: Namespaced
+  validations:
+  - expression: |-
+      !(has(object.spec.securityContext) &&
+
+        has(object.spec.securityContext.runAsUser) &&
+        object.spec.securityContext.runAsUser == 0) &&
+      !(has(object.spec.securityContext) &&
+
+        has(object.spec.securityContext.runAsNonRoot) &&
+        !object.spec.securityContext.runAsNonRoot) &&
+      object.spec.containers.all(c,
+
+        !(has(c.securityContext) &&
+          has(c.securityContext.runAsUser) &&
+          c.securityContext.runAsUser == 0) &&
+        !(has(c.securityContext) &&
+          has(c.securityContext.runAsNonRoot) &&
+          !c.securityContext.runAsNonRoot) &&
+        !(has(c.securityContext) &&
+          has(c.securityContext.allowPrivilegeEscalation) &&
+          c.securityContext.allowPrivilegeEscalation)) &&
+      (!has(object.spec.initContainers) ||
+
+        object.spec.initContainers.all(c,
+          !(has(c.securityContext) &&
+            has(c.securityContext.runAsUser) &&
+            c.securityContext.runAsUser == 0) &&
+          !(has(c.securityContext) &&
+            has(c.securityContext.runAsNonRoot) &&
+            !c.securityContext.runAsNonRoot) &&
+          !(has(c.securityContext) &&
+            has(c.securityContext.allowPrivilegeEscalation) &&
+            c.securityContext.allowPrivilegeEscalation)))
+    message: runAsUser 0, runAsNonRoot false and allowPrivilegeEscalation true are
+      not allowed in this namespace (ValidatingAdmissionPolicy require-nonroot)

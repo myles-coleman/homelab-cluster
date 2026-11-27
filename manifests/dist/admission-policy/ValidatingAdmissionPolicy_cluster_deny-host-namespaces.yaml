@@ -1,0 +1,33 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: deny-host-namespaces
+spec:
+  failurePolicy: Ignore
+  matchConditions:
+  - expression: |-
+      !(request.namespace in [
+
+        "kube-system",
+        "metallb-system",
+        "sandbox-telemetry",
+        "node-exporter"
+      ])
+    name: not-exempt
+  matchConstraints:
+    resourceRules:
+    - apiGroups:
+      - ""
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - pods
+      scope: Namespaced
+  validations:
+  - expression: '!(has(object.spec.hostNetwork) && object.spec.hostNetwork) && !(has(object.spec.hostPID)
+      && object.spec.hostPID) && !(has(object.spec.hostIPC) && object.spec.hostIPC)'
+    message: hostNetwork, hostPID and hostIPC are not allowed in this namespace (ValidatingAdmissionPolicy
+      deny-host-namespaces)

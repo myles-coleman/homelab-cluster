@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Pod invariants enforced at admission, so they see pods generated from custom
+# resources (agents.x-k8s.io Sandbox, ClickHouseInstallation) that no render-time
+# check can reach.
+#
+# v1 is deliberately non-blocking: every binding uses Audit + Warn. Audit records
+# the violation in the API audit log; Warn returns it to the client so
+# `kubectl --dry-run=server` can prove the rule fires without rejecting anything.
+# Promotion to Deny is a one-line change to a single binding, in its own commit.
+resources:
+  - policy-privileged.yaml
+  - policy-host-namespaces.yaml
+  - policy-unpinned-images.yaml
+  - policy-nonroot.yaml

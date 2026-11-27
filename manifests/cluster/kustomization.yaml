@@ -52,6 +52,10 @@ resources:
 - open-webui
 - signoz
 - signoz-k8s-infra
+# Pod invariants enforced at admission. Cluster-scoped policies live in their own
+# service directory so they render into dist/ and deploy through ArgoCD like
+# every other object; sync wave 0 puts them ahead of the workloads they check.
+- admission-policy
 - ai-artifacts-site
 - speedtest
 - node-exporter
