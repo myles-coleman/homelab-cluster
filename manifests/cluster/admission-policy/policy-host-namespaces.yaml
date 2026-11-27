@@ -38,4 +38,4 @@ metadata:
   name: deny-host-namespaces
 spec:
   policyName: deny-host-namespaces
-  validationActions: [Audit, Warn]
+  validationActions: [Deny]
