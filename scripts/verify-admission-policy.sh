@@ -28,10 +28,20 @@ trap 'rm -rf "$TMP"' EXIT
 failures=0
 checks=0
 
-action_of() {
-  kubectl get validatingadmissionpolicybinding "$1" \
-    -o jsonpath='{.spec.validationActions}' 2>/dev/null || true
+declare -A ACTIONS
+load_actions() {
+  local name actions
+  while IFS=$'\t' read -r name actions; do
+    [ -n "$name" ] && ACTIONS["$name"]="$actions"
+  done < <(kubectl get validatingadmissionpolicybindings \
+    -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.validationActions}{"\n"}{end}' 2>/dev/null || true)
 }
+
+action_of() {
+  printf '%s' "${ACTIONS[$1]:-}"
+}
+
+load_actions
 
 # submit FILE -> prints combined client output, non-zero when rejected.
 submit() {
@@ -152,26 +162,48 @@ for p in pods["items"]:
 print(len(pods["items"]))
 PY
 
+# count_finding OUT -> "deny", "audit", or "none"
+#
+# A finding for a Deny rule is a real outage risk: that pod would not be
+# recreatable. A finding for an Audit rule is the rule doing its job and is
+# expected while the rule is non-blocking, so it is reported but not failed.
+count_finding() {
+  local out="$1" p action seen="none"
+  for p in deny-privileged deny-host-namespaces deny-unpinned-images require-nonroot; do
+    printf '%s' "$out" | grep -q "$p" || continue
+    action="$(action_of "$p")"
+    case "$action" in
+      *Deny*) echo deny; return 0 ;;
+      *) seen="audit" ;;
+    esac
+  done
+  echo "$seen"
+}
+
 sweep_findings=0
+sweep_audit=0
 sweep_checked=0
 while IFS= read -r -d '' f; do
   sweep_checked=$((sweep_checked + 1))
   out="$(submit "$f")" && rc=0 || rc=$?
-  if printf '%s' "$out" | grep -qE 'Warning:.*(deny-privileged|deny-host-namespaces|deny-unpinned-images|require-nonroot)'; then
-    printf 'FAIL  %-45s\n' "$(basename "$f" .json)"
+  kind="$(count_finding "$out")"
+  if [ "$kind" = "deny" ] || { [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q 'Error from server (Forbidden)'; }; then
+    printf 'FAIL  %-45s would be rejected by a Deny rule\n' "$(basename "$f" .json)"
+    printf '%s\n' "$out" | grep -E '^(Warning:|Error)' | sed 's/^/      /'
+    sweep_findings=$((sweep_findings + 1))
+  elif [ "$kind" = "audit" ]; then
+    printf 'WARN  %-45s Audit finding (non-blocking)\n' "$(basename "$f" .json)"
     printf '%s\n' "$out" | grep '^Warning:' | sed 's/^/      /'
-    sweep_findings=$((sweep_findings + 1))
-  elif [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q 'Error from server (Forbidden)'; then
-    printf 'FAIL  %-45s rejected by an admission policy\n' "$(basename "$f" .json)"
-    printf '%s\n' "$out" | sed 's/^/      /'
-    sweep_findings=$((sweep_findings + 1))
+    sweep_audit=$((sweep_audit + 1))
   fi
 done < <(find "$TMP/pods" -name '*.json' -print0)
 
 checks=$((checks + 1))
 if [ "$sweep_findings" -ne 0 ]; then
-  printf 'FAIL  fleet sweep: %d finding(s) across %d pods\n' "$sweep_findings" "$sweep_checked"
+  printf 'FAIL  fleet sweep: %d Deny finding(s) across %d pods\n' "$sweep_findings" "$sweep_checked"
   failures=$((failures + 1))
+elif [ "$sweep_audit" -ne 0 ]; then
+  printf 'PASS  fleet sweep: 0 Deny, %d Audit finding(s) across %d pods\n' "$sweep_audit" "$sweep_checked"
 else
   printf 'PASS  fleet sweep: 0 findings across %d pods\n' "$sweep_checked"
 fi
@@ -206,25 +238,29 @@ print(n)
 PY
 
 rendered_findings=0
+rendered_audit=0
 rendered_checked=0
 while IFS= read -r -d '' f; do
   rendered_checked=$((rendered_checked + 1))
   out="$(submit "$f")" && rc=0 || rc=$?
-  if printf '%s' "$out" | grep -qE 'Warning:.*(deny-privileged|deny-host-namespaces|deny-unpinned-images|require-nonroot)'; then
-    printf 'FAIL  %-45s\n' "$(basename "$f" .json)"
+  kind="$(count_finding "$out")"
+  if [ "$kind" = "deny" ] || { [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q 'Error from server (Forbidden)'; }; then
+    printf 'FAIL  %-45s would be rejected by a Deny rule\n' "$(basename "$f" .json)"
+    printf '%s\n' "$out" | grep -E '^(Warning:|Error)' | sed 's/^/      /'
+    rendered_findings=$((rendered_findings + 1))
+  elif [ "$kind" = "audit" ]; then
+    printf 'WARN  %-45s Audit finding (non-blocking)\n' "$(basename "$f" .json)"
     printf '%s\n' "$out" | grep '^Warning:' | sed 's/^/      /'
-    rendered_findings=$((rendered_findings + 1))
-  elif [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q 'Error from server (Forbidden)'; then
-    printf 'FAIL  %-45s rejected by an admission policy\n' "$(basename "$f" .json)"
-    printf '%s\n' "$out" | sed 's/^/      /'
-    rendered_findings=$((rendered_findings + 1))
+    rendered_audit=$((rendered_audit + 1))
   fi
 done < <(find "$TMP/rendered" -name '*.json' -print0)
 
 checks=$((checks + 1))
 if [ "$rendered_findings" -ne 0 ]; then
-  printf 'FAIL  rendered pod sweep: %d finding(s) across %d pods\n' "$rendered_findings" "$rendered_checked"
+  printf 'FAIL  rendered pod sweep: %d Deny finding(s) across %d pods\n' "$rendered_findings" "$rendered_checked"
   failures=$((failures + 1))
+elif [ "$rendered_audit" -ne 0 ]; then
+  printf 'PASS  rendered pod sweep: 0 Deny, %d Audit finding(s) across %d pods\n' "$rendered_audit" "$rendered_checked"
 else
   printf 'PASS  rendered pod sweep: 0 findings across %d pods\n' "$rendered_checked"
 fi
