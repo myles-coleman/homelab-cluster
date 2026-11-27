@@ -52,4 +52,4 @@ spec:
   policyName: deny-privileged
   # Audit + Warn keeps v1 non-blocking while remaining observable. Promotion to
   # Deny is a one-line change here, in its own commit.
-  validationActions: [Audit, Warn]
+  validationActions: [Deny]
