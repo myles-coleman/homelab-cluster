@@ -222,12 +222,19 @@ that matches a Deployment never sees the pod a controller generates from a custo
 resource. These do see the `agents.x-k8s.io Sandbox` pod and the
 `ClickHouseInstallation` pods, which no `manifests/dist/` check can reach.
 
-| Rule | Rejects | Exempt namespaces |
-|------|---------|-------------------|
-| `deny-privileged` | any `privileged: true` container, including init/ephemeral | `kube-system`, `longhorn-system`, `cert-manager` |
-| `deny-host-namespaces` | `hostNetwork`, `hostPID`, `hostIPC` | `kube-system`, `metallb-system`, `sandbox-telemetry`, `node-exporter` |
-| `deny-unpinned-images` | any image without `@sha256:<64 hex>` | `kube-system`, `argocd`, `longhorn-system`, `ai-artifacts-site` |
-| `require-nonroot` | explicit `runAsUser: 0`, `runAsNonRoot: false`, `allowPrivilegeEscalation: true` | `kube-system`, `longhorn-system`, `cert-manager` |
+| Rule | Action | Rejects | Exempt namespaces |
+|------|--------|---------|-------------------|
+| `deny-privileged` | `Deny` | any `privileged: true` container, including init/ephemeral | `kube-system`, `longhorn-system`, `cert-manager` |
+| `deny-host-namespaces` | `Deny` | `hostNetwork`, `hostPID`, `hostIPC` | `kube-system`, `metallb-system`, `sandbox-telemetry`, `node-exporter` |
+| `deny-unpinned-images` | `Audit, Warn` | any image without `@sha256:<64 hex>` | `kube-system`, `argocd`, `longhorn-system`, `ai-artifacts-site` |
+| `require-nonroot` | `Deny` | explicit `runAsUser: 0`, `runAsNonRoot: false`, `allowPrivilegeEscalation: true` | `kube-system`, `longhorn-system`, `cert-manager` |
+
+`deny-unpinned-images` stays non-blocking on purpose. Three Pod manifests in
+`dist/` use the chart-hardcoded `busybox:1.35` Helm test hook
+(`signoz`, `signoz-k8s-infra`), which is on `scripts/dist-allowlist.txt` because
+no chart value overrides it. Promoting the rule would make `helm test` fail in
+those namespaces. The rule becomes promotable when those test images are
+pinnable, not before.
 
 The exemptions are enumerated in each policy's `matchConditions`, one namespace
 per line with a comment naming the measured violation. They are not a label
@@ -235,9 +242,10 @@ selector, so adding one is a reviewed line in a manifest.
 
 **Check before promoting a rule.** `task admission` runs
 `scripts/verify-admission-policy.sh`: server-side dry-run only, one bad pod per
-rule, one exempt pod per rule, and a re-submission of every running pod under a
-fresh name. A rule may be promoted from `Audit, Warn` to `Deny` only when the
-sweep reports zero unexpected warnings for it.
+rule, one exempt pod per rule, a re-submission of every running pod under a fresh
+name, and a re-submission of every `Pod` object in `manifests/dist/` — including
+Helm test hooks that are not running. A rule may be promoted from `Audit, Warn`
+to `Deny` only when both sweeps report zero unexpected findings for it.
 
 **Rollback is deleting the binding, never the policy.** A
 `ValidatingAdmissionPolicyBinding` with no binding is inert, so

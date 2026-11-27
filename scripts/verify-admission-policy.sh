@@ -21,7 +21,7 @@ cd "${ROOT}"
 
 PINNED_IMAGE="beebecomebigbee/openbooks:master@sha256:270c92ed679133374ad4c5bc2218b7a3f31bf4c3ec09a1e815add9f53be1c657"
 UNPINNED_IMAGE="beebecomebigbee/openbooks:master"
-PROBE_NAMESPACE="sonarr"
+PROBE_NAMESPACE="${VAP_PROBE_NAMESPACE:-sonarr}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -174,6 +174,59 @@ if [ "$sweep_findings" -ne 0 ]; then
   failures=$((failures + 1))
 else
   printf 'PASS  fleet sweep: 0 findings across %d pods\n' "$sweep_checked"
+fi
+
+echo
+echo "== rendered pod sweep =="
+
+# The live sweep cannot see a Pod manifest that exists only in dist/: Helm test
+# hooks, one-shot Jobs that have been pruned, and anything that has not run yet.
+# Those are exactly the pods a promotion would first reject, so submit them too.
+python3 - "$TMP/rendered" <<'PY'
+import glob, json, os, sys
+import yaml
+out = sys.argv[1]
+os.makedirs(out, exist_ok=True)
+n = 0
+for path in sorted(glob.glob("manifests/dist/*/*.yaml")):
+    try:
+        docs = list(yaml.safe_load_all(open(path)))
+    except Exception as exc:
+        sys.exit(f"cannot parse {path}: {exc}")
+    for doc in docs:
+        if not doc or doc.get("kind") != "Pod":
+            continue
+        md = doc.setdefault("metadata", {})
+        md["name"] = str(md.get("name", "pod")) + "-vap-rendered"
+        ns = md.get("namespace", "default")
+        with open(os.path.join(out, f"{ns}__{md['name']}.json"), "w") as fh:
+            json.dump(doc, fh)
+        n += 1
+print(n)
+PY
+
+rendered_findings=0
+rendered_checked=0
+while IFS= read -r -d '' f; do
+  rendered_checked=$((rendered_checked + 1))
+  out="$(submit "$f")" && rc=0 || rc=$?
+  if printf '%s' "$out" | grep -qE 'Warning:.*(deny-privileged|deny-host-namespaces|deny-unpinned-images|require-nonroot)'; then
+    printf 'FAIL  %-45s\n' "$(basename "$f" .json)"
+    printf '%s\n' "$out" | grep '^Warning:' | sed 's/^/      /'
+    rendered_findings=$((rendered_findings + 1))
+  elif [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -q 'Error from server (Forbidden)'; then
+    printf 'FAIL  %-45s rejected by an admission policy\n' "$(basename "$f" .json)"
+    printf '%s\n' "$out" | sed 's/^/      /'
+    rendered_findings=$((rendered_findings + 1))
+  fi
+done < <(find "$TMP/rendered" -name '*.json' -print0)
+
+checks=$((checks + 1))
+if [ "$rendered_findings" -ne 0 ]; then
+  printf 'FAIL  rendered pod sweep: %d finding(s) across %d pods\n' "$rendered_findings" "$rendered_checked"
+  failures=$((failures + 1))
+else
+  printf 'PASS  rendered pod sweep: 0 findings across %d pods\n' "$rendered_checked"
 fi
 
 echo
