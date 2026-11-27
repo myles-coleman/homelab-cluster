@@ -1,0 +1,47 @@
+# A tag-only image resolves against a registry at pull time, so "what ran" is not
+# answerable from the committed tree. `verify-dist.py` enforces digests on the
+# rendered artifact; this rule enforces the same invariant on the pod that is
+# actually created, including pods generated from custom resources.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: deny-unpinned-images
+spec:
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+        scope: Namespaced
+  matchConditions:
+    # kube-system and argocd are not managed by this repository; longhorn-system
+    # runs engine images that Longhorn itself constructs; ai-artifacts-site is on
+    # scripts/dist-allowlist.txt because its GHCR package needs read:packages.
+    - name: not-exempt
+      expression: >-
+        !(request.namespace in [
+          "kube-system",
+          "argocd",
+          "longhorn-system",
+          "ai-artifacts-site"
+        ])
+  validations:
+    - expression: >-
+        object.spec.containers.all(c, c.image.matches("@sha256:[a-f0-9]{64}$")) &&
+        (!has(object.spec.initContainers) ||
+          object.spec.initContainers.all(c, c.image.matches("@sha256:[a-f0-9]{64}$"))) &&
+        (!has(object.spec.ephemeralContainers) ||
+          object.spec.ephemeralContainers.all(c, c.image.matches("@sha256:[a-f0-9]{64}$")))
+      message: >-
+        container images must be pinned as tag@sha256:<64 hex>
+        (ValidatingAdmissionPolicy deny-unpinned-images)
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: deny-unpinned-images
+spec:
+  policyName: deny-unpinned-images
+  validationActions: [Audit, Warn]

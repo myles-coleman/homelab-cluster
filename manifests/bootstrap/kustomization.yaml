@@ -33,6 +33,7 @@ resources:
 - open-webui-app.yaml
 - signoz-app.yaml
 - signoz-k8s-infra-app.yaml
+- admission-policy-app.yaml
 - ai-artifacts-site-app.yaml
 - speedtest-app.yaml
 - node-exporter-app.yaml

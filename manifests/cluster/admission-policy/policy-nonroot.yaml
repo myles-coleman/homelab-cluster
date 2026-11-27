@@ -1,0 +1,68 @@
+# Explicit root is the other half of the privilege story: a container that sets
+# runAsUser: 0, disables runAsNonRoot, or re-enables privilege escalation can
+# reach host-owned files through a mounted volume even without privileged: true.
+#
+# This rule is deliberately narrow: it matches an explicit violation, not the
+# absence of a hardened securityContext. A "must set runAsNonRoot: true" rule
+# would flag almost every application in the cluster and belongs in a later spec.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: require-nonroot
+spec:
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+        scope: Namespaced
+  matchConditions:
+    - name: not-exempt
+      expression: >-
+        !(request.namespace in [
+          "kube-system",
+          "longhorn-system",
+          "cert-manager"
+        ])
+  validations:
+    - expression: >-
+        !(has(object.spec.securityContext) &&
+          has(object.spec.securityContext.runAsUser) &&
+          object.spec.securityContext.runAsUser == 0) &&
+        !(has(object.spec.securityContext) &&
+          has(object.spec.securityContext.runAsNonRoot) &&
+          !object.spec.securityContext.runAsNonRoot) &&
+        object.spec.containers.all(c,
+          !(has(c.securityContext) &&
+            has(c.securityContext.runAsUser) &&
+            c.securityContext.runAsUser == 0) &&
+          !(has(c.securityContext) &&
+            has(c.securityContext.runAsNonRoot) &&
+            !c.securityContext.runAsNonRoot) &&
+          !(has(c.securityContext) &&
+            has(c.securityContext.allowPrivilegeEscalation) &&
+            c.securityContext.allowPrivilegeEscalation)) &&
+        (!has(object.spec.initContainers) ||
+          object.spec.initContainers.all(c,
+            !(has(c.securityContext) &&
+              has(c.securityContext.runAsUser) &&
+              c.securityContext.runAsUser == 0) &&
+            !(has(c.securityContext) &&
+              has(c.securityContext.runAsNonRoot) &&
+              !c.securityContext.runAsNonRoot) &&
+            !(has(c.securityContext) &&
+              has(c.securityContext.allowPrivilegeEscalation) &&
+              c.securityContext.allowPrivilegeEscalation)))
+      message: >-
+        runAsUser 0, runAsNonRoot false and allowPrivilegeEscalation true are not
+        allowed in this namespace (ValidatingAdmissionPolicy require-nonroot)
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: require-nonroot
+spec:
+  policyName: require-nonroot
+  validationActions: [Audit, Warn]

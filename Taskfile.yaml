@@ -68,6 +68,15 @@ tasks:
     cmds:
       - ./scripts/generate-apps.sh
 
+  admission:
+    desc: Prove the admission policies fire, and only where they should
+    summary: |
+      Server-side dry-run only: nothing is created or modified. Submits one bad
+      pod per rule, one exempt pod per rule, and a copy of every running pod.
+      Run before promoting a rule to Deny and again afterwards.
+    cmds:
+      - ./scripts/verify-admission-policy.sh
+
   helm:
     desc: Re-render one chart's generated output (task helm SERVICE=<name>)
     summary: |

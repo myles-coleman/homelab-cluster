@@ -39,6 +39,9 @@ namespace_map["cert-manager-csi-driver"]="cert-manager"
 declare -A sync_wave_map
 # Wave 0: Core infrastructure
 sync_wave_map["external-secrets"]="0"
+# Pod invariants must exist before any workload is created. The directory is
+# cluster-scoped only; a binding deleted here is the rollback, never the policy.
+sync_wave_map["admission-policy"]="0"
 sync_wave_map["cert-manager"]="1"
 # Wave 2: Network infrastructure
 sync_wave_map["traefik"]="2"

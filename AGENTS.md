@@ -214,6 +214,43 @@ All applications are configured with:
 - **Self-heal**: Manual changes to cluster resources are reverted to match Git
 - **Retry**: 5 retries with exponential backoff (30s → 2m)
 
+### Admission policy — pod invariants
+
+`manifests/cluster/admission-policy/` holds four `ValidatingAdmissionPolicy` +
+binding pairs that match **Pods**, not Deployments. That is deliberate: a policy
+that matches a Deployment never sees the pod a controller generates from a custom
+resource. These do see the `agents.x-k8s.io Sandbox` pod and the
+`ClickHouseInstallation` pods, which no `manifests/dist/` check can reach.
+
+| Rule | Rejects | Exempt namespaces |
+|------|---------|-------------------|
+| `deny-privileged` | any `privileged: true` container, including init/ephemeral | `kube-system`, `longhorn-system`, `cert-manager` |
+| `deny-host-namespaces` | `hostNetwork`, `hostPID`, `hostIPC` | `kube-system`, `metallb-system`, `sandbox-telemetry`, `node-exporter` |
+| `deny-unpinned-images` | any image without `@sha256:<64 hex>` | `kube-system`, `argocd`, `longhorn-system`, `ai-artifacts-site` |
+| `require-nonroot` | explicit `runAsUser: 0`, `runAsNonRoot: false`, `allowPrivilegeEscalation: true` | `kube-system`, `longhorn-system`, `cert-manager` |
+
+The exemptions are enumerated in each policy's `matchConditions`, one namespace
+per line with a comment naming the measured violation. They are not a label
+selector, so adding one is a reviewed line in a manifest.
+
+**Check before promoting a rule.** `task admission` runs
+`scripts/verify-admission-policy.sh`: server-side dry-run only, one bad pod per
+rule, one exempt pod per rule, and a re-submission of every running pod under a
+fresh name. A rule may be promoted from `Audit, Warn` to `Deny` only when the
+sweep reports zero unexpected warnings for it.
+
+**Rollback is deleting the binding, never the policy.** A
+`ValidatingAdmissionPolicyBinding` with no binding is inert, so
+`git revert <promotion-commit>` and let ArgoCD sync restores admission
+immediately while leaving the policy object in place. Do not delete the policy
+first: the binding would then have nothing to apply, but the safer, reversible
+move is the reverse.
+
+**Mutating policies are deliberately not used.** `MutatingAdmissionPolicy` has no
+audit mode — its first apply mutates the whole fleet — so seccomp defaulting and
+similar defaulting work needs its own canary spec first.
+
+
 ---
 
 ## 4. Service Onboarding Guide

@@ -1,0 +1,41 @@
+# hostNetwork / hostPID / hostIPC collapse the pod's isolation boundary: the
+# process shares the node's network, process table, or IPC namespace. Only node
+# agents and the load-balancer speaker need them, and each is listed below.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: deny-host-namespaces
+spec:
+  failurePolicy: Ignore
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+        scope: Namespaced
+  matchConditions:
+    - name: not-exempt
+      expression: >-
+        !(request.namespace in [
+          "kube-system",
+          "metallb-system",
+          "sandbox-telemetry",
+          "node-exporter"
+        ])
+  validations:
+    - expression: >-
+        !(has(object.spec.hostNetwork) && object.spec.hostNetwork) &&
+        !(has(object.spec.hostPID) && object.spec.hostPID) &&
+        !(has(object.spec.hostIPC) && object.spec.hostIPC)
+      message: >-
+        hostNetwork, hostPID and hostIPC are not allowed in this namespace
+        (ValidatingAdmissionPolicy deny-host-namespaces)
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: deny-host-namespaces
+spec:
+  policyName: deny-host-namespaces
+  validationActions: [Audit, Warn]

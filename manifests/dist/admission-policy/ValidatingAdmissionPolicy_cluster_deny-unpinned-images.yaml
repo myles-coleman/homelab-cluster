@@ -1,0 +1,38 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: deny-unpinned-images
+spec:
+  failurePolicy: Ignore
+  matchConditions:
+  - expression: |-
+      !(request.namespace in [
+
+        "kube-system",
+        "argocd",
+        "longhorn-system",
+        "ai-artifacts-site"
+      ])
+    name: not-exempt
+  matchConstraints:
+    resourceRules:
+    - apiGroups:
+      - ""
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - pods
+      scope: Namespaced
+  validations:
+  - expression: |-
+      object.spec.containers.all(c, c.image.matches("@sha256:[a-f0-9]{64}$")) && (!has(object.spec.initContainers) ||
+
+        object.spec.initContainers.all(c, c.image.matches("@sha256:[a-f0-9]{64}$"))) &&
+      (!has(object.spec.ephemeralContainers) ||
+
+        object.spec.ephemeralContainers.all(c, c.image.matches("@sha256:[a-f0-9]{64}$")))
+    message: container images must be pinned as tag@sha256:<64 hex> (ValidatingAdmissionPolicy
+      deny-unpinned-images)
