@@ -86,6 +86,13 @@ def baseline_violations(spec):
                 out.append(name + ":procMount")
             if (sc.get("seccompProfile") or {}).get("type") == "Unconfined":
                 out.append(name + ":seccomp=Unconfined")
+            if (sc.get("appArmorProfile") or {}).get("type") == "Unconfined":
+                out.append(name + ":appArmor=Unconfined")
+            if (sc.get("windowsOptions") or {}).get("hostProcess"):
+                out.append(name + ":hostProcess")
+            for port in container.get("ports") or []:
+                if port.get("hostPort"):
+                    out.append(f"{name}:hostPort:{port['hostPort']}")
             for cap in (sc.get("capabilities") or {}).get("add") or []:
                 if cap.upper() not in ALLOWED_CAPS:
                     out.append(name + ":cap:" + cap)
