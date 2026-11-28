@@ -197,7 +197,7 @@ ArgoCD deploys services in wave order (lower numbers first). This ensures depend
 
 | Wave | Services | Rationale |
 |------|----------|-----------|
-| 0 | external-secrets | Secrets must be available for all other services |
+| 0 | external-secrets, admission-policy | Secrets must be available for all other services; pod invariants must exist before any workload is created |
 | 1 | cert-manager | TLS certificates needed for ingress |
 | 2 | traefik, metallb | Networking layer (ingress + load balancer) |
 | 3 | longhorn | Storage layer for persistent workloads |
