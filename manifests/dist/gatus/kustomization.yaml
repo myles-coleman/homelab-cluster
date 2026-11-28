@@ -5,5 +5,7 @@ resources:
 - Deployment_gatus_gatus.yaml
 - HTTPRoute_gatus_gatus.yaml
 - Namespace_cluster_gatus.yaml
+- NetworkPolicy_gatus_baseline-allow.yaml
+- NetworkPolicy_gatus_baseline-default-deny.yaml
 - PersistentVolumeClaim_gatus_gatus-data.yaml
 - Service_gatus_gatus.yaml

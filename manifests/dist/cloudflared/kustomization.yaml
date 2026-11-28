@@ -4,4 +4,6 @@ resources:
 - Deployment_cloudflared_cloudflare-tunnel-cloudflare-tunnel-remote.yaml
 - ExternalSecret_cloudflared_cloudflare-tunnel-credentials.yaml
 - Namespace_cluster_cloudflared.yaml
+- NetworkPolicy_cloudflared_baseline-allow.yaml
+- NetworkPolicy_cloudflared_baseline-default-deny.yaml
 - ServiceAccount_cloudflared_cloudflare-tunnel-cloudflare-tunnel-remote.yaml

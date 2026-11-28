@@ -10,3 +10,6 @@ resources:
 # Data-bearing objects cannot be pruned. See _prune-protection/.
 components:
   - ../_prune-protection
+  # Baseline network posture: default-deny, in-namespace + Traefik + SigNoz
+  # ingress, all egress including DNS. See _netpols/README.md.
+  - ../_netpols/_baseline

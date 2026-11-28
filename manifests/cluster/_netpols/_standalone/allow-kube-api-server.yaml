@@ -1,0 +1,23 @@
+# A separately scoped allow for the API server, intended to be combined with
+# _strict. It is not a posture on its own.
+#
+# kube-proxy DNATs the `kubernetes` Service ClusterIP to a control-plane node
+# before the policy is evaluated, so the selectable peer is the node network on
+# 6443, not the Service IP. 10.0.0.128/25 covers node0-node4 (10.0.0.140-144)
+# and the kube-vip API VIP (10.0.0.200). Narrow the ports or the CIDR in the
+# consuming service if it only needs one of them.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: standalone-allow-kube-api-server
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.128/25
+      ports:
+        - protocol: TCP
+          port: 6443

@@ -7,6 +7,8 @@ resources:
 - Deployment_homepage_homepage.yaml
 - HTTPRoute_homepage_portal.yaml
 - Namespace_cluster_homepage.yaml
+- NetworkPolicy_homepage_baseline-allow.yaml
+- NetworkPolicy_homepage_baseline-default-deny.yaml
 - PodDisruptionBudget_homepage_homepage.yaml
 - Secret_homepage_homepage.yaml
 - ServiceAccount_homepage_homepage.yaml

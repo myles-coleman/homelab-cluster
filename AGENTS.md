@@ -258,6 +258,69 @@ move is the reverse.
 audit mode — its first apply mutates the whole fleet — so seccomp defaulting and
 similar defaulting work needs its own canary spec first.
 
+### Network policy and Pod Security
+
+**NetworkPolicy components.** `manifests/cluster/_netpols/` holds four Kustomize
+Components. A service opts in with one line in its `kustomization.yaml` and needs
+a top-level `namespace:` so the component's policies land in the right place:
+
+```yaml
+namespace: myservice
+components:
+  - ../_prune-protection
+  - ../_netpols/_baseline
+```
+
+| Component | Posture |
+|---|---|
+| `_strict` | Default-deny ingress and egress. Add explicit allows, including DNS. |
+| `_baseline` | Default-deny; allow in-namespace, `traefik`, and SigNoz ingress; **all egress including DNS**. |
+| `_permissive` | Default-deny; allow ingress from anywhere in the cluster; all egress. |
+| `_standalone` | API-server egress allow only; combine with `_strict`. |
+
+`_baseline` is the default in `_template` and is adopted by `gatus`,
+`homepage`, `speedtest`, `cloudflared`, and `openbooks`. The other namespaces are
+not migrated yet: each needs its cross-namespace callers enumerated, and a wrong
+deny is an outage.
+
+The three `agent-*` namespaces keep hand-written policies on purpose. The sandbox
+drops DNS as an exfiltration control, the validator has no resolver at all, and
+the publisher allows egress only to GitHub. A generic baseline would undo all
+three. See `manifests/cluster/_netpols/README.md`.
+
+**Pod Security labels are measured, never guessed.** Every repo-managed
+namespace carries `pod-security.kubernetes.io/{enforce,audit,warn}`. The level is
+derived by `scripts/audit-pss.py` from **both** live pods and rendered templates:
+`baseline` when both are clean, `privileged` when either has a host-level
+requirement, and `restricted` is kept only where the workloads actually satisfy
+it (the four `agent-*` namespaces).
+
+Run `task pss` after changing a workload. It fails when a namespace has no
+label, when a baseline-clean namespace is labelled `privileged`, or when a
+`restricted` label is not satisfied — the latent case where the cluster looks
+healthy until the next pod restart.
+
+The eight `privileged` namespaces and their measured reasons:
+
+| Namespace | Why |
+|---|---|
+| `cert-manager` | CSI driver is privileged and mounts kubelet host paths |
+| `longhorn-system` | Manager/engine/CSI pods are privileged with host mounts |
+| `metallb-system` | Speaker is `hostNetwork` with `NET_RAW` |
+| `node-exporter` | `hostPID` plus `/`, `/proc`, `/sys` host mounts |
+| `prowlarr` | Tailscale sidecar adds `NET_ADMIN` and `/dev/net/tun` |
+| `qbittorrent` | Same Tailscale sidecar shape |
+| `sandbox-telemetry` | `hostNetwork` to reach the sandbox node's tailnet route |
+| `signoz-k8s-infra` | OTel agent mounts `/`, `/var/log`, `/var/lib/docker/containers` |
+
+`kube-system` is unlabelled because this repository does not own it.
+
+**Admission is the backstop for CR-generated pods.** NetworkPolicy and PSS are
+namespace-level and render-time; they cannot see the `Sandbox` pod or the
+`ClickHouseInstallation` pods. The `ValidatingAdmissionPolicy` rules above are
+the enforcement point for those, and a render-time check must not be described
+as if it covered them.
+
 
 ---
 
@@ -272,6 +335,12 @@ Copy the template: `cp -r manifests/cluster/_template manifests/cluster/<service
 ### Step 2: Edit the Manifests
 
 Update all placeholder values in the copied files (namespace.yaml, deployment.yaml, service.yaml, httproute.yaml, kustomization.yaml). Use any existing service (e.g., `manifests/cluster/sonarr/`) as a reference for a complete working example.
+
+The template now copies with the baseline network posture (`_netpols/_baseline`)
+and a top-level `namespace: CHANGEME`. Replace `CHANGEME` in **both**
+`namespace.yaml` and `kustomization.yaml`, then run `task pss`; the new
+namespace needs an explicit Pod Security label at the level its workloads can
+satisfy.
 
 ### Step 3: Optional Resources
 

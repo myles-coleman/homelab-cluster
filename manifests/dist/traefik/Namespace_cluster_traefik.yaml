@@ -5,4 +5,7 @@ metadata:
     argocd.argoproj.io/sync-options: Prune=false
   labels:
     name: traefik
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: baseline
   name: traefik
