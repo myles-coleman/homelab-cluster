@@ -56,7 +56,6 @@ jobs:
   advisory:
     name: conftest-advisory
     runs-on: ubuntu-24.04
-    continue-on-error: true
     permissions:
       contents: read
     steps:
@@ -82,4 +81,7 @@ jobs:
           conftest --version
 
       - name: Advisory report
+        # Step-level, not job-level: the job stays green so a red check does not
+        # read as "this PR broke policy", while the findings are printed in full.
+        continue-on-error: true
         run: ./scripts/test-conftest.sh --report
