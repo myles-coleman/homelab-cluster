@@ -5,4 +5,6 @@ resources:
 - Deployment_speedtest_speedtest-collector.yaml
 - Deployment_speedtest_speedtest-exporter.yaml
 - Namespace_cluster_speedtest.yaml
+- NetworkPolicy_speedtest_baseline-allow.yaml
+- NetworkPolicy_speedtest_baseline-default-deny.yaml
 - Service_speedtest_speedtest-exporter.yaml

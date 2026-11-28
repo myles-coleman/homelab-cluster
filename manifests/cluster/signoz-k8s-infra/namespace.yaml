@@ -1,4 +1,14 @@
+# Pod Security Admission: baseline where the workloads satisfy it,
+# privileged where a verified host-level requirement does not. The level is
+# derived by scripts/audit-pss.py from live pods and rendered templates; run
+# task pss after changing a workload.
+#
+# Measured exception: the OTel agent mounts `/`, `/var/log` and `/var/lib/docker/containers` to read host logs.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: signoz-k8s-infra
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged

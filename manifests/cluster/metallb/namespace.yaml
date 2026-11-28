@@ -1,3 +1,7 @@
+# Pod Security Admission is explicit rather than inherited.
+#
+# Measured exception: the MetalLB speaker is hostNetwork with NET_RAW to
+# answer ARP for the LoadBalancer VIP.
 apiVersion: v1
 kind: Namespace
 metadata:

@@ -1,4 +1,14 @@
+# Pod Security Admission: baseline where the workloads satisfy it,
+# privileged where a verified host-level requirement does not. The level is
+# derived by scripts/audit-pss.py from live pods and rendered templates; run
+# task pss after changing a workload.
+#
+# Measured exception: the cert-manager CSI driver runs privileged and mounts kubelet host paths.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: cert-manager
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged

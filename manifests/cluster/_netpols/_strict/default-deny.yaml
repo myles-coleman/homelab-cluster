@@ -1,0 +1,12 @@
+# Deny every ingress and egress flow in the namespace. The service must add its
+# own allows, including DNS: this component deliberately provides none, so a
+# missing allow fails closed rather than silently working.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: strict-default-deny
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress

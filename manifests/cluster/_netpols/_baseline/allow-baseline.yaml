@@ -1,0 +1,29 @@
+# The baseline posture: in-namespace traffic, the ingress controller, and the
+# monitoring stack may reach a pod; everything else is denied. Egress is open,
+# including DNS — a default-deny egress without a resolver takes the cluster
+# down, and narrowing egress is what _strict is for.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: baseline-allow
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: signoz
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: signoz-k8s-infra
+  egress:
+    - {}

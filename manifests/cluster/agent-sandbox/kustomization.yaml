@@ -17,3 +17,21 @@ resources:
 # Data-bearing objects cannot be pruned. See _prune-protection/.
 components:
   - ../_prune-protection
+
+# The vendored upstream manifest creates agent-sandbox-system with no Pod
+# Security labels. Baseline is what its controller pod actually satisfies; the
+# patch lives here rather than in the vendored file so the upstream hash stays
+# meaningful.
+patches:
+  - target:
+      kind: Namespace
+      name: agent-sandbox-system
+    patch: |
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: agent-sandbox-system
+        labels:
+          pod-security.kubernetes.io/enforce: baseline
+          pod-security.kubernetes.io/audit: baseline
+          pod-security.kubernetes.io/warn: baseline

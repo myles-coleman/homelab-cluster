@@ -77,6 +77,20 @@ tasks:
     cmds:
       - ./scripts/verify-admission-policy.sh
 
+  pss:
+    desc: Check every namespace's Pod Security label against its workloads
+    summary: |
+      Reads live pods and rendered templates. Fails when a namespace has no
+      enforce label, when baseline workloads are labelled privileged, or when a
+      restricted label is not actually satisfied.
+    cmds:
+      - python3 scripts/audit-pss.py --check
+
+  netpol:
+    desc: Check the NetworkPolicy components build and inherit a namespace
+    cmds:
+      - ./scripts/check-netpol-components.sh
+
   helm:
     desc: Re-render one chart's generated output (task helm SERVICE=<name>)
     summary: |

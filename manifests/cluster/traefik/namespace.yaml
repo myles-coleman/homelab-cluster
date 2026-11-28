@@ -1,6 +1,13 @@
+# Pod Security Admission: baseline where the workloads satisfy it,
+# privileged where a verified host-level requirement does not. The level is
+# derived by scripts/audit-pss.py from live pods and rendered templates; run
+# task pss after changing a workload.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: traefik
   labels:
     name: traefik
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/warn: baseline

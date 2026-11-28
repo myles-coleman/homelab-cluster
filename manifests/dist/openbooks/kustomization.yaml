@@ -4,6 +4,8 @@ resources:
 - Deployment_openbooks_openbooks.yaml
 - HTTPRoute_openbooks_openbooks.yaml
 - Namespace_cluster_openbooks.yaml
+- NetworkPolicy_openbooks_baseline-allow.yaml
+- NetworkPolicy_openbooks_baseline-default-deny.yaml
 - PersistentVolumeClaim_openbooks_openbooks-books.yaml
 - PersistentVolume_cluster_openbooks-books.yaml
 - Service_openbooks_openbooks.yaml
