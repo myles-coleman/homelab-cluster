@@ -21,7 +21,11 @@ cd "${ROOT}"
 
 PINNED_IMAGE="beebecomebigbee/openbooks:master@sha256:270c92ed679133374ad4c5bc2218b7a3f31bf4c3ec09a1e815add9f53be1c657"
 UNPINNED_IMAGE="beebecomebigbee/openbooks:master"
-PROBE_NAMESPACE="${VAP_PROBE_NAMESPACE:-sonarr}"
+# The probe namespace must not carry a Pod Security `enforce` label, or PSA
+# rejects a privileged/hostNetwork probe before the ValidatingAdmissionPolicy
+# sees it and the check cannot tell which control fired. `default` is unmanaged
+# and unlabelled; every repo-managed namespace is now baseline or privileged.
+PROBE_NAMESPACE="${VAP_PROBE_NAMESPACE:-default}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
