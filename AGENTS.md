@@ -66,6 +66,7 @@ There is no dedicated GPU node. The five Raspberry Pi 5 nodes (`node0`–`node4`
 - `manifests/cluster/kustomization.yaml` — Source of truth for all active services.
 - `manifests/bootstrap/` — AUTO-GENERATED ArgoCD Application definitions. Never edit directly.
 - `manifests/dist/` — AUTO-GENERATED rendered manifests. This is what ArgoCD applies. Never edit directly.
+- `tests/policy/` — advisory Conftest/Rego rules over `manifests/dist/`; `tests/fixtures/` holds the pass/fail cases that prove each rule fires.
 - `docs/` — Plain Markdown documentation, browsable in the repository.
 - `scripts/generate-apps.sh` — Generates ArgoCD Application YAMLs from the cluster kustomization.
 - `renovate.json` — Renovate config. It bumps image tags in `manifests/cluster/` and is blocked from `manifests/dist/`, so a Renovate PR always needs a re-render (see below).
@@ -320,6 +321,44 @@ namespace-level and render-time; they cannot see the `Sandbox` pod or the
 `ClickHouseInstallation` pods. The `ValidatingAdmissionPolicy` rules above are
 the enforcement point for those, and a render-time check must not be described
 as if it covered them.
+
+### Advisory manifest policy (Conftest)
+
+`tests/policy/` holds four Rego rules run over `manifests/dist/`:
+
+| Rule | Asserts |
+|---|---|
+| `images.rego` | every image is `tag@sha256:<64 hex>` |
+| `privilege.rego` | no privileged, uid 0, or `allowPrivilegeEscalation` container; named triples are exempt |
+| `netpol.rego` | a namespace with a workload has at least one NetworkPolicy |
+| `secret.rego` | no `Secret` with a populated `data`/`stringData` in `dist/` |
+
+**It is advisory, not a gate.** `task conftest` runs the fixtures and then the
+report. The CI job `conftest-advisory` is `continue-on-error` and is not in the
+`main-protection` required checks. The first run over the current tree reports
+42 missing-NetworkPolicy findings, 4 allowlisted unpinned images, and 5 populated
+`Secret` objects (Helm placeholders and a config-in-Secret) — that is the point
+of starting advisory.
+
+**Every rule has a `fixtures/<rule>/{pass,fail}` pair and the fail case is
+asserted to fail for the right reason.** A rule without a fail fixture can match
+nothing and pass vacuously; `tests/policy/lib.rego` exists because the
+`spec.template.spec` / CronJob / Sandbox paths are easy to get wrong. Never
+delete a fail fixture to make the suite green.
+
+`--combine` is required: the rules index `input[i].contents` and the
+NetworkPolicy rule is a cross-document assertion. Without it every run is green
+and checks nothing.
+
+**Blind spot, stated once:** this suite validates the artifact, not the cluster.
+It cannot see the `Sandbox` pod, the `ClickHouse` pods, or runtime drift.
+Admission (above) is the enforcement point; do not describe Conftest as if it
+covered those pods.
+
+**Promotion criterion:** the suite becomes a blocking check when `main` has been
+clean on the report for two consecutive weeks, with the NetPolicy findings
+triaged into adopt-fix-or-exempt. Until then it stays advisory, because a suite
+that is disabled in week one is worse than no suite.
 
 
 ---

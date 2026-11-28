@@ -91,6 +91,14 @@ tasks:
     cmds:
       - ./scripts/check-netpol-components.sh
 
+  conftest:
+    desc: Run the advisory Conftest suite (fixtures + dist report)
+    summary: |
+      Fixtures prove each policy fires; the report is advisory and expected to
+      be noisy on the current tree. Not a merge gate.
+    cmds:
+      - ./scripts/test-conftest.sh --all
+
   helm:
     desc: Re-render one chart's generated output (task helm SERVICE=<name>)
     summary: |

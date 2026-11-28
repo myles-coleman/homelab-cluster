@@ -1,0 +1,87 @@
+name: Conftest advisory
+
+# Two jobs with different jobs:
+#
+#   fixtures  — proves each policy actually fires. Not a required check, but it
+#               is the anti-vacuity gate and should never be deleted.
+#   advisory  — runs the policies over manifests/dist/. The first run over 40
+#               services is expected to be noisy, so it is continue-on-error and
+#               deliberately not in main-protection's required checks.
+#
+# The `test` job in dist-verify.yml is the required check; nothing here renames
+# or replaces it.
+
+on:
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: conftest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixtures:
+    name: conftest-fixtures
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned conftest
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          source scripts/tools.env
+          base="https://github.com/open-policy-agent/conftest/releases/download"
+          archive="conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
+          curl -fsSL --retry 3 -o "/tmp/${archive}" \
+            "${base}/v${CONFTEST_VERSION}/${archive}"
+          curl -fsSL --retry 3 -o /tmp/conftest-checksums.txt \
+            "${base}/v${CONFTEST_VERSION}/checksums.txt"
+          ( cd /tmp && grep " ${archive}\$" conftest-checksums.txt | sha256sum -c - )
+          tar -xzf "/tmp/${archive}" -C /tmp conftest
+          install -m 0755 /tmp/conftest /usr/local/bin/conftest
+          conftest --version
+
+      - name: Fixtures
+        run: ./scripts/test-conftest.sh --fixtures
+
+  advisory:
+    name: conftest-advisory
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned conftest
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1091
+          source scripts/tools.env
+          base="https://github.com/open-policy-agent/conftest/releases/download"
+          archive="conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
+          curl -fsSL --retry 3 -o "/tmp/${archive}" \
+            "${base}/v${CONFTEST_VERSION}/${archive}"
+          curl -fsSL --retry 3 -o /tmp/conftest-checksums.txt \
+            "${base}/v${CONFTEST_VERSION}/checksums.txt"
+          ( cd /tmp && grep " ${archive}\$" conftest-checksums.txt | sha256sum -c - )
+          tar -xzf "/tmp/${archive}" -C /tmp conftest
+          install -m 0755 /tmp/conftest /usr/local/bin/conftest
+          conftest --version
+
+      - name: Advisory report
+        # Step-level, not job-level: the job stays green so a red check does not
+        # read as "this PR broke policy", while the findings are printed in full.
+        continue-on-error: true
+        run: ./scripts/test-conftest.sh --report
